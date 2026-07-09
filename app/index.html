@@ -44,6 +44,21 @@ const est={
   badge:(color)=>({display:"inline-block",fontSize:11,fontWeight:700,color,background:color+"1a",borderRadius:6,padding:"3px 8px"})
 };
 const colorEstatus={vigente:"#16a34a",vencida:"#dc2626",renovada:"#2563eb",cancelada:"#6b7280"};
+
+function vigenciaCalculada(p){
+  if(p.estatus==="renovada"||p.estatus==="cancelada")return{label:p.estatus,dias:null};
+  if(!p.fecha_fin)return{label:p.estatus,dias:null};
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const fin=new Date(p.fecha_fin+"T00:00:00");
+  const dias=Math.round((fin-hoy)/86400000);
+  return{label:dias<0?"vencida":"vigente",dias};
+}
+function textoDias(dias){
+  if(dias==null)return"";
+  if(dias<0)return`Venció hace ${Math.abs(dias)} día${Math.abs(dias)===1?"":"s"}`;
+  if(dias===0)return"Vence hoy";
+  return`Vence en ${dias} día${dias===1?"":"s"}`;
+}
 const pesos=n=>n==null?"—":new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(n);
 const fecha=d=>d?new Date(d+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"}):"—";
 
@@ -436,13 +451,16 @@ function PolizasList({clienteId,agenteId}){
     {polizas&&polizas.length===0&&!formAbierto&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
       Este cliente todavía no tiene pólizas registradas.
     </div>}
-    {polizas&&polizas.map(p=><div key={p.id} style={{...est.card,marginBottom:10}}>
+    {polizas&&polizas.map(p=>{
+      const vig=vigenciaCalculada(p);
+      return <div key={p.id} style={{...est.card,marginBottom:10}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div>
           <div style={{fontWeight:700,fontSize:14}}>{p.ramo} — {p.aseguradora||"Sin aseguradora"}</div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>Póliza {p.numero_poliza||"—"} · {fecha(p.fecha_inicio)} a {fecha(p.fecha_fin)}</div>
+          {vig.dias!=null&&<div style={{fontSize:12,color:vig.dias<0?"#dc2626":vig.dias<=15?"#F59E0B":"#8FA0B4",marginTop:2,fontWeight:600}}>{textoDias(vig.dias)}</div>}
         </div>
-        <span style={est.badge(colorEstatus[p.estatus]||"#6b7280")}>{p.estatus}</span>
+        <span style={est.badge(colorEstatus[vig.label]||"#6b7280")}>{vig.label}</span>
       </div>
       <div style={{marginTop:10,fontSize:13,color:"#374151",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span>{pesos(p.prima)} {p.forma_pago?`· ${p.forma_pago}`:""}</span>
@@ -452,7 +470,8 @@ function PolizasList({clienteId,agenteId}){
           <button onClick={()=>eliminar(p)} style={{...est.linkBtn,color:"#dc2626"}}>Eliminar</button>
         </div>
       </div>
-    </div>)}
+    </div>;
+    })}
   </div>;
 }
 
