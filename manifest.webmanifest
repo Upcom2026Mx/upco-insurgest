@@ -1,0 +1,16 @@
+{
+  "name": "Upco InsurGest",
+  "short_name": "InsurGest",
+  "description": "Control de pólizas para agentes de seguros — UPCO",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#10284A",
+  "theme_color": "#10284A",
+  "lang": "es-MX",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
