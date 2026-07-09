@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Upco InsurGest — Panel del agente</title>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="../manifest.webmanifest"/>
+<link rel="icon" href="../icon-192.png"/>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect}=React;
+const SUPABASE_URL="https://pxcvckqahkjlizgotvqw.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_F2WhknXrY8MLjI5ftd0H6w_-XXjej6I";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+function Boton({children,onClick,disabled,color="#10284A",type="button"}){
+  return <button type={type} onClick={onClick} disabled={disabled}
+    style={{background:disabled?"#DDE4EE":color,color:disabled?"#9ca3af":"#fff",border:"none",borderRadius:10,padding:"12px 18px",fontSize:15,fontWeight:700,cursor:disabled?"not-allowed":"pointer"}}>
+    {children}
+  </button>;
+}
+
+function Login(){
+  const[email,setEmail]=useState("");
+  const[password,setPassword]=useState("");
+  const[error,setError]=useState("");
+  const[cargando,setCargando]=useState(false);
+
+  const entrar=async(e)=>{
+    e.preventDefault();
+    if(!email||!email.includes("@")){setError("Escribe un correo válido.");return;}
+    if(!password){setError("Escribe tu contraseña.");return;}
+    setError("");setCargando(true);
+    const{error}=await sb.auth.signInWithPassword({email:email.trim(),password});
+    setCargando(false);
+    if(error){setError("Correo o contraseña incorrectos.");return;}
+  };
+
+  return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <form onSubmit={entrar} style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>
+      <div style={{fontSize:20,fontWeight:800,marginBottom:4}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
+      <div style={{fontSize:14,color:"#6B7280",marginBottom:20}}>Panel del agente</div>
+      <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username"
+        style={{width:"100%",padding:"12px 14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10}}/>
+      <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="tu contraseña" type="password" autoComplete="current-password"
+        style={{width:"100%",padding:"12px 14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:12}}/>
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <div style={{width:"100%"}}><Boton type="submit" disabled={cargando}>{cargando?"Entrando...":"Iniciar sesión"}</Boton></div>
+    </form>
+  </div>;
+}
+
+function Panel({session,onSalir}){
+  const[agente,setAgente]=useState(null);
+  const[error,setError]=useState("");
+
+  useEffect(()=>{
+    (async()=>{
+      const{data,error:errSel}=await sb.from("agentes").select("*").eq("id",session.user.id).maybeSingle();
+      if(errSel){setError(errSel.message);return;}
+      if(data){setAgente(data);return;}
+      const{data:nuevo,error:errIns}=await sb.from("agentes")
+        .insert({id:session.user.id,correo:session.user.email})
+        .select().single();
+      if(errIns){setError(errIns.message);return;}
+      setAgente(nuevo);
+    })();
+  },[]);
+
+  if(error)return <div style={{padding:40,textAlign:"center",color:"#dc2626"}}>Ocurrió un error: {error}</div>;
+  if(!agente)return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando tu panel...</div>;
+
+  return <div style={{maxWidth:760,margin:"0 auto",padding:"24px 16px 60px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:32}}>
+      <div style={{fontSize:20,fontWeight:800}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
+      <button onClick={onSalir} style={{background:"none",border:"none",color:"#6B7280",fontSize:14,cursor:"pointer"}}>Salir ({agente.correo})</button>
+    </div>
+
+    <div style={{background:"#fff",borderRadius:16,padding:32,border:"1px solid #DDE4EE",textAlign:"center"}}>
+      <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Hola{agente.nombre?`, ${agente.nombre}`:""} 👋</div>
+      <div style={{fontSize:14,color:"#6B7280",lineHeight:1.6}}>
+        Todavía no tienes clientes ni pólizas registradas.<br/>
+        Muy pronto vas a poder darlos de alta desde aquí.
+      </div>
+    </div>
+  </div>;
+}
+
+function App(){
+  const[sesion,setSesion]=useState(undefined); // undefined=cargando, null=sin sesión
+  useEffect(()=>{
+    sb.auth.getSession().then(({data})=>setSesion(data.session||null));
+    const{data:sub}=sb.auth.onAuthStateChange((_e,s)=>setSesion(s));
+    return ()=>sub.subscription.unsubscribe();
+  },[]);
+  if(sesion===undefined)return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>;
+  if(!sesion)return <Login/>;
+  return <Panel session={sesion} onSalir={()=>sb.auth.signOut()}/>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
