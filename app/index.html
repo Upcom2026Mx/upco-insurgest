@@ -27,6 +27,13 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const RAMOS_SUGERIDOS=["Auto","Vida","PPR","Gastos Médicos","Hogar"];
 const FORMAS_PAGO=["anual","semestral","trimestral","mensual"];
 const ESTATUS_POLIZA=["vigente","vencida","renovada","cancelada"];
+const DURACIONES=[{value:"1",label:"1 año"},{value:"2",label:"2 años"},{value:"custom",label:"Personalizada"}];
+
+function sumarAnios(fechaISO,anios){
+  const d=new Date(fechaISO+"T00:00:00");
+  d.setFullYear(d.getFullYear()+anios);
+  return d.toISOString().slice(0,10);
+}
 
 const est={
   input:{width:"100%",padding:"12px 14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"},
@@ -259,8 +266,14 @@ function PolizaForm({clienteId,agenteId,polizaExistente,onGuardado,onCancelar}){
   const[ramoOtro,setRamoOtro]=useState(ramoInicial==="Otro"?p.ramo:"");
   const[aseguradora,setAseguradora]=useState(p?p.aseguradora||"":"");
   const[numeroPoliza,setNumeroPoliza]=useState(p?p.numero_poliza||"":"");
+  const[duracion,setDuracion]=useState(p?"custom":"1");
   const[fechaInicio,setFechaInicio]=useState(p?p.fecha_inicio||"":"");
   const[fechaFin,setFechaFin]=useState(p?p.fecha_fin||"":"");
+
+  useEffect(()=>{
+    if(duracion==="custom"||!fechaInicio)return;
+    setFechaFin(sumarAnios(fechaInicio,parseInt(duracion,10)));
+  },[duracion,fechaInicio]);
   const[prima,setPrima]=useState(p&&p.prima!=null?String(p.prima):"");
   const[formaPago,setFormaPago]=useState(p?p.forma_pago||"anual":"anual");
   const[estatus,setEstatus]=useState(p?p.estatus:"vigente");
@@ -332,10 +345,17 @@ function PolizaForm({clienteId,agenteId,polizaExistente,onGuardado,onCancelar}){
       <Campo label="Inicio de vigencia">
         <input name="fecha_inicio" value={fechaInicio} onChange={e=>setFechaInicio(e.target.value)} type="date" style={est.input}/>
       </Campo>
-      <Campo label="Fin de vigencia">
-        <input name="fecha_fin" value={fechaFin} onChange={e=>setFechaFin(e.target.value)} type="date" style={est.input}/>
+      <Campo label="Duración">
+        <select name="duracion" value={duracion} onChange={e=>setDuracion(e.target.value)} style={est.input}>
+          {DURACIONES.map(d=><option key={d.value} value={d.value}>{d.label}</option>)}
+        </select>
       </Campo>
     </div>
+
+    <Campo label={duracion==="custom"?"Fin de vigencia":`Fin de vigencia (calculado: ${duracion==="1"?"1 año":"2 años"} desde el inicio)`}>
+      <input name="fecha_fin" value={fechaFin} onChange={e=>setFechaFin(e.target.value)} type="date" readOnly={duracion!=="custom"}
+        style={{...est.input,background:duracion!=="custom"?"#F4F7FB":"#fff"}}/>
+    </Campo>
 
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
       <Campo label="Prima total (MXN)">
