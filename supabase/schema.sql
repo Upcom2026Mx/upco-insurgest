@@ -90,6 +90,7 @@ alter table polizas enable row level security;
 create policy "agente ve su propio perfil" on agentes for select using (id = auth.uid());
 create policy "agente crea su propio perfil" on agentes for insert with check (id = auth.uid());
 create policy "agente edita su propio perfil" on agentes for update using (id = auth.uid());
+create policy "agente elimina su propio perfil" on agentes for delete using (id = auth.uid());
 
 create policy "agente ve sus clientes" on clientes for select using (agente_id = auth.uid());
 create policy "agente crea sus clientes" on clientes for insert with check (agente_id = auth.uid());
