@@ -24,11 +24,31 @@ const SUPABASE_URL="https://pxcvckqahkjlizgotvqw.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_F2WhknXrY8MLjI5ftd0H6w_-XXjej6I";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
+const RAMOS_SUGERIDOS=["Auto","Vida","PPR","Gastos Médicos","Hogar"];
+const FORMAS_PAGO=["anual","semestral","trimestral","mensual"];
+const ESTATUS_POLIZA=["vigente","vencida","renovada","cancelada"];
+
+const est={
+  input:{width:"100%",padding:"12px 14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"},
+  label:{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"},
+  card:{background:"#fff",borderRadius:14,padding:18,border:"1px solid #DDE4EE"},
+  fila:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:"1px solid #f1f5f9",cursor:"pointer"},
+  linkBtn:{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer",padding:"4px 8px"},
+  badge:(color)=>({display:"inline-block",fontSize:11,fontWeight:700,color,background:color+"1a",borderRadius:6,padding:"3px 8px"})
+};
+const colorEstatus={vigente:"#16a34a",vencida:"#dc2626",renovada:"#2563eb",cancelada:"#6b7280"};
+const pesos=n=>n==null?"—":new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(n);
+const fecha=d=>d?new Date(d+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"}):"—";
+
 function Boton({children,onClick,disabled,color="#10284A",type="button"}){
   return <button type={type} onClick={onClick} disabled={disabled}
     style={{background:disabled?"#DDE4EE":color,color:disabled?"#9ca3af":"#fff",border:"none",borderRadius:10,padding:"12px 18px",fontSize:15,fontWeight:700,cursor:disabled?"not-allowed":"pointer"}}>
     {children}
   </button>;
+}
+
+function Campo({label,children}){
+  return <div>{label&&<label style={est.label}>{label}</label>}{children}</div>;
 }
 
 function Login(){
@@ -51,18 +71,376 @@ function Login(){
     <form onSubmit={entrar} style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>
       <div style={{fontSize:20,fontWeight:800,marginBottom:4}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
       <div style={{fontSize:14,color:"#6B7280",marginBottom:20}}>Panel del agente</div>
-      <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username"
-        style={{width:"100%",padding:"12px 14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10}}/>
-      <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="tu contraseña" type="password" autoComplete="current-password"
-        style={{width:"100%",padding:"12px 14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:12}}/>
+      <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username" style={est.input}/>
+      <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="tu contraseña" type="password" autoComplete="current-password" style={{...est.input,marginBottom:12}}/>
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
       <div style={{width:"100%"}}><Boton type="submit" disabled={cargando}>{cargando?"Entrando...":"Iniciar sesión"}</Boton></div>
     </form>
   </div>;
 }
 
+// ============ CLIENTE ============
+
+function ClienteForm({agenteId,clienteExistente,onGuardado,onCancelar}){
+  const c=clienteExistente;
+  const[tipoPersona,setTipoPersona]=useState(c?c.tipo_persona:"fisica");
+  const[nombre,setNombre]=useState(c?c.nombre:"");
+  const[rfc,setRfc]=useState(c?c.rfc||"":"");
+  const[curp,setCurp]=useState(c?c.curp||"":"");
+  const[correo,setCorreo]=useState(c?c.correo||"":"");
+  const[telefono,setTelefono]=useState(c?c.telefono||"":"");
+  const[notas,setNotas]=useState(c?c.notas||"":"");
+  const[guardando,setGuardando]=useState(false);
+  const[error,setError]=useState("");
+
+  const guardar=async(e)=>{
+    e.preventDefault();
+    if(!nombre.trim()){setError("El nombre es obligatorio.");return;}
+    setError("");setGuardando(true);
+    const payload={
+      tipo_persona:tipoPersona,
+      nombre:nombre.trim(),
+      rfc:rfc.trim()||null,
+      curp:tipoPersona==="fisica"?(curp.trim()||null):null,
+      correo:correo.trim()||null,
+      telefono:telefono.trim()||null,
+      notas:notas.trim()||null,
+    };
+    let resultado;
+    if(c){
+      resultado=await sb.from("clientes").update(payload).eq("id",c.id).select().single();
+    }else{
+      resultado=await sb.from("clientes").insert({...payload,agente_id:agenteId}).select().single();
+    }
+    setGuardando(false);
+    if(resultado.error){setError(resultado.error.message);return;}
+    onGuardado(resultado.data);
+  };
+
+  return <form onSubmit={guardar} style={{...est.card,marginBottom:24}}>
+    <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>{c?"Editar cliente":"Nuevo cliente"}</div>
+
+    <Campo label="Tipo de persona">
+      <select name="tipo_persona" value={tipoPersona} onChange={e=>setTipoPersona(e.target.value)} style={est.input}>
+        <option value="fisica">Persona física</option>
+        <option value="moral">Persona moral</option>
+      </select>
+    </Campo>
+
+    <Campo label={tipoPersona==="moral"?"Razón social":"Nombre completo"}>
+      <input name="nombre" value={nombre} onChange={e=>setNombre(e.target.value)} style={est.input}/>
+    </Campo>
+
+    <div style={{display:"grid",gridTemplateColumns:tipoPersona==="fisica"?"1fr 1fr":"1fr",gap:10}}>
+      <Campo label="RFC">
+        <input name="rfc" value={rfc} onChange={e=>setRfc(e.target.value.toUpperCase())} style={est.input}/>
+      </Campo>
+      {tipoPersona==="fisica"&&<Campo label="CURP">
+        <input name="curp" value={curp} onChange={e=>setCurp(e.target.value.toUpperCase())} style={est.input}/>
+      </Campo>}
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <Campo label="Correo electrónico">
+        <input name="correo" value={correo} onChange={e=>setCorreo(e.target.value)} type="email" style={est.input}/>
+      </Campo>
+      <Campo label="Teléfono">
+        <input name="telefono" value={telefono} onChange={e=>setTelefono(e.target.value)} style={est.input}/>
+      </Campo>
+    </div>
+
+    <Campo label="Notas">
+      <textarea name="notas" value={notas} onChange={e=>setNotas(e.target.value)} rows={2} style={est.input}/>
+    </Campo>
+
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    <div style={{display:"flex",gap:10}}>
+      <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":"Guardar"}</Boton>
+      <button type="button" onClick={onCancelar} style={est.linkBtn}>Cancelar</button>
+    </div>
+  </form>;
+}
+
+function ClientesList({agenteId,onAbrirCliente}){
+  const[clientes,setClientes]=useState(null);
+  const[formAbierto,setFormAbierto]=useState(false);
+  const[error,setError]=useState("");
+
+  const cargar=async()=>{
+    const{data,error}=await sb.from("clientes").select("*").eq("agente_id",agenteId).order("nombre");
+    if(error){setError(error.message);return;}
+    setClientes(data);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  return <div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{fontSize:16,fontWeight:700}}>Mis clientes {clientes?`(${clientes.length})`:""}</div>
+      {!formAbierto&&<Boton onClick={()=>setFormAbierto(true)}>+ Nuevo cliente</Boton>}
+    </div>
+
+    {formAbierto&&<ClienteForm agenteId={agenteId}
+      onGuardado={()=>{setFormAbierto(false);cargar();}}
+      onCancelar={()=>setFormAbierto(false)}/>}
+
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    {!clientes&&<div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>}
+    {clientes&&clientes.length===0&&!formAbierto&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
+      Todavía no tienes clientes registrados.
+    </div>}
+    {clientes&&clientes.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
+      {clientes.map(c=><div key={c.id} style={est.fila} onClick={()=>onAbrirCliente(c)}>
+        <div>
+          <div style={{fontWeight:700,fontSize:14}}>{c.nombre}</div>
+          <div style={{fontSize:12,color:"#8FA0B4"}}>{c.tipo_persona==="moral"?"Persona moral":"Persona física"}{c.correo?` · ${c.correo}`:""}</div>
+        </div>
+        <div style={{color:"#8FA0B4",fontSize:18}}>›</div>
+      </div>)}
+    </div>}
+  </div>;
+}
+
+function ClienteDetalle({cliente,agenteId,onVolver,onClienteCambiado}){
+  const[editando,setEditando]=useState(false);
+  const[borrando,setBorrando]=useState(false);
+  const[error,setError]=useState("");
+
+  const eliminar=async()=>{
+    if(!window.confirm(`¿Eliminar a ${cliente.nombre}? Esto también borra sus vehículos y pólizas registradas.`))return;
+    setBorrando(true);
+    const{data:polizas}=await sb.from("polizas").select("pdf_url").eq("cliente_id",cliente.id).not("pdf_url","is",null);
+    if(polizas&&polizas.length>0){
+      await sb.storage.from("polizas").remove(polizas.map(p=>p.pdf_url));
+    }
+    const{error}=await sb.from("clientes").delete().eq("id",cliente.id);
+    setBorrando(false);
+    if(error){setError(error.message);return;}
+    onClienteCambiado(null);
+  };
+
+  return <div>
+    <button onClick={onVolver} style={{...est.linkBtn,padding:0,marginBottom:16}}>‹ Todos mis clientes</button>
+
+    {editando
+      ?<ClienteForm agenteId={agenteId} clienteExistente={cliente}
+          onGuardado={(actualizado)=>{setEditando(false);onClienteCambiado(actualizado);}}
+          onCancelar={()=>setEditando(false)}/>
+      :<div style={{...est.card,marginBottom:24}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div>
+            <div style={{fontSize:18,fontWeight:700}}>{cliente.nombre}</div>
+            <div style={{fontSize:13,color:"#8FA0B4",marginTop:2}}>{cliente.tipo_persona==="moral"?"Persona moral":"Persona física"}</div>
+          </div>
+          <div style={{display:"flex",gap:4}}>
+            <button onClick={()=>setEditando(true)} style={est.linkBtn}>Editar</button>
+            <button onClick={eliminar} disabled={borrando} style={{...est.linkBtn,color:"#dc2626"}}>{borrando?"Borrando...":"Eliminar"}</button>
+          </div>
+        </div>
+        <div style={{marginTop:14,fontSize:13,color:"#374151",lineHeight:1.8}}>
+          {cliente.rfc&&<div>RFC: {cliente.rfc}</div>}
+          {cliente.curp&&<div>CURP: {cliente.curp}</div>}
+          {cliente.correo&&<div>Correo: {cliente.correo}</div>}
+          {cliente.telefono&&<div>Teléfono: {cliente.telefono}</div>}
+          {cliente.notas&&<div>Notas: {cliente.notas}</div>}
+        </div>
+        {error&&<div style={{color:"#dc2626",fontSize:13,marginTop:10}}>{error}</div>}
+      </div>}
+
+    <PolizasList clienteId={cliente.id} agenteId={agenteId}/>
+  </div>;
+}
+
+// ============ PÓLIZA ============
+
+function PolizaForm({clienteId,agenteId,polizaExistente,onGuardado,onCancelar}){
+  const p=polizaExistente;
+  const ramoInicial=p&&!RAMOS_SUGERIDOS.includes(p.ramo)?"Otro":(p?p.ramo:"Auto");
+  const[ramo,setRamo]=useState(ramoInicial);
+  const[ramoOtro,setRamoOtro]=useState(ramoInicial==="Otro"?p.ramo:"");
+  const[aseguradora,setAseguradora]=useState(p?p.aseguradora||"":"");
+  const[numeroPoliza,setNumeroPoliza]=useState(p?p.numero_poliza||"":"");
+  const[fechaInicio,setFechaInicio]=useState(p?p.fecha_inicio||"":"");
+  const[fechaFin,setFechaFin]=useState(p?p.fecha_fin||"":"");
+  const[prima,setPrima]=useState(p&&p.prima!=null?String(p.prima):"");
+  const[formaPago,setFormaPago]=useState(p?p.forma_pago||"anual":"anual");
+  const[estatus,setEstatus]=useState(p?p.estatus:"vigente");
+  const[notas,setNotas]=useState(p?p.notas||"":"");
+  const[archivo,setArchivo]=useState(null);
+  const[guardando,setGuardando]=useState(false);
+  const[error,setError]=useState("");
+
+  const guardar=async(e)=>{
+    e.preventDefault();
+    const ramoFinal=ramo==="Otro"?(ramoOtro.trim()||"Otro"):ramo;
+    setError("");setGuardando(true);
+    const payload={
+      aseguradora:aseguradora.trim()||null,
+      numero_poliza:numeroPoliza.trim()||null,
+      ramo:ramoFinal,
+      fecha_inicio:fechaInicio||null,
+      fecha_fin:fechaFin||null,
+      prima:prima?parseFloat(prima):null,
+      forma_pago:formaPago||null,
+      estatus,
+      notas:notas.trim()||null,
+    };
+    let resultado;
+    if(p){
+      resultado=await sb.from("polizas").update(payload).eq("id",p.id).select().single();
+    }else{
+      resultado=await sb.from("polizas").insert({...payload,cliente_id:clienteId}).select().single();
+    }
+    if(resultado.error){setGuardando(false);setError(resultado.error.message);return;}
+    let polizaFinal=resultado.data;
+
+    if(archivo){
+      const ruta=`${agenteId}/${polizaFinal.id}.pdf`;
+      const{error:errSubida}=await sb.storage.from("polizas").upload(ruta,archivo,{upsert:true,contentType:"application/pdf"});
+      if(errSubida){setGuardando(false);setError("La póliza se guardó pero el PDF no se pudo subir: "+errSubida.message);return;}
+      const{data:conPdf,error:errUpd}=await sb.from("polizas").update({pdf_url:ruta}).eq("id",polizaFinal.id).select().single();
+      if(!errUpd)polizaFinal=conPdf;
+    }
+    setGuardando(false);
+    onGuardado(polizaFinal);
+  };
+
+  return <form onSubmit={guardar} style={{...est.card,marginBottom:24}}>
+    <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>{p?"Editar póliza":"Nueva póliza"}</div>
+
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <Campo label="Ramo">
+        <select name="ramo" value={ramo} onChange={e=>setRamo(e.target.value)} style={est.input}>
+          {RAMOS_SUGERIDOS.map(r=><option key={r} value={r}>{r}</option>)}
+          <option value="Otro">Otro</option>
+        </select>
+      </Campo>
+      {ramo==="Otro"&&<Campo label="¿Cuál ramo?">
+        <input name="ramo_otro" value={ramoOtro} onChange={e=>setRamoOtro(e.target.value)} style={est.input}/>
+      </Campo>}
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <Campo label="Aseguradora">
+        <input name="aseguradora" value={aseguradora} onChange={e=>setAseguradora(e.target.value)} style={est.input}/>
+      </Campo>
+      <Campo label="Número de póliza">
+        <input name="numero_poliza" value={numeroPoliza} onChange={e=>setNumeroPoliza(e.target.value)} style={est.input}/>
+      </Campo>
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <Campo label="Inicio de vigencia">
+        <input name="fecha_inicio" value={fechaInicio} onChange={e=>setFechaInicio(e.target.value)} type="date" style={est.input}/>
+      </Campo>
+      <Campo label="Fin de vigencia">
+        <input name="fecha_fin" value={fechaFin} onChange={e=>setFechaFin(e.target.value)} type="date" style={est.input}/>
+      </Campo>
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <Campo label="Prima total (MXN)">
+        <input name="prima" value={prima} onChange={e=>setPrima(e.target.value)} type="number" step="0.01" min="0" style={est.input}/>
+      </Campo>
+      <Campo label="Forma de pago">
+        <select name="forma_pago" value={formaPago} onChange={e=>setFormaPago(e.target.value)} style={est.input}>
+          {FORMAS_PAGO.map(f=><option key={f} value={f}>{f}</option>)}
+        </select>
+      </Campo>
+    </div>
+
+    <Campo label="Estatus">
+      <select name="estatus" value={estatus} onChange={e=>setEstatus(e.target.value)} style={est.input}>
+        {ESTATUS_POLIZA.map(s=><option key={s} value={s}>{s}</option>)}
+      </select>
+    </Campo>
+
+    <Campo label={p&&p.pdf_url?"Reemplazar PDF de la póliza":"PDF de la póliza"}>
+      <input name="pdf" type="file" accept="application/pdf" onChange={e=>setArchivo(e.target.files[0]||null)} style={{...est.input,padding:"8px 10px"}}/>
+    </Campo>
+
+    <Campo label="Notas">
+      <textarea name="notas" value={notas} onChange={e=>setNotas(e.target.value)} rows={2} style={est.input}/>
+    </Campo>
+
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    <div style={{display:"flex",gap:10}}>
+      <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":"Guardar"}</Boton>
+      <button type="button" onClick={onCancelar} style={est.linkBtn}>Cancelar</button>
+    </div>
+  </form>;
+}
+
+function PolizasList({clienteId,agenteId}){
+  const[polizas,setPolizas]=useState(null);
+  const[formAbierto,setFormAbierto]=useState(false);
+  const[editando,setEditando]=useState(null);
+  const[error,setError]=useState("");
+
+  const cargar=async()=>{
+    const{data,error}=await sb.from("polizas").select("*").eq("cliente_id",clienteId).order("fecha_fin",{ascending:false});
+    if(error){setError(error.message);return;}
+    setPolizas(data);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const eliminar=async(poliza)=>{
+    if(!window.confirm(`¿Eliminar la póliza ${poliza.numero_poliza||""}?`.trim()))return;
+    if(poliza.pdf_url)await sb.storage.from("polizas").remove([poliza.pdf_url]);
+    const{error}=await sb.from("polizas").delete().eq("id",poliza.id);
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
+  const descargar=async(poliza)=>{
+    const{data,error}=await sb.storage.from("polizas").createSignedUrl(poliza.pdf_url,60);
+    if(error){setError("No se pudo generar el link de descarga: "+error.message);return;}
+    window.open(data.signedUrl,"_blank");
+  };
+
+  return <div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{fontSize:16,fontWeight:700}}>Pólizas {polizas?`(${polizas.length})`:""}</div>
+      {!formAbierto&&!editando&&<Boton color="#F59E0B" onClick={()=>setFormAbierto(true)}>+ Nueva póliza</Boton>}
+    </div>
+
+    {formAbierto&&<PolizaForm clienteId={clienteId} agenteId={agenteId}
+      onGuardado={()=>{setFormAbierto(false);cargar();}}
+      onCancelar={()=>setFormAbierto(false)}/>}
+
+    {editando&&<PolizaForm clienteId={clienteId} agenteId={agenteId} polizaExistente={editando}
+      onGuardado={()=>{setEditando(null);cargar();}}
+      onCancelar={()=>setEditando(null)}/>}
+
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    {!polizas&&<div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>}
+    {polizas&&polizas.length===0&&!formAbierto&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
+      Este cliente todavía no tiene pólizas registradas.
+    </div>}
+    {polizas&&polizas.map(p=><div key={p.id} style={{...est.card,marginBottom:10}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div>
+          <div style={{fontWeight:700,fontSize:14}}>{p.ramo} — {p.aseguradora||"Sin aseguradora"}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>Póliza {p.numero_poliza||"—"} · {fecha(p.fecha_inicio)} a {fecha(p.fecha_fin)}</div>
+        </div>
+        <span style={est.badge(colorEstatus[p.estatus]||"#6b7280")}>{p.estatus}</span>
+      </div>
+      <div style={{marginTop:10,fontSize:13,color:"#374151",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span>{pesos(p.prima)} {p.forma_pago?`· ${p.forma_pago}`:""}</span>
+        <div style={{display:"flex",gap:4}}>
+          {p.pdf_url&&<button onClick={()=>descargar(p)} style={est.linkBtn}>Descargar PDF</button>}
+          <button onClick={()=>setEditando(p)} style={est.linkBtn}>Editar</button>
+          <button onClick={()=>eliminar(p)} style={{...est.linkBtn,color:"#dc2626"}}>Eliminar</button>
+        </div>
+      </div>
+    </div>)}
+  </div>;
+}
+
+// ============ PANEL / APP ============
+
 function Panel({session,onSalir}){
   const[agente,setAgente]=useState(null);
+  const[clienteActivo,setClienteActivo]=useState(null);
   const[error,setError]=useState("");
 
   useEffect(()=>{
@@ -87,13 +465,11 @@ function Panel({session,onSalir}){
       <button onClick={onSalir} style={{background:"none",border:"none",color:"#6B7280",fontSize:14,cursor:"pointer"}}>Salir ({agente.correo})</button>
     </div>
 
-    <div style={{background:"#fff",borderRadius:16,padding:32,border:"1px solid #DDE4EE",textAlign:"center"}}>
-      <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Hola{agente.nombre?`, ${agente.nombre}`:""} 👋</div>
-      <div style={{fontSize:14,color:"#6B7280",lineHeight:1.6}}>
-        Todavía no tienes clientes ni pólizas registradas.<br/>
-        Muy pronto vas a poder darlos de alta desde aquí.
-      </div>
-    </div>
+    {clienteActivo
+      ?<ClienteDetalle cliente={clienteActivo} agenteId={agente.id}
+          onVolver={()=>setClienteActivo(null)}
+          onClienteCambiado={(actualizado)=>setClienteActivo(actualizado)}/>
+      :<ClientesList agenteId={agente.id} onAbrirCliente={setClienteActivo}/>}
   </div>;
 }
 
