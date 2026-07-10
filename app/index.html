@@ -859,12 +859,49 @@ function DashboardAgente(){
   </div>;
 }
 
+function MiPerfil({agente,onAgenteCambiado}){
+  const[nombre,setNombre]=useState(agente.nombre||"");
+  const[telefono,setTelefono]=useState(agente.telefono||"");
+  const[guardando,setGuardando]=useState(false);
+  const[guardado,setGuardado]=useState(false);
+  const[error,setError]=useState("");
+
+  const guardar=async(e)=>{
+    e.preventDefault();
+    setError("");setGuardando(true);setGuardado(false);
+    const{data,error}=await sb.from("agentes")
+      .update({nombre:nombre.trim()||null,telefono:telefono.trim()||null})
+      .eq("id",agente.id).select().single();
+    setGuardando(false);
+    if(error){setError(error.message);return;}
+    setGuardado(true);
+    onAgenteCambiado(data);
+    setTimeout(()=>setGuardado(false),2000);
+  };
+
+  return <form onSubmit={guardar} style={{...est.card,maxWidth:420}}>
+    <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>Mi perfil</div>
+    <Campo label="Nombre">
+      <input name="nombre" value={nombre} onChange={e=>setNombre(e.target.value)} style={est.input}/>
+    </Campo>
+    <Campo label="Teléfono">
+      <input name="telefono" value={telefono} onChange={e=>setTelefono(e.target.value)} style={est.input}/>
+    </Campo>
+    <Campo label="Correo">
+      <input value={agente.correo||""} disabled style={{...est.input,background:"#F4F7FB",color:"#8FA0B4"}}/>
+    </Campo>
+    <div style={{fontSize:12,color:"#8FA0B4",marginBottom:14}}>Tu nombre y teléfono son los que ve tu cliente en su liga mágica.</div>
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":guardado?"¡Guardado!":"Guardar"}</Boton>
+  </form>;
+}
+
 // ============ PANEL / APP ============
 
 function Panel({session,onSalir}){
   const[agente,setAgente]=useState(null);
   const[clienteActivo,setClienteActivo]=useState(null);
-  const[vista,setVista]=useState("clientes"); // clientes | solicitudes | resumen
+  const[vista,setVista]=useState("clientes"); // clientes | solicitudes | resumen | perfil
   const[pendientes,setPendientes]=useState(0);
   const[error,setError]=useState("");
 
@@ -900,6 +937,7 @@ function Panel({session,onSalir}){
       <button onClick={()=>setVista("clientes")} style={tabStyle(vista==="clientes")}>Mis clientes</button>
       <button onClick={()=>setVista("solicitudes")} style={tabStyle(vista==="solicitudes")}>Solicitudes{pendientes>0?` (${pendientes})`:""}</button>
       <button onClick={()=>setVista("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
+      <button onClick={()=>setVista("perfil")} style={tabStyle(vista==="perfil")}>Mi perfil</button>
     </div>}
 
     {clienteActivo
@@ -910,7 +948,9 @@ function Panel({session,onSalir}){
         ?<SolicitudesInbox onAbrirCliente={(c)=>{setClienteActivo(c);setVista("clientes");}}/>
         :vista==="resumen"
           ?<DashboardAgente/>
-          :<ClientesList agenteId={agente.id} onAbrirCliente={setClienteActivo}/>}
+          :vista==="perfil"
+            ?<MiPerfil agente={agente} onAgenteCambiado={setAgente}/>
+            :<ClientesList agenteId={agente.id} onAbrirCliente={setClienteActivo}/>}
   </div>;
 }
 
