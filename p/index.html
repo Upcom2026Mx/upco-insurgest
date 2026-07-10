@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Upco InsurGest — Tus pólizas</title>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="../manifest.webmanifest"/>
+<link rel="icon" href="../icon-192.png"/>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../shared.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect}=React;
+
+function leerToken(){
+  const porQuery=new URLSearchParams(location.search).get("t");
+  if(porQuery)return porQuery;
+  const m=location.pathname.match(/^\/p\/([^\/]+)\/?$/);
+  return m?decodeURIComponent(m[1]):null;
+}
+
+const card={background:"#fff",borderRadius:14,padding:18,border:"1px solid #DDE4EE"};
+const badge=(color)=>({display:"inline-block",fontSize:11,fontWeight:700,color,background:color+"1a",borderRadius:6,padding:"3px 8px"});
+
+function TarjetaPoliza({p,vehiculo}){
+  const vig=vigenciaCalculada(p);
+  return <div style={{...card,marginBottom:10}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+      <div>
+        <div style={{fontWeight:700,fontSize:14}}>{p.ramo} — {p.aseguradora||"Sin aseguradora"}</div>
+        <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>Póliza {p.numero_poliza||"—"} · {fecha(p.fecha_inicio)} a {fecha(p.fecha_fin)}</div>
+        {vehiculo&&<div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>Vehículo: {vehiculo.placas||"Sin placas"}{vehiculo.marca?` — ${vehiculo.marca} ${vehiculo.modelo||""}`:""}</div>}
+        {vig.dias!=null&&<div style={{fontSize:12,color:vig.dias<0?"#dc2626":vig.dias<=15?"#F59E0B":"#8FA0B4",marginTop:2,fontWeight:600}}>{textoDias(vig.dias)}</div>}
+      </div>
+      <span style={badge(colorEstatus[vig.label]||"#6b7280")}>{vig.label}</span>
+    </div>
+    <div style={{marginTop:10,fontSize:13,color:"#374151",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <span>{pesos(p.prima)} {p.forma_pago?`· ${p.forma_pago}`:""}</span>
+      {p.pdf_url&&<a href={p.pdf_url} target="_blank" rel="noopener" style={{color:"#10284A",fontSize:13,fontWeight:700,textDecoration:"none"}}>Descargar PDF ↓</a>}
+    </div>
+  </div>;
+}
+
+function TarjetaVehiculo({v,poliza}){
+  const vig=poliza?vigenciaCalculada(poliza):null;
+  return <div style={card}>
+    <div style={{fontWeight:700,fontSize:14}}>{v.marca||"—"} {v.modelo||""} {v.anio||""}</div>
+    <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{v.placas||"Sin placas"}</div>
+    {v.fecha_verificacion&&<div style={{fontSize:12,color:"#374151",marginTop:6}}>Verificación: {fecha(v.fecha_verificacion)}</div>}
+    <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #f1f5f9"}}>
+      {poliza
+        ?<div>
+          <span style={badge(colorEstatus[vig.label]||"#6b7280")}>{vig.label}</span>
+          {vig.dias!=null&&<div style={{fontSize:12,color:vig.dias<0?"#dc2626":vig.dias<=15?"#F59E0B":"#8FA0B4",marginTop:4,fontWeight:600}}>{textoDias(vig.dias)}</div>}
+        </div>
+        :<div style={{fontSize:12,color:"#8FA0B4"}}>Sin póliza de auto vinculada</div>}
+    </div>
+  </div>;
+}
+
+function Portal(){
+  const[estado,setEstado]=useState("cargando"); // cargando | invalido | listo
+  const[datos,setDatos]=useState(null);
+
+  useEffect(()=>{
+    const token=leerToken();
+    if(!token){setEstado("invalido");return;}
+    history.replaceState(null,"","/p/"+token);
+    sb.rpc("portal_cliente",{p_token:token}).then(({data,error})=>{
+      if(error||!data){setEstado("invalido");return;}
+      setDatos(data);setEstado("listo");
+    });
+  },[]);
+
+  if(estado==="cargando")return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando tus pólizas...</div>;
+
+  if(estado==="invalido")return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{...card,maxWidth:380,textAlign:"center"}}>
+      <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Esta liga ya no es válida</div>
+      <div style={{fontSize:14,color:"#6B7280"}}>Pídele a tu agente que te comparta la liga actualizada.</div>
+    </div>
+  </div>;
+
+  const{cliente,agente,polizas,vehiculos}=datos;
+  const vehiculosPorId={};
+  vehiculos.forEach(v=>vehiculosPorId[v.id]=v);
+  const polizaPorVehiculo={};
+  polizas.forEach(p=>{
+    if(!p.vehiculo_id)return;
+    const actual=polizaPorVehiculo[p.vehiculo_id];
+    if(!actual||(p.fecha_fin||"")>(actual.fecha_fin||""))polizaPorVehiculo[p.vehiculo_id]=p;
+  });
+
+  return <div style={{maxWidth:640,margin:"0 auto",padding:"24px 16px 60px"}}>
+    <div style={{marginBottom:8}}>
+      <div style={{fontSize:20,fontWeight:800}}>{agente.nombre_negocio||"Upco "}{!agente.nombre_negocio&&<span style={{color:"#F59E0B"}}>InsurGest</span>}</div>
+      <div style={{fontSize:13,color:"#8FA0B4",marginTop:2}}>
+        Tu agente: {agente.nombre||"—"}{agente.telefono?` · ${agente.telefono}`:""}{agente.correo?` · ${agente.correo}`:""}
+      </div>
+    </div>
+
+    <div style={{fontSize:16,fontWeight:700,margin:"20px 0 12px"}}>Hola, {cliente.nombre.split(" ")[0]} 👋</div>
+
+    <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",marginBottom:10}}>TUS PÓLIZAS ({polizas.length})</div>
+    {polizas.length===0&&<div style={{...card,textAlign:"center",color:"#6B7280",marginBottom:24}}>Todavía no tienes pólizas registradas.</div>}
+    {polizas.map(p=><TarjetaPoliza key={p.id} p={p} vehiculo={p.vehiculo_id?vehiculosPorId[p.vehiculo_id]:null}/>)}
+
+    {vehiculos.length>0&&<>
+      <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",margin:"24px 0 10px"}}>TUS VEHÍCULOS ({vehiculos.length})</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
+        {vehiculos.map(v=><TarjetaVehiculo key={v.id} v={v} poliza={polizaPorVehiculo[v.id]}/>)}
+      </div>
+    </>}
+
+    <div style={{textAlign:"center",fontSize:12,color:"#8FA0B4",marginTop:32}}>Upco InsurGest</div>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Portal/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head><meta charset="UTF-8"/><title>Upco InsurGest</title></head>
+<body>
+<script>
+// GitHub Pages no soporta rutas dinámicas como /p/{token} directamente.
+// Cuando una URL así no coincide con ningún archivo, GitHub sirve este 404.html;
+// aquí detectamos el patrón /p/{token} y redirigimos a la página real con el token
+// como parámetro. p/index.html luego restaura la URL limpia con history.replaceState.
+(function(){
+  var m = location.pathname.match(/^\/p\/([^\/]+)\/?$/);
+  if (m) {
+    location.replace("/p/index.html?t=" + encodeURIComponent(m[1]));
+  } else {
+    location.replace("/");
+  }
+})();
+</script>
+</body>
+</html>
