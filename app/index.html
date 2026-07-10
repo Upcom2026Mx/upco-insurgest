@@ -110,7 +110,7 @@ function Login(){
     if(!password||password.length<6){setError("La contraseña debe tener al menos 6 caracteres.");return;}
     if(!aceptoTerminos){setError("Debes aceptar los Términos y Condiciones y el Aviso de Privacidad para registrarte.");return;}
     setError("");setCargando(true);
-    const{error}=await sb.auth.signUp({
+    const{data,error}=await sb.auth.signUp({
       email:email.trim(),
       password,
       options:{data:{
@@ -128,7 +128,9 @@ function Login(){
     });
     setCargando(false);
     if(error){setError(error.message);return;}
-    setRegistroListo(true);
+    // sin confirmación de correo, signUp ya deja una sesión activa — App() la detecta sola
+    // (onAuthStateChange) y navega al panel, que muestra "pendiente de aprobación".
+    if(!data.session)setRegistroListo(true);
   };
 
   if(registroListo)return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
