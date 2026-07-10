@@ -57,10 +57,15 @@ function Campo({label,children}){
 }
 
 function Login(){
+  const[modo,setModo]=useState("entrar"); // entrar | registro
   const[email,setEmail]=useState("");
   const[password,setPassword]=useState("");
+  const[nombre,setNombre]=useState("");
+  const[nombreNegocio,setNombreNegocio]=useState("");
+  const[telefono,setTelefono]=useState("");
   const[error,setError]=useState("");
   const[cargando,setCargando]=useState(false);
+  const[registroListo,setRegistroListo]=useState(false);
 
   const entrar=async(e)=>{
     e.preventDefault();
@@ -79,14 +84,48 @@ function Login(){
     }
   };
 
+  const registrar=async(e)=>{
+    e.preventDefault();
+    if(!email||!email.includes("@")){setError("Escribe un correo válido.");return;}
+    if(!nombre.trim()){setError("Escribe tu nombre.");return;}
+    if(!password||password.length<6){setError("La contraseña debe tener al menos 6 caracteres.");return;}
+    setError("");setCargando(true);
+    const{error}=await sb.auth.signUp({
+      email:email.trim(),
+      password,
+      options:{data:{nombre:nombre.trim(),nombre_negocio:nombreNegocio.trim()||null,telefono:telefono.trim()||null}}
+    });
+    setCargando(false);
+    if(error){setError(error.message);return;}
+    setRegistroListo(true);
+  };
+
+  if(registroListo)return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
+      <div style={{fontSize:20,fontWeight:800,marginBottom:12}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.6}}>Revisa tu correo para confirmar tu cuenta. Una vez confirmada, podrás iniciar sesión — tu acceso quedará pendiente de aprobación hasta que lo revisemos.</div>
+    </div>
+  </div>;
+
   return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-    <form onSubmit={entrar} style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>
+    <form onSubmit={modo==="entrar"?entrar:registrar} style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>
       <div style={{fontSize:20,fontWeight:800,marginBottom:4}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
-      <div style={{fontSize:14,color:"#6B7280",marginBottom:20}}>Panel del agente</div>
+      <div style={{fontSize:14,color:"#6B7280",marginBottom:20}}>{modo==="entrar"?"Panel del agente":"Crear cuenta de agente"}</div>
+
+      {modo==="registro"&&<>
+        <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="tu nombre" style={est.input}/>
+        <input value={nombreNegocio} onChange={e=>setNombreNegocio(e.target.value)} placeholder="nombre de tu negocio (opcional)" style={est.input}/>
+        <input value={telefono} onChange={e=>setTelefono(e.target.value)} placeholder="teléfono (opcional)" style={est.input}/>
+      </>}
       <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username" style={est.input}/>
-      <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="tu contraseña" type="password" autoComplete="current-password" style={{...est.input,marginBottom:12}}/>
+      <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="tu contraseña" type="password" autoComplete={modo==="entrar"?"current-password":"new-password"} style={{...est.input,marginBottom:12}}/>
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
-      <div style={{width:"100%"}}><Boton type="submit" disabled={cargando}>{cargando?"Entrando...":"Iniciar sesión"}</Boton></div>
+      <div style={{width:"100%"}}><Boton type="submit" disabled={cargando}>
+        {cargando?(modo==="entrar"?"Entrando...":"Creando cuenta..."):(modo==="entrar"?"Iniciar sesión":"Crear cuenta")}
+      </Boton></div>
+      <button type="button" onClick={()=>{setModo(modo==="entrar"?"registro":"entrar");setError("");}} style={{...est.linkBtn,marginTop:12,padding:0}}>
+        {modo==="entrar"?"¿Eres nuevo? Crea tu cuenta de agente":"¿Ya tienes cuenta? Inicia sesión"}
+      </button>
     </form>
   </div>;
 }
@@ -917,8 +956,9 @@ function Panel({session,onSalir}){
       const{data,error:errSel}=await sb.from("agentes").select("*").eq("id",session.user.id).maybeSingle();
       if(errSel){setError(errSel.message);return;}
       if(data){setAgente(data);return;}
+      const meta=session.user.user_metadata||{};
       const{data:nuevo,error:errIns}=await sb.from("agentes")
-        .insert({id:session.user.id,correo:session.user.email})
+        .insert({id:session.user.id,correo:session.user.email,nombre:meta.nombre||null,nombre_negocio:meta.nombre_negocio||null,telefono:meta.telefono||null})
         .select().single();
       if(errIns){
         if(errIns.code==="23505"){
@@ -941,6 +981,22 @@ function Panel({session,onSalir}){
 
   if(error)return <div style={{padding:40,textAlign:"center",color:"#dc2626"}}>Ocurrió un error: {error}</div>;
   if(!agente)return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando tu panel...</div>;
+
+  if(agente.estatus_aprobacion==="pendiente")return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
+      <div style={{fontSize:20,fontWeight:800,marginBottom:12}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.6,marginBottom:20}}>Tu cuenta está pendiente de aprobación. Te avisaremos por correo en cuanto puedas empezar a usar tu panel.</div>
+      <button onClick={onSalir} style={est.linkBtn}>Salir</button>
+    </div>
+  </div>;
+
+  if(agente.estatus_aprobacion==="rechazado")return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
+      <div style={{fontSize:20,fontWeight:800,marginBottom:12}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.6,marginBottom:20}}>Tu solicitud de registro no fue aprobada. Si crees que es un error, contáctanos.</div>
+      <button onClick={onSalir} style={est.linkBtn}>Salir</button>
+    </div>
+  </div>;
 
   return <div style={{maxWidth:760,margin:"0 auto",padding:"24px 16px 60px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
