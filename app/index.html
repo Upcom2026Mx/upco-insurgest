@@ -920,7 +920,15 @@ function Panel({session,onSalir}){
       const{data:nuevo,error:errIns}=await sb.from("agentes")
         .insert({id:session.user.id,correo:session.user.email})
         .select().single();
-      if(errIns){setError(errIns.message);return;}
+      if(errIns){
+        if(errIns.code==="23505"){
+          // ya se creó (carrera entre eventos de sesión) — solo lo volvemos a leer
+          const{data:existente,error:errSel2}=await sb.from("agentes").select("*").eq("id",session.user.id).maybeSingle();
+          if(errSel2){setError(errSel2.message);return;}
+          if(existente){setAgente(existente);return;}
+        }
+        setError(errIns.message);return;
+      }
       setAgente(nuevo);
     })();
   },[]);
