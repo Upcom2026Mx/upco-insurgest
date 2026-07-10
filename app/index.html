@@ -22,7 +22,6 @@
 <script type="text/babel">
 const{useState,useEffect}=React;
 
-const RAMOS_SUGERIDOS=["Auto","Vida","PPR","Gastos Médicos","Hogar"];
 const FORMAS_PAGO=["anual","semestral","trimestral","mensual"];
 const ESTATUS_POLIZA=["vigente","vencida","renovada","cancelada"];
 const DURACIONES=[{value:"1",label:"1 año"},{value:"2",label:"2 años"},{value:"custom",label:"Personalizada"}];
@@ -432,11 +431,15 @@ function ClienteDetalle({cliente,agenteId,onVolver,onClienteCambiado}){
   const[versionVehiculos,setVersionVehiculos]=useState(0);
 
   const eliminar=async()=>{
-    if(!window.confirm(`¿Eliminar a ${cliente.nombre}? Esto también borra sus vehículos y pólizas registradas.`))return;
+    if(!window.confirm(`¿Eliminar a ${cliente.nombre}? Esto también borra sus vehículos, pólizas y solicitudes registradas.`))return;
     setBorrando(true);
     const{data:polizas}=await sb.from("polizas").select("pdf_path").eq("cliente_id",cliente.id).not("pdf_path","is",null);
     if(polizas&&polizas.length>0){
       await sb.storage.from("polizas").remove(polizas.map(p=>p.pdf_path));
+    }
+    const{data:solicitudes}=await sb.from("solicitudes").select("foto_path").eq("cliente_id",cliente.id).not("foto_path","is",null);
+    if(solicitudes&&solicitudes.length>0){
+      await sb.storage.from("solicitudes").remove(solicitudes.map(s=>s.foto_path));
     }
     const{error}=await sb.from("clientes").delete().eq("id",cliente.id);
     setBorrando(false);
@@ -718,11 +721,67 @@ function PolizasList({clienteId,agenteId,onPolizaCambiada}){
   </div>;
 }
 
+// ============ SOLICITUDES ============
+
+const tabStyle=(activo)=>({
+  background:"none",border:"none",borderBottom:activo?"2px solid #10284A":"2px solid transparent",
+  padding:"8px 4px",marginBottom:-1,fontSize:14,fontWeight:activo?700:500,
+  color:activo?"#10284A":"#8FA0B4",cursor:"pointer"
+});
+
+function SolicitudesInbox({onAbrirCliente}){
+  const[solicitudes,setSolicitudes]=useState(null);
+  const[error,setError]=useState("");
+
+  const cargar=async()=>{
+    const{data,error}=await sb.from("solicitudes").select("*,clientes(*)").order("created_at",{ascending:false});
+    if(error){setError(error.message);return;}
+    setSolicitudes(data);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const marcarAtendida=async(s)=>{
+    const{error}=await sb.from("solicitudes").update({estatus:"atendida"}).eq("id",s.id);
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
+  const verFoto=async(s)=>{
+    const{data,error}=await sb.storage.from("solicitudes").createSignedUrl(s.foto_path,60);
+    if(error){setError("No se pudo abrir la foto: "+error.message);return;}
+    window.open(data.signedUrl,"_blank");
+  };
+
+  if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
+  if(!solicitudes)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+  if(solicitudes.length===0)return <div style={{...est.card,textAlign:"center",color:"#6B7280"}}>Todavía no tienes solicitudes.</div>;
+
+  return <div>
+    {solicitudes.map(s=><div key={s.id} style={{...est.card,marginBottom:10,opacity:s.estatus==="atendida"?0.6:1}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div>
+          <div style={{fontWeight:700,fontSize:14}}>{s.tipo==="endoso"?"Endoso":"Cotización"} — {s.clientes?s.clientes.nombre:"Cliente"}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{s.tipo==="endoso"?s.tipo_cambio:s.ramo_interes}{" · "}{new Date(s.created_at).toLocaleString("es-MX",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}</div>
+          {s.descripcion&&<div style={{fontSize:13,color:"#374151",marginTop:6}}>{s.descripcion}</div>}
+        </div>
+        <span style={est.badge(s.estatus==="nueva"?"#F59E0B":"#6b7280")}>{s.estatus}</span>
+      </div>
+      <div style={{marginTop:10,display:"flex",gap:4}}>
+        {s.foto_path&&<button onClick={()=>verFoto(s)} style={est.linkBtn}>Ver foto</button>}
+        {s.clientes&&<button onClick={()=>onAbrirCliente(s.clientes)} style={est.linkBtn}>Ir al cliente</button>}
+        {s.estatus==="nueva"&&<button onClick={()=>marcarAtendida(s)} style={est.linkBtn}>Marcar atendida</button>}
+      </div>
+    </div>)}
+  </div>;
+}
+
 // ============ PANEL / APP ============
 
 function Panel({session,onSalir}){
   const[agente,setAgente]=useState(null);
   const[clienteActivo,setClienteActivo]=useState(null);
+  const[vista,setVista]=useState("clientes"); // clientes | solicitudes
+  const[pendientes,setPendientes]=useState(0);
   const[error,setError]=useState("");
 
   useEffect(()=>{
@@ -738,20 +797,33 @@ function Panel({session,onSalir}){
     })();
   },[]);
 
+  useEffect(()=>{
+    if(!agente)return;
+    sb.from("solicitudes").select("id",{count:"exact",head:true}).eq("estatus","nueva")
+      .then(({count})=>setPendientes(count||0));
+  },[agente,vista]);
+
   if(error)return <div style={{padding:40,textAlign:"center",color:"#dc2626"}}>Ocurrió un error: {error}</div>;
   if(!agente)return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando tu panel...</div>;
 
   return <div style={{maxWidth:760,margin:"0 auto",padding:"24px 16px 60px"}}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:32}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
       <div style={{fontSize:20,fontWeight:800}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
       <button onClick={onSalir} style={{background:"none",border:"none",color:"#6B7280",fontSize:14,cursor:"pointer"}}>Salir ({agente.correo})</button>
     </div>
+
+    {!clienteActivo&&<div style={{display:"flex",gap:16,marginBottom:24,borderBottom:"1px solid #DDE4EE"}}>
+      <button onClick={()=>setVista("clientes")} style={tabStyle(vista==="clientes")}>Mis clientes</button>
+      <button onClick={()=>setVista("solicitudes")} style={tabStyle(vista==="solicitudes")}>Solicitudes{pendientes>0?` (${pendientes})`:""}</button>
+    </div>}
 
     {clienteActivo
       ?<ClienteDetalle cliente={clienteActivo} agenteId={agente.id}
           onVolver={()=>setClienteActivo(null)}
           onClienteCambiado={(actualizado)=>setClienteActivo(actualizado)}/>
-      :<ClientesList agenteId={agente.id} onAbrirCliente={setClienteActivo}/>}
+      :vista==="solicitudes"
+        ?<SolicitudesInbox onAbrirCliente={(c)=>{setClienteActivo(c);setVista("clientes");}}/>
+        :<ClientesList agenteId={agente.id} onAbrirCliente={setClienteActivo}/>}
   </div>;
 }
 

@@ -31,6 +31,110 @@ function leerToken(){
 
 const card={background:"#fff",borderRadius:14,padding:18,border:"1px solid #DDE4EE"};
 const badge=(color)=>({display:"inline-block",fontSize:11,fontWeight:700,color,background:color+"1a",borderRadius:6,padding:"3px 8px"});
+const campo={width:"100%",padding:"12px 14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"};
+const TIPOS_CAMBIO=["Cambio de domicilio","Cambio de placas o vehículo","Agregar o quitar conductor","Cambio de beneficiario","Cambio de forma de pago","Otro"];
+
+function Boton({children,onClick,disabled,color="#10284A",type="button"}){
+  return <button type={type} onClick={onClick} disabled={disabled}
+    style={{background:disabled?"#DDE4EE":color,color:disabled?"#9ca3af":"#fff",border:"none",borderRadius:10,padding:"12px 18px",fontSize:15,fontWeight:700,cursor:disabled?"not-allowed":"pointer"}}>
+    {children}
+  </button>;
+}
+
+function SolicitudEnviada({onCerrar}){
+  return <div style={{...card,textAlign:"center",marginBottom:24,background:"#F4F7FB"}}>
+    <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>¡Listo! Tu agente ya la recibió.</div>
+    <div style={{fontSize:13,color:"#6B7280",marginBottom:14}}>Se va a poner en contacto contigo pronto.</div>
+    <button onClick={onCerrar} style={{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer"}}>Cerrar</button>
+  </div>;
+}
+
+function FormularioEndoso({token,onEnviado,onCancelar}){
+  const[tipoCambio,setTipoCambio]=useState(TIPOS_CAMBIO[0]);
+  const[descripcion,setDescripcion]=useState("");
+  const[foto,setFoto]=useState(null);
+  const[enviando,setEnviando]=useState(false);
+  const[error,setError]=useState("");
+
+  const enviar=async(e)=>{
+    e.preventDefault();
+    setError("");setEnviando(true);
+    let fotoPath=null;
+    if(foto){
+      fotoPath=`${token}/${crypto.randomUUID()}.jpg`;
+      const{error:errSubida}=await sb.storage.from("solicitudes").upload(fotoPath,foto,{contentType:foto.type||"image/jpeg"});
+      if(errSubida){setEnviando(false);setError("No se pudo subir la foto. Intenta de nuevo.");return;}
+    }
+    const{error:errRpc}=await sb.rpc("portal_crear_solicitud",{
+      p_token:token,p_tipo:"endoso",p_tipo_cambio:tipoCambio,p_descripcion:descripcion.trim()||null,p_foto_path:fotoPath
+    });
+    setEnviando(false);
+    if(errRpc){setError("No se pudo enviar tu solicitud. Intenta de nuevo.");return;}
+    onEnviado();
+  };
+
+  return <form onSubmit={enviar} style={{...card,marginBottom:24}}>
+    <div style={{fontSize:15,fontWeight:700,marginBottom:14}}>Solicitar cambio a mi póliza (endoso)</div>
+    <label style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"}}>Tipo de cambio</label>
+    <select value={tipoCambio} onChange={e=>setTipoCambio(e.target.value)} style={campo}>
+      {TIPOS_CAMBIO.map(t=><option key={t} value={t}>{t}</option>)}
+    </select>
+    <label style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"}}>Cuéntanos qué necesitas cambiar</label>
+    <textarea value={descripcion} onChange={e=>setDescripcion(e.target.value)} rows={3} style={campo}/>
+    <label style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"}}>Foto (opcional)</label>
+    <input type="file" accept="image/*" onChange={e=>setFoto(e.target.files[0]||null)} style={{...campo,padding:"8px 10px"}}/>
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    <div style={{display:"flex",gap:10}}>
+      <Boton type="submit" disabled={enviando}>{enviando?"Enviando...":"Enviar solicitud"}</Boton>
+      <button type="button" onClick={onCancelar} style={{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer"}}>Cancelar</button>
+    </div>
+  </form>;
+}
+
+function FormularioCotizacion({token,onEnviado,onCancelar}){
+  const[ramo,setRamo]=useState(RAMOS_SUGERIDOS[0]);
+  const[descripcion,setDescripcion]=useState("");
+  const[enviando,setEnviando]=useState(false);
+  const[error,setError]=useState("");
+
+  const enviar=async(e)=>{
+    e.preventDefault();
+    setError("");setEnviando(true);
+    const{error:errRpc}=await sb.rpc("portal_crear_solicitud",{
+      p_token:token,p_tipo:"cotizacion",p_ramo_interes:ramo,p_descripcion:descripcion.trim()||null
+    });
+    setEnviando(false);
+    if(errRpc){setError("No se pudo enviar tu solicitud. Intenta de nuevo.");return;}
+    onEnviado();
+  };
+
+  return <form onSubmit={enviar} style={{...card,marginBottom:24}}>
+    <div style={{fontSize:15,fontWeight:700,marginBottom:14}}>Solicitar una cotización</div>
+    <label style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"}}>¿Qué te interesa cotizar?</label>
+    <select value={ramo} onChange={e=>setRamo(e.target.value)} style={campo}>
+      {RAMOS_SUGERIDOS.map(r=><option key={r} value={r}>{r}</option>)}
+      <option value="Otro">Otro</option>
+    </select>
+    <label style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"}}>Cuéntanos más (opcional)</label>
+    <textarea value={descripcion} onChange={e=>setDescripcion(e.target.value)} rows={3} style={campo}/>
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    <div style={{display:"flex",gap:10}}>
+      <Boton type="submit" disabled={enviando}>{enviando?"Enviando...":"Enviar solicitud"}</Boton>
+      <button type="button" onClick={onCancelar} style={{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer"}}>Cancelar</button>
+    </div>
+  </form>;
+}
+
+function SeccionSolicitudes({token}){
+  const[vista,setVista]=useState("botones"); // botones | endoso | cotizacion | enviado
+  if(vista==="enviado")return <SolicitudEnviada onCerrar={()=>setVista("botones")}/>;
+  if(vista==="endoso")return <FormularioEndoso token={token} onEnviado={()=>setVista("enviado")} onCancelar={()=>setVista("botones")}/>;
+  if(vista==="cotizacion")return <FormularioCotizacion token={token} onEnviado={()=>setVista("enviado")} onCancelar={()=>setVista("botones")}/>;
+  return <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:24}}>
+    <Boton color="#53647D" onClick={()=>setVista("endoso")}>Solicitar cambio a mi póliza</Boton>
+    <Boton color="#F59E0B" onClick={()=>setVista("cotizacion")}>Solicitar cotización</Boton>
+  </div>;
+}
 
 function TarjetaPoliza({p,vehiculo}){
   const vig=vigenciaCalculada(p);
@@ -71,12 +175,14 @@ function TarjetaVehiculo({v,poliza}){
 function Portal(){
   const[estado,setEstado]=useState("cargando"); // cargando | invalido | listo
   const[datos,setDatos]=useState(null);
+  const[token,setToken]=useState(null);
 
   useEffect(()=>{
-    const token=leerToken();
-    if(!token){setEstado("invalido");return;}
-    history.replaceState(null,"","/p/"+token);
-    sb.rpc("portal_cliente",{p_token:token}).then(({data,error})=>{
+    const t=leerToken();
+    if(!t){setEstado("invalido");return;}
+    history.replaceState(null,"","/p/"+t);
+    setToken(t);
+    sb.rpc("portal_cliente",{p_token:t}).then(({data,error})=>{
       if(error||!data){setEstado("invalido");return;}
       setDatos(data);setEstado("listo");
     });
@@ -110,6 +216,8 @@ function Portal(){
     </div>
 
     <div style={{fontSize:16,fontWeight:700,margin:"20px 0 12px"}}>Hola, {cliente.nombre.split(" ")[0]} 👋</div>
+
+    <SeccionSolicitudes token={token}/>
 
     <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",marginBottom:10}}>TUS PÓLIZAS ({polizas.length})</div>
     {polizas.length===0&&<div style={{...card,textAlign:"center",color:"#6B7280",marginBottom:24}}>Todavía no tienes pólizas registradas.</div>}
