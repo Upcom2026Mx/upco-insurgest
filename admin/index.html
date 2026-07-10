@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Upco InsurGest — Panel del fundador</title>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="icon" href="../icon-192.png"/>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../shared.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect}=React;
+
+const est={
+  input:{width:"100%",padding:"12px 14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"},
+  card:{background:"#fff",borderRadius:14,padding:18,border:"1px solid #DDE4EE"},
+  fila:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:"1px solid #f1f5f9"},
+  linkBtn:{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer",padding:"4px 8px"},
+  badge:(color)=>({display:"inline-block",fontSize:11,fontWeight:700,color,background:color+"1a",borderRadius:6,padding:"3px 8px"})
+};
+
+const colorEstatusAgente={pendiente:"#F59E0B",aprobado:"#16a34a",rechazado:"#dc2626"};
+
+function Boton({children,onClick,disabled,color="#10284A",type="button"}){
+  return <button type={type} onClick={onClick} disabled={disabled}
+    style={{background:disabled?"#DDE4EE":color,color:disabled?"#9ca3af":"#fff",border:"none",borderRadius:10,padding:"12px 18px",fontSize:15,fontWeight:700,cursor:disabled?"not-allowed":"pointer"}}>
+    {children}
+  </button>;
+}
+
+function Login(){
+  const[email,setEmail]=useState("");
+  const[password,setPassword]=useState("");
+  const[error,setError]=useState("");
+  const[cargando,setCargando]=useState(false);
+
+  const entrar=async(e)=>{
+    e.preventDefault();
+    if(!email||!email.includes("@")){setError("Escribe un correo válido.");return;}
+    if(!password){setError("Escribe tu contraseña.");return;}
+    setError("");setCargando(true);
+    const{error}=await sb.auth.signInWithPassword({email:email.trim(),password});
+    setCargando(false);
+    if(error){
+      if(error.message&&error.message.toLowerCase().includes("email not confirmed")){
+        setError("Tu correo todavía no está confirmado. Revisa tu bandeja de entrada.");
+      }else{
+        setError(`Correo o contraseña incorrectos. (${error.message||"sin detalle"})`);
+      }
+      return;
+    }
+  };
+
+  return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <form onSubmit={entrar} style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>
+      <div style={{fontSize:20,fontWeight:800,marginBottom:4}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
+      <div style={{fontSize:14,color:"#6B7280",marginBottom:20}}>Panel del fundador</div>
+      <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username" style={est.input}/>
+      <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="tu contraseña" type="password" autoComplete="current-password" style={{...est.input,marginBottom:12}}/>
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <div style={{width:"100%"}}><Boton type="submit" disabled={cargando}>{cargando?"Entrando...":"Iniciar sesión"}</Boton></div>
+    </form>
+  </div>;
+}
+
+function TarjetaKPI({label,valor,color,grande}){
+  return <div style={{...est.card,textAlign:"center"}}>
+    <div style={{fontSize:grande?30:22,fontWeight:700,color:color||"#10284A"}}>{valor}</div>
+    <div style={{fontSize:12,color:"#8FA0B4",marginTop:4}}>{label}</div>
+  </div>;
+}
+
+function Resumen(){
+  const[r,setR]=useState(null);
+  const[error,setError]=useState("");
+
+  useEffect(()=>{
+    sb.rpc("admin_resumen").then(({data,error})=>{
+      if(error){setError(error.message);return;}
+      setR(data);
+    });
+  },[]);
+
+  if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
+  if(!r)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+
+  return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:24}}>
+    <TarjetaKPI label="Agentes totales" valor={r.agentes_totales} grande/>
+    <TarjetaKPI label="Agentes aprobados" valor={r.agentes_aprobados} color="#16a34a"/>
+    <TarjetaKPI label="Agentes pendientes" valor={r.agentes_pendientes} color="#F59E0B"/>
+    <TarjetaKPI label="Clientes gestionados" valor={r.clientes_totales}/>
+    <TarjetaKPI label="Pólizas gestionadas" valor={r.polizas_totales} grande/>
+    <TarjetaKPI label="Prima total vigente" valor={pesos(r.prima_total_vigente)}/>
+  </div>;
+}
+
+function Agentes(){
+  const[agentes,setAgentes]=useState(null);
+  const[error,setError]=useState("");
+  const[filtro,setFiltro]=useState("pendiente"); // pendiente | todos
+
+  const cargar=async()=>{
+    const{data,error}=await sb.rpc("admin_agentes");
+    if(error){setError(error.message);return;}
+    setAgentes(data||[]);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const aprobar=async(a)=>{
+    const{error}=await sb.rpc("admin_aprobar_agente",{p_agente_id:a.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+  const rechazar=async(a)=>{
+    if(!window.confirm(`¿Rechazar el registro de ${a.correo}?`))return;
+    const{error}=await sb.rpc("admin_rechazar_agente",{p_agente_id:a.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
+  if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
+  if(!agentes)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+
+  const lista=filtro==="pendiente"?agentes.filter(a=>a.estatus_aprobacion==="pendiente"):agentes;
+
+  return <div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{fontSize:16,fontWeight:700}}>Agentes {lista?`(${lista.length})`:""}</div>
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={()=>setFiltro("pendiente")} style={{...est.linkBtn,fontWeight:filtro==="pendiente"?700:500,color:filtro==="pendiente"?"#10284A":"#8FA0B4"}}>Pendientes</button>
+        <button onClick={()=>setFiltro("todos")} style={{...est.linkBtn,fontWeight:filtro==="todos"?700:500,color:filtro==="todos"?"#10284A":"#8FA0B4"}}>Todos</button>
+      </div>
+    </div>
+
+    {lista.length===0&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
+      {filtro==="pendiente"?"No hay registros pendientes de aprobación.":"No hay agentes registrados."}
+    </div>}
+
+    {lista.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
+      {lista.map(a=><div key={a.id} style={est.fila}>
+        <div>
+          <div style={{fontWeight:700,fontSize:14}}>{a.nombre||a.correo}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>
+            {a.correo}{a.nombre_negocio?` · ${a.nombre_negocio}`:""}{a.telefono?` · ${a.telefono}`:""}
+          </div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{a.clientes} clientes · {a.polizas} pólizas</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={est.badge(colorEstatusAgente[a.estatus_aprobacion]||"#6b7280")}>{a.estatus_aprobacion}</span>
+          {a.estatus_aprobacion!=="aprobado"&&<button onClick={()=>aprobar(a)} style={{...est.linkBtn,color:"#16a34a"}}>Aprobar</button>}
+          {a.estatus_aprobacion!=="rechazado"&&<button onClick={()=>rechazar(a)} style={{...est.linkBtn,color:"#dc2626"}}>Rechazar</button>}
+        </div>
+      </div>)}
+    </div>}
+  </div>;
+}
+
+const tabStyle=(activo)=>({
+  background:"none",border:"none",borderBottom:activo?"2px solid #10284A":"2px solid transparent",
+  padding:"8px 4px",marginBottom:-1,fontSize:14,fontWeight:activo?700:500,
+  color:activo?"#10284A":"#8FA0B4",cursor:"pointer"
+});
+
+function PanelAdmin({session,onSalir}){
+  const[vista,setVista]=useState("resumen"); // resumen | agentes
+  const[noAutorizado,setNoAutorizado]=useState(false);
+
+  useEffect(()=>{
+    sb.rpc("es_admin").then(({data,error})=>{
+      if(error||!data)setNoAutorizado(true);
+    });
+  },[]);
+
+  if(noAutorizado)return <div style={{padding:40,textAlign:"center",color:"#dc2626"}}>
+    Esta cuenta no tiene permiso para ver el panel de administración.
+    <div style={{marginTop:16}}><button onClick={onSalir} style={est.linkBtn}>Salir</button></div>
+  </div>;
+
+  return <div style={{maxWidth:760,margin:"0 auto",padding:"24px 16px 60px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+      <div style={{fontSize:20,fontWeight:800}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span> <span style={{fontSize:13,fontWeight:500,color:"#8FA0B4"}}>· fundador</span></div>
+      <button onClick={onSalir} style={{background:"none",border:"none",color:"#6B7280",fontSize:14,cursor:"pointer"}}>Salir ({session.user.email})</button>
+    </div>
+
+    <div style={{display:"flex",gap:16,marginBottom:24,borderBottom:"1px solid #DDE4EE"}}>
+      <button onClick={()=>setVista("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
+      <button onClick={()=>setVista("agentes")} style={tabStyle(vista==="agentes")}>Agentes</button>
+    </div>
+
+    {vista==="resumen"?<Resumen/>:<Agentes/>}
+  </div>;
+}
+
+function App(){
+  const[sesion,setSesion]=useState(undefined);
+  useEffect(()=>{
+    sb.auth.getSession().then(({data})=>setSesion(data.session||null));
+    const{data:sub}=sb.auth.onAuthStateChange((_e,s)=>setSesion(s));
+    return ()=>sub.subscription.unsubscribe();
+  },[]);
+  if(sesion===undefined)return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>;
+  if(!sesion)return <Login/>;
+  return <PanelAdmin session={sesion} onSalir={()=>sb.auth.signOut()}/>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
