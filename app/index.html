@@ -775,12 +775,96 @@ function SolicitudesInbox({onAbrirCliente}){
   </div>;
 }
 
+// ============ DASHBOARD ============
+
+function TarjetaKPI({label,valor,color,grande}){
+  return <div style={{...est.card,textAlign:"center"}}>
+    <div style={{fontSize:grande?30:22,fontWeight:700,color:color||"#10284A"}}>{valor}</div>
+    <div style={{fontSize:12,color:"#8FA0B4",marginTop:4}}>{label}</div>
+  </div>;
+}
+
+function GraficaBarras({titulo,datos}){
+  const max=Math.max(...datos.map(d=>d.valor),1);
+  return <div style={est.card}>
+    <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",marginBottom:14}}>{titulo}</div>
+    {datos.map(d=><div key={d.etiqueta} style={{marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}>
+        <span style={{color:"#374151",fontWeight:600}}>{d.etiqueta}</span>
+        <span style={{color:"#8FA0B4"}}>{d.valor} · {d.pct}%</span>
+      </div>
+      <div style={{height:12,background:"#F4F7FB",borderRadius:2}}>
+        <div style={{height:"100%",width:`${Math.max((d.valor/max)*100,4)}%`,background:"#10284A",borderRadius:"0 6px 6px 0"}}/>
+      </div>
+    </div>)}
+  </div>;
+}
+
+function DashboardAgente(){
+  const[polizas,setPolizas]=useState(null);
+  const[error,setError]=useState("");
+
+  useEffect(()=>{
+    sb.from("polizas").select("*,clientes(nombre)").order("created_at",{ascending:false})
+      .then(({data,error})=>{if(error){setError(error.message);return;}setPolizas(data);});
+  },[]);
+
+  if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
+  if(!polizas)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+  if(polizas.length===0)return <div style={{...est.card,textAlign:"center",color:"#6B7280"}}>Todavía no tienes pólizas registradas.</div>;
+
+  let vigentes=0,porVencer=0,vencidas=0,renovadas=0,canceladas=0,primaVigente=0;
+  polizas.forEach(p=>{
+    const vig=vigenciaCalculada(p);
+    if(vig.label==="renovada")renovadas++;
+    else if(vig.label==="cancelada")canceladas++;
+    else if(vig.label==="vencida")vencidas++;
+    else{
+      if(vig.dias!=null&&vig.dias<=15)porVencer++;else vigentes++;
+      primaVigente+=Number(p.prima)||0;
+    }
+  });
+
+  const porCampo=(campo)=>{
+    const mapa={};
+    polizas.forEach(p=>{const clave=p[campo]||"Sin dato";mapa[clave]=(mapa[clave]||0)+1;});
+    const total=polizas.length;
+    let filas=Object.entries(mapa).map(([etiqueta,valor])=>({etiqueta,valor,pct:Math.round(valor/total*100)}))
+      .sort((a,b)=>b.valor-a.valor);
+    if(filas.length>7){
+      const top=filas.slice(0,6);
+      const resto=filas.slice(6);
+      const sumaResto=resto.reduce((s,f)=>s+f.valor,0);
+      top.push({etiqueta:"Otras",valor:sumaResto,pct:Math.round(sumaResto/total*100)});
+      filas=top;
+    }
+    return filas;
+  };
+
+  return <div>
+    <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>Resumen ({polizas.length} pólizas)</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10,marginBottom:canceladas>0?6:24}}>
+      <TarjetaKPI label="Prima total vigente" valor={pesos(primaVigente)} grande/>
+      <TarjetaKPI label="Vigentes" valor={vigentes} color={colorEstatus.vigente}/>
+      <TarjetaKPI label="Por vencer (≤15 días)" valor={porVencer} color="#F59E0B"/>
+      <TarjetaKPI label="Vencidas" valor={vencidas} color={colorEstatus.vencida}/>
+      <TarjetaKPI label="Renovadas" valor={renovadas} color={colorEstatus.renovada}/>
+    </div>
+    {canceladas>0&&<div style={{fontSize:12,color:"#8FA0B4",marginBottom:24}}>+ {canceladas} canceladas</div>}
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:16}}>
+      <GraficaBarras titulo="PÓLIZAS POR ASEGURADORA" datos={porCampo("aseguradora")}/>
+      <GraficaBarras titulo="PÓLIZAS POR RAMO" datos={porCampo("ramo")}/>
+    </div>
+  </div>;
+}
+
 // ============ PANEL / APP ============
 
 function Panel({session,onSalir}){
   const[agente,setAgente]=useState(null);
   const[clienteActivo,setClienteActivo]=useState(null);
-  const[vista,setVista]=useState("clientes"); // clientes | solicitudes
+  const[vista,setVista]=useState("clientes"); // clientes | solicitudes | resumen
   const[pendientes,setPendientes]=useState(0);
   const[error,setError]=useState("");
 
@@ -815,6 +899,7 @@ function Panel({session,onSalir}){
     {!clienteActivo&&<div style={{display:"flex",gap:16,marginBottom:24,borderBottom:"1px solid #DDE4EE"}}>
       <button onClick={()=>setVista("clientes")} style={tabStyle(vista==="clientes")}>Mis clientes</button>
       <button onClick={()=>setVista("solicitudes")} style={tabStyle(vista==="solicitudes")}>Solicitudes{pendientes>0?` (${pendientes})`:""}</button>
+      <button onClick={()=>setVista("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
     </div>}
 
     {clienteActivo
@@ -823,7 +908,9 @@ function Panel({session,onSalir}){
           onClienteCambiado={(actualizado)=>setClienteActivo(actualizado)}/>
       :vista==="solicitudes"
         ?<SolicitudesInbox onAbrirCliente={(c)=>{setClienteActivo(c);setVista("clientes");}}/>
-        :<ClientesList agenteId={agente.id} onAbrirCliente={setClienteActivo}/>}
+        :vista==="resumen"
+          ?<DashboardAgente/>
+          :<ClientesList agenteId={agente.id} onAbrirCliente={setClienteActivo}/>}
   </div>;
 }
 
