@@ -69,7 +69,14 @@ function Login(){
     setError("");setCargando(true);
     const{error}=await sb.auth.signInWithPassword({email:email.trim(),password});
     setCargando(false);
-    if(error){setError("Correo o contraseña incorrectos.");return;}
+    if(error){
+      if(error.message&&error.message.toLowerCase().includes("email not confirmed")){
+        setError("Tu correo todavía no está confirmado. Revisa tu bandeja de entrada.");
+      }else{
+        setError(`Correo o contraseña incorrectos. (${error.message||"sin detalle"})`);
+      }
+      return;
+    }
   };
 
   return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
