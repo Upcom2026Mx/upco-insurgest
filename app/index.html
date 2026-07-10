@@ -170,6 +170,7 @@ function ClienteForm({agenteId,clienteExistente,onGuardado,onCancelar}){
 function ClientesList({agenteId,onAbrirCliente}){
   const[clientes,setClientes]=useState(null);
   const[formAbierto,setFormAbierto]=useState(false);
+  const[formPolizaAbierto,setFormPolizaAbierto]=useState(false);
   const[error,setError]=useState("");
 
   const cargar=async()=>{
@@ -182,12 +183,23 @@ function ClientesList({agenteId,onAbrirCliente}){
   return <div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
       <div style={{fontSize:16,fontWeight:700}}>Mis clientes {clientes?`(${clientes.length})`:""}</div>
-      {!formAbierto&&<Boton onClick={()=>setFormAbierto(true)}>+ Nuevo cliente</Boton>}
+      {!formAbierto&&!formPolizaAbierto&&<div style={{display:"flex",gap:8}}>
+        {clientes&&clientes.length>0&&<Boton color="#F59E0B" onClick={()=>setFormPolizaAbierto(true)}>+ Nueva póliza</Boton>}
+        <Boton onClick={()=>setFormAbierto(true)}>+ Nuevo cliente</Boton>
+      </div>}
     </div>
 
     {formAbierto&&<ClienteForm agenteId={agenteId}
       onGuardado={()=>{setFormAbierto(false);cargar();}}
       onCancelar={()=>setFormAbierto(false)}/>}
+
+    {formPolizaAbierto&&<PolizaForm agenteId={agenteId} clientesDisponibles={clientes}
+      onGuardado={(poliza)=>{
+        setFormPolizaAbierto(false);
+        const cliente=(clientes||[]).find(c=>c.id===poliza.cliente_id);
+        if(cliente)onAbrirCliente(cliente);
+      }}
+      onCancelar={()=>setFormPolizaAbierto(false)}/>}
 
     {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
     {!clientes&&<div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>}
@@ -469,9 +481,10 @@ function ClienteDetalle({cliente,agenteId,onVolver,onClienteCambiado}){
 
 // ============ PÓLIZA ============
 
-function PolizaForm({clienteId,agenteId,polizaExistente,onGuardado,onCancelar}){
+function PolizaForm({clienteId,clientesDisponibles,agenteId,polizaExistente,onGuardado,onCancelar}){
   const p=polizaExistente;
   const ramoInicial=p&&!RAMOS_SUGERIDOS.includes(p.ramo)?"Otro":(p?p.ramo:"Auto");
+  const[clienteSel,setClienteSel]=useState(clienteId||(p?p.cliente_id:"")||"");
   const[ramo,setRamo]=useState(ramoInicial);
   const[ramoOtro,setRamoOtro]=useState(ramoInicial==="Otro"?p.ramo:"");
   const[aseguradora,setAseguradora]=useState(p?p.aseguradora||"":"");
@@ -481,9 +494,10 @@ function PolizaForm({clienteId,agenteId,polizaExistente,onGuardado,onCancelar}){
   const[duracion,setDuracion]=useState(p?"custom":"1");
 
   useEffect(()=>{
-    sb.from("vehiculos").select("id,placas,marca,modelo").eq("cliente_id",clienteId).order("created_at")
+    if(!clienteSel){setVehiculos([]);return;}
+    sb.from("vehiculos").select("id,placas,marca,modelo").eq("cliente_id",clienteSel).order("created_at")
       .then(({data})=>setVehiculos(data||[]));
-  },[]);
+  },[clienteSel]);
   const[fechaInicio,setFechaInicio]=useState(p?p.fecha_inicio||"":"");
   const[fechaFin,setFechaFin]=useState(p?p.fecha_fin||"":"");
 
@@ -501,6 +515,7 @@ function PolizaForm({clienteId,agenteId,polizaExistente,onGuardado,onCancelar}){
 
   const guardar=async(e)=>{
     e.preventDefault();
+    if(!clienteSel){setError("Selecciona a qué cliente pertenece esta póliza.");return;}
     const ramoFinal=ramo==="Otro"?(ramoOtro.trim()||"Otro"):ramo;
     setError("");setGuardando(true);
     const payload={
@@ -519,7 +534,7 @@ function PolizaForm({clienteId,agenteId,polizaExistente,onGuardado,onCancelar}){
     if(p){
       resultado=await sb.from("polizas").update(payload).eq("id",p.id).select().single();
     }else{
-      resultado=await sb.from("polizas").insert({...payload,cliente_id:clienteId}).select().single();
+      resultado=await sb.from("polizas").insert({...payload,cliente_id:clienteSel}).select().single();
     }
     if(resultado.error){setGuardando(false);setError(resultado.error.message);return;}
     let polizaFinal=resultado.data;
@@ -542,6 +557,13 @@ function PolizaForm({clienteId,agenteId,polizaExistente,onGuardado,onCancelar}){
   return <form onSubmit={guardar} style={{...est.card,marginBottom:24}}>
     <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>{p?"Editar póliza":"Nueva póliza"}</div>
 
+    {!clienteId&&<Campo label="Cliente">
+      <select name="cliente_id" value={clienteSel} onChange={e=>setClienteSel(e.target.value)} style={est.input}>
+        <option value="">— Selecciona un cliente —</option>
+        {(clientesDisponibles||[]).map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}
+      </select>
+    </Campo>}
+
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
       <Campo label="Ramo">
         <select name="ramo" value={ramo} onChange={e=>setRamo(e.target.value)} style={est.input}>
@@ -554,12 +576,12 @@ function PolizaForm({clienteId,agenteId,polizaExistente,onGuardado,onCancelar}){
       </Campo>}
     </div>
 
-    {ramo==="Auto"&&<Campo label="Vehículo asociado">
+    {ramo==="Auto"&&clienteSel&&<Campo label="Vehículo asociado">
       <select name="vehiculo_id" value={vehiculoId} onChange={e=>setVehiculoId(e.target.value)} style={est.input}>
         <option value="">Sin vehículo asociado</option>
         {(vehiculos||[]).map(veh=><option key={veh.id} value={veh.id}>{veh.placas||"Sin placas"} — {veh.marca||""} {veh.modelo||""}</option>)}
       </select>
-      {vehiculos&&vehiculos.length===0&&<div style={{fontSize:12,color:"#8FA0B4",marginTop:-6,marginBottom:10}}>Este cliente todavía no tiene vehículos registrados arriba.</div>}
+      {vehiculos&&vehiculos.length===0&&<div style={{fontSize:12,color:"#8FA0B4",marginTop:-6,marginBottom:10}}>Este cliente todavía no tiene vehículos registrados.</div>}
     </Campo>}
 
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
