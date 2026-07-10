@@ -58,6 +58,14 @@ function Campo({label,children}){
   return <div>{label&&<label style={est.label}>{label}</label>}{children}</div>;
 }
 
+const ALTO_HEADER=54;
+function HeaderBar(){
+  return <div style={{background:"#10284A",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:10,height:ALTO_HEADER}}>
+    <span style={{color:"#fff",fontWeight:800,fontSize:16}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></span>
+    <span style={{color:"#fff",fontSize:12,fontWeight:600,background:"rgba(255,255,255,.15)",borderRadius:20,padding:"3px 10px"}}>Portal Agente</span>
+  </div>;
+}
+
 function Login(){
   const[modo,setModo]=useState("entrar"); // entrar | registro
   const[email,setEmail]=useState("");
@@ -123,17 +131,16 @@ function Login(){
     setRegistroListo(true);
   };
 
-  if(registroListo)return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+  if(registroListo)return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
     <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
-      <div style={{fontSize:20,fontWeight:800,marginBottom:12}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>¡Cuenta creada!</div>
       <div style={{fontSize:14,color:"#374151",lineHeight:1.6}}>Revisa tu correo para confirmar tu cuenta. Una vez confirmada, podrás iniciar sesión — tu acceso quedará pendiente de aprobación hasta que lo revisemos.</div>
     </div>
   </div>;
 
-  return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+  return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
     <form onSubmit={modo==="entrar"?entrar:registrar} style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>
-      <div style={{fontSize:20,fontWeight:800,marginBottom:4}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
-      <div style={{fontSize:14,color:"#6B7280",marginBottom:20}}>{modo==="entrar"?"Panel del agente":"Crear cuenta de agente"}</div>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:20,color:"#10284A"}}>{modo==="entrar"?"Iniciar sesión":"Crear cuenta de agente"}</div>
 
       {modo==="registro"&&<>
         <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="tu nombre" style={est.input}/>
@@ -1032,17 +1039,17 @@ function Panel({session,onSalir}){
   if(error)return <div style={{padding:40,textAlign:"center",color:"#dc2626"}}>Ocurrió un error: {error}</div>;
   if(!agente)return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando tu panel...</div>;
 
-  if(agente.estatus_aprobacion==="pendiente")return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+  if(agente.estatus_aprobacion==="pendiente")return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
     <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
-      <div style={{fontSize:20,fontWeight:800,marginBottom:12}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
-      <div style={{fontSize:14,color:"#374151",lineHeight:1.6,marginBottom:20}}>Tu cuenta está pendiente de aprobación. Te avisaremos por correo en cuanto puedas empezar a usar tu panel.</div>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>Cuenta pendiente de aprobación</div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.6,marginBottom:20}}>Te avisaremos por correo en cuanto puedas empezar a usar tu panel.</div>
       <button onClick={onSalir} style={est.linkBtn}>Salir</button>
     </div>
   </div>;
 
-  if(agente.estatus_aprobacion==="rechazado")return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+  if(agente.estatus_aprobacion==="rechazado")return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
     <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
-      <div style={{fontSize:20,fontWeight:800,marginBottom:12}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>Solicitud no aprobada</div>
       <div style={{fontSize:14,color:"#374151",lineHeight:1.6,marginBottom:20}}>Tu solicitud de registro no fue aprobada. Si crees que es un error, contáctanos.</div>
       <button onClick={onSalir} style={est.linkBtn}>Salir</button>
     </div>
@@ -1050,7 +1057,7 @@ function Panel({session,onSalir}){
 
   return <div style={{maxWidth:760,margin:"0 auto",padding:"24px 16px 60px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-      <div style={{fontSize:20,fontWeight:800}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></div>
+      <div style={{fontSize:16,fontWeight:700,color:"#10284A"}}>Hola, {agente.nombre||agente.correo}</div>
       <button onClick={onSalir} style={{background:"none",border:"none",color:"#6B7280",fontSize:14,cursor:"pointer"}}>Salir ({agente.correo})</button>
     </div>
 
@@ -1082,9 +1089,14 @@ function App(){
     const{data:sub}=sb.auth.onAuthStateChange((_e,s)=>setSesion(s));
     return ()=>sub.subscription.unsubscribe();
   },[]);
-  if(sesion===undefined)return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>;
-  if(!sesion)return <Login/>;
-  return <Panel session={sesion} onSalir={()=>sb.auth.signOut()}/>;
+  return <>
+    <HeaderBar/>
+    {sesion===undefined
+      ?<div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>
+      :!sesion
+        ?<Login/>
+        :<Panel session={sesion} onSalir={()=>sb.auth.signOut()}/>}
+  </>;
 }
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
