@@ -153,7 +153,12 @@ function Agentes(){
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>
             {a.correo}{a.nombre_negocio?` · ${a.nombre_negocio}`:""}{a.telefono?` · ${a.telefono}`:""}
           </div>
-          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{a.clientes} clientes · {a.polizas} pólizas</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>
+            {a.rfc?`RFC ${a.rfc}`:"Sin RFC"}
+            {" · "}
+            {a.tiene_cedula?`Cédula ${(a.tipos_cedula||[]).join(", ")||"—"}${a.numero_cedula?` (No. ${a.numero_cedula})`:""}`:"Sin cédula registrada"}
+          </div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{a.clientes} clientes · {a.polizas} pólizas{a.acepto_terminos?" · Aceptó términos":" · No ha aceptado términos"}</div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span style={est.badge(colorEstatusAgente[a.estatus_aprobacion]||"#6b7280")}>{a.estatus_aprobacion}</span>

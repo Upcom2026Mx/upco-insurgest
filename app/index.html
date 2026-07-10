@@ -29,6 +29,8 @@ const TIPOS_VEHICULO=["familiar","comercial","carga"];
 const TIPOS_CARGA=["A","B","C"];
 const UN_ANIO_SEGUNDOS=60*60*24*365;
 const ESTADOS_MX=["Aguascalientes","Baja California","Baja California Sur","Campeche","Chiapas","Chihuahua","Ciudad de México","Coahuila","Colima","Durango","Estado de México","Guanajuato","Guerrero","Hidalgo","Jalisco","Michoacán","Morelos","Nayarit","Nuevo León","Oaxaca","Puebla","Querétaro","Quintana Roo","San Luis Potosí","Sinaloa","Sonora","Tabasco","Tamaulipas","Tlaxcala","Veracruz","Yucatán","Zacatecas"];
+const TIPOS_CEDULA=["A","B","C","D","F","Otra"];
+const VERSION_TERMINOS="2026-07-10";
 
 function sumarAnios(fechaISO,anios){
   const d=new Date(fechaISO+"T00:00:00");
@@ -63,9 +65,18 @@ function Login(){
   const[nombre,setNombre]=useState("");
   const[nombreNegocio,setNombreNegocio]=useState("");
   const[telefono,setTelefono]=useState("");
+  const[rfc,setRfc]=useState("");
+  const[tieneCedula,setTieneCedula]=useState(false);
+  const[tiposCedula,setTiposCedula]=useState([]);
+  const[numeroCedula,setNumeroCedula]=useState("");
+  const[aceptoTerminos,setAceptoTerminos]=useState(false);
   const[error,setError]=useState("");
   const[cargando,setCargando]=useState(false);
   const[registroListo,setRegistroListo]=useState(false);
+
+  const toggleCedula=(t)=>{
+    setTiposCedula(prev=>prev.includes(t)?prev.filter(x=>x!==t):[...prev,t]);
+  };
 
   const entrar=async(e)=>{
     e.preventDefault();
@@ -89,11 +100,23 @@ function Login(){
     if(!email||!email.includes("@")){setError("Escribe un correo válido.");return;}
     if(!nombre.trim()){setError("Escribe tu nombre.");return;}
     if(!password||password.length<6){setError("La contraseña debe tener al menos 6 caracteres.");return;}
+    if(!aceptoTerminos){setError("Debes aceptar los Términos y Condiciones y el Aviso de Privacidad para registrarte.");return;}
     setError("");setCargando(true);
     const{error}=await sb.auth.signUp({
       email:email.trim(),
       password,
-      options:{data:{nombre:nombre.trim(),nombre_negocio:nombreNegocio.trim()||null,telefono:telefono.trim()||null}}
+      options:{data:{
+        nombre:nombre.trim(),
+        nombre_negocio:nombreNegocio.trim()||null,
+        telefono:telefono.trim()||null,
+        rfc:rfc.trim()||null,
+        tiene_cedula:tieneCedula,
+        tipos_cedula:tieneCedula&&tiposCedula.length>0?tiposCedula:null,
+        numero_cedula:tieneCedula?(numeroCedula.trim()||null):null,
+        acepto_terminos:true,
+        acepto_terminos_version:VERSION_TERMINOS,
+        acepto_terminos_fecha:new Date().toISOString()
+      }}
     });
     setCargando(false);
     if(error){setError(error.message);return;}
@@ -116,9 +139,31 @@ function Login(){
         <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="tu nombre" style={est.input}/>
         <input value={nombreNegocio} onChange={e=>setNombreNegocio(e.target.value)} placeholder="nombre de tu negocio (opcional)" style={est.input}/>
         <input value={telefono} onChange={e=>setTelefono(e.target.value)} placeholder="teléfono (opcional)" style={est.input}/>
+        <input value={rfc} onChange={e=>setRfc(e.target.value.toUpperCase())} placeholder="RFC (opcional)" style={est.input}/>
+
+        <label style={{display:"flex",alignItems:"center",gap:8,fontSize:14,color:"#374151",cursor:"pointer",marginBottom:10}}>
+          <input type="checkbox" checked={tieneCedula} onChange={e=>setTieneCedula(e.target.checked)}/>
+          Tengo cédula de agente
+        </label>
+
+        {tieneCedula&&<div style={{marginBottom:10}}>
+          <label style={est.label}>Tipo de cédula</label>
+          <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:8}}>
+            {TIPOS_CEDULA.map(t=><label key={t} style={{display:"flex",alignItems:"center",gap:4,fontSize:13,color:"#374151",cursor:"pointer"}}>
+              <input type="checkbox" checked={tiposCedula.includes(t)} onChange={()=>toggleCedula(t)}/>{t}
+            </label>)}
+          </div>
+          <input value={numeroCedula} onChange={e=>setNumeroCedula(e.target.value)} placeholder="Número de cédula" style={est.input}/>
+        </div>}
       </>}
       <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username" style={est.input}/>
       <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="tu contraseña" type="password" autoComplete={modo==="entrar"?"current-password":"new-password"} style={{...est.input,marginBottom:12}}/>
+
+      {modo==="registro"&&<label style={{display:"flex",alignItems:"flex-start",gap:8,fontSize:13,color:"#374151",marginBottom:12,cursor:"pointer"}}>
+        <input type="checkbox" checked={aceptoTerminos} onChange={e=>setAceptoTerminos(e.target.checked)} style={{marginTop:2}}/>
+        <span>Acepto los <a href="../terminos/" target="_blank" rel="noopener" style={{color:"#10284A"}}>Términos y Condiciones y el Aviso de Privacidad</a>.</span>
+      </label>}
+
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
       <div style={{width:"100%"}}><Boton type="submit" disabled={cargando}>
         {cargando?(modo==="entrar"?"Entrando...":"Creando cuenta..."):(modo==="entrar"?"Iniciar sesión":"Crear cuenta")}
@@ -958,7 +1003,12 @@ function Panel({session,onSalir}){
       if(data){setAgente(data);return;}
       const meta=session.user.user_metadata||{};
       const{data:nuevo,error:errIns}=await sb.from("agentes")
-        .insert({id:session.user.id,correo:session.user.email,nombre:meta.nombre||null,nombre_negocio:meta.nombre_negocio||null,telefono:meta.telefono||null})
+        .insert({
+          id:session.user.id,correo:session.user.email,
+          nombre:meta.nombre||null,nombre_negocio:meta.nombre_negocio||null,telefono:meta.telefono||null,
+          rfc:meta.rfc||null,tiene_cedula:meta.tiene_cedula||false,tipos_cedula:meta.tipos_cedula||null,numero_cedula:meta.numero_cedula||null,
+          acepto_terminos:meta.acepto_terminos||false,acepto_terminos_version:meta.acepto_terminos_version||null,acepto_terminos_fecha:meta.acepto_terminos_fecha||null
+        })
         .select().single();
       if(errIns){
         if(errIns.code==="23505"){
