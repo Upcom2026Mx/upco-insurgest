@@ -34,6 +34,29 @@
   footer{max-width:1040px;margin:0 auto;padding:24px 20px;text-align:center;font-size:12.5px;color:#8FA0B4}
   footer a{color:#53647D;font-weight:600}
   @media(min-width:640px){.hero h1{font-size:40px}}
+
+  .showcase{max-width:1040px;margin:0 auto;padding:20px 20px 60px}
+  .showcase h2{font-size:24px;font-weight:800;color:#10284A;text-align:center;margin:0 0 6px}
+  .showcase-sub{font-size:14px;color:#6B7280;text-align:center;max-width:520px;margin:0 auto 32px}
+  .mock-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+  .mock{background:#fff;border:1px solid #DDE4EE;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.05)}
+  .mock-bar{background:#EEF2F8;padding:9px 12px;display:flex;align-items:center;gap:5px}
+  .mock-dot{width:8px;height:8px;border-radius:50%;background:#DDE4EE;display:inline-block}
+  .mock-url{margin-left:8px;background:#fff;border-radius:6px;padding:3px 10px;font-size:10.5px;color:#8FA0B4;flex:1;font-family:ui-monospace,Consolas,monospace}
+  .mock-body{padding:14px}
+  .mock-cap{font-size:12px;color:#8FA0B4;text-align:center;padding:10px 14px 14px}
+  .mk-card{background:#fff;border:1px solid #EEF2F8;border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  .mk-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f1f5f9;font-size:12.5px}
+  .mk-row:last-child{border-bottom:none}
+  .mk-name{font-weight:700;color:#0a1c35}
+  .mk-sub{font-size:11px;color:#8FA0B4;margin-top:1px}
+  .mk-badge{display:inline-block;font-size:10px;font-weight:700;border-radius:5px;padding:2px 6px}
+  .mk-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .mk-h-title{font-size:13px;font-weight:700;color:#0a1c35}
+  .mk-btn{background:#10284A;color:#fff;font-size:11px;font-weight:700;border-radius:7px;padding:6px 10px}
+  .mk-kpi{background:#F4F7FB;border-radius:8px;padding:8px;text-align:center}
+  .mk-kpi b{display:block;font-size:15px;color:#10284A}
+  .mk-kpi span{font-size:9.5px;color:#8FA0B4}
 </style>
 </head>
 <body>
@@ -77,6 +100,60 @@
     <div class="ficon">▤</div>
     <h3>Tu cartera en números</h3>
     <p>Dashboard con tus pólizas vigentes, por vencer y vencidas, prima total gestionada, y desglose por aseguradora y ramo.</p>
+  </div>
+</div>
+
+<div class="showcase">
+  <h2>Así se ve por dentro</h2>
+  <p class="showcase-sub">Tu lista de clientes, tu cartera en números, y lo que ve tu cliente cuando le compartes su liga — con datos de ejemplo reales del sistema.</p>
+  <div class="mock-grid">
+
+    <div class="mock">
+      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/app</div></div>
+      <div class="mock-body">
+        <div class="mk-h"><span class="mk-h-title">Mis clientes (3)</span><span class="mk-btn">+ Nuevo cliente</span></div>
+        <div class="mk-card" style="padding:0">
+          <div class="mk-row" style="padding:10px 12px"><div><div class="mk-name">Laura Fernández Ruiz</div><div class="mk-sub">Persona física · laura.fernandez@example.com</div></div><span>›</span></div>
+          <div class="mk-row" style="padding:10px 12px"><div><div class="mk-name">Comercializadora del Bajío SA de CV</div><div class="mk-sub">Persona moral · contacto@combajio.com.mx</div></div><span>›</span></div>
+          <div class="mk-row" style="padding:10px 12px"><div><div class="mk-name">Ricardo Torres Mendoza</div><div class="mk-sub">Persona física · ricardo.torres@example.com</div></div><span>›</span></div>
+        </div>
+      </div>
+      <div class="mock-cap">Todos tus clientes, vehículos y pólizas en un solo lugar</div>
+    </div>
+
+    <div class="mock">
+      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/app</div></div>
+      <div class="mock-body">
+        <div class="mk-h-title" style="margin-bottom:10px">Resumen (4 pólizas)</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+          <div class="mk-kpi"><b>$45,600</b><span>PRIMA VIGENTE</span></div>
+          <div class="mk-kpi"><b style="color:#16a34a">2</b><span>VIGENTES</span></div>
+          <div class="mk-kpi"><b style="color:#F59E0B">1</b><span>POR VENCER</span></div>
+        </div>
+        <div class="mk-card">
+          <div style="font-size:10.5px;font-weight:700;color:#8FA0B4;margin-bottom:8px">PÓLIZAS POR ASEGURADORA</div>
+          <div style="font-size:11.5px;color:#374151;margin-bottom:4px">Quálitas</div><div style="height:8px;background:#F4F7FB;border-radius:4px;margin-bottom:8px"><div style="height:100%;width:25%;background:#10284A;border-radius:4px"></div></div>
+          <div style="font-size:11.5px;color:#374151;margin-bottom:4px">GNP</div><div style="height:8px;background:#F4F7FB;border-radius:4px"><div style="height:100%;width:25%;background:#10284A;border-radius:4px"></div></div>
+        </div>
+      </div>
+      <div class="mock-cap">Tu cartera vigente, por vencer y por aseguradora, de un vistazo</div>
+    </div>
+
+    <div class="mock">
+      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/p/24ed67a8…</div></div>
+      <div class="mock-body">
+        <div style="font-size:12px;color:#8FA0B4;margin-bottom:2px">Tu agente: Agente Prueba B</div>
+        <div class="mk-h-title" style="margin-bottom:10px">Hola, Laura 👋</div>
+        <div class="mk-card">
+          <div class="mk-row" style="border:none;padding:2px 0"><div><div class="mk-name">Auto — Quálitas</div><div class="mk-sub">Vence en 243 días</div></div><span class="mk-badge" style="color:#16a34a;background:#16a34a1a">vigente</span></div>
+        </div>
+        <div class="mk-card">
+          <div class="mk-row" style="border:none;padding:2px 0"><div><div class="mk-name">Vida — GNP</div><div class="mk-sub" style="color:#F59E0B;font-weight:700">Vence en 10 días</div></div><span class="mk-badge" style="color:#16a34a;background:#16a34a1a">vigente</span></div>
+        </div>
+      </div>
+      <div class="mock-cap">Lo que ve tu cliente — sin registrarse, sin instalar nada</div>
+    </div>
+
   </div>
 </div>
 
