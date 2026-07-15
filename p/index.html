@@ -127,17 +127,23 @@ function FormularioCotizacion({token,onEnviado,onCancelar}){
 }
 
 function SeccionAcciones({token}){
-  const[vista,setVista]=useState("botones"); // botones | cotizacion | flotilla | enviado
+  const[vista,setVista]=useState("botones"); // botones | cotizacion | enviado
   if(vista==="enviado")return <SolicitudEnviada onCerrar={()=>setVista("botones")}/>;
   if(vista==="cotizacion")return <FormularioCotizacion token={token} onEnviado={()=>setVista("enviado")} onCancelar={()=>setVista("botones")}/>;
-  if(vista==="flotilla")return <div style={{marginBottom:24}}>
-    <button onClick={()=>setVista("botones")} style={{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer",padding:0,marginBottom:12}}>‹ Volver</button>
-    <SeccionFlotilla token={token}/>
-  </div>;
   return <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:24}}>
     <Boton color="#F59E0B" onClick={()=>setVista("cotizacion")}>Solicitar cotización</Boton>
-    <Boton color="#53647D" onClick={()=>setVista("flotilla")}>Mi flotilla</Boton>
   </div>;
+}
+
+function BotonNotificaciones({token}){
+  const[activado,setActivado]=useState(false);
+  const activar=async()=>{
+    await sb.rpc("portal_activar_notificaciones",{p_token:token});
+    setActivado(true);
+  };
+  return <button onClick={activar} disabled={activado} style={{background:activado?"#EAF7EF":"#FEF3E2",border:"none",borderRadius:20,padding:"7px 14px",fontSize:12.5,fontWeight:700,color:activado?"#16a34a":"#B45309",cursor:activado?"default":"pointer",whiteSpace:"nowrap"}}>
+    {activado?"✓ Notificaciones activadas":"🔔 Activar notificaciones"}
+  </button>;
 }
 
 function TarjetaPoliza({p,vehiculo,token}){
@@ -174,12 +180,62 @@ function TarjetaPoliza({p,vehiculo,token}){
   </div>;
 }
 
-function TarjetaVehiculo({v,poliza}){
+const INTERVALOS_MANTENIMIENTO=[{value:10000,label:"cada 10,000 km"},{value:15000,label:"cada 15,000 km"}];
+
+function TarjetaVehiculo({v,poliza,token,onCambio}){
+  const[kmNuevo,setKmNuevo]=useState("");
+  const[guardando,setGuardando]=useState(false);
   const vig=poliza?vigenciaCalculada(poliza):null;
+  const incompleto=v.kilometraje_actual==null;
+  const proximoServicioKm=v.km_ultimo_servicio!=null?v.km_ultimo_servicio+v.intervalo_mantenimiento_km:null;
+  const kmFaltan=proximoServicioKm!=null&&v.kilometraje_actual!=null?proximoServicioKm-v.kilometraje_actual:null;
+
+  const registrarKm=async()=>{
+    if(!kmNuevo)return;
+    setGuardando(true);
+    await sb.rpc("portal_vehiculo_actualizar",{p_token:token,p_vehiculo_id:v.id,p_kilometraje:parseInt(kmNuevo,10),p_fecha_ultimo_servicio:null,p_km_ultimo_servicio:null,p_fecha_verificacion:null,p_notificaciones_activas:null});
+    setGuardando(false);setKmNuevo("");onCambio();
+  };
+  const marcarServicioHecho=async()=>{
+    if(!v.kilometraje_actual)return;
+    setGuardando(true);
+    await sb.rpc("portal_vehiculo_actualizar",{p_token:token,p_vehiculo_id:v.id,p_kilometraje:null,p_fecha_ultimo_servicio:new Date().toISOString().slice(0,10),p_km_ultimo_servicio:v.kilometraje_actual,p_fecha_verificacion:null,p_notificaciones_activas:null});
+    setGuardando(false);onCambio();
+  };
+  const toggleNotificaciones=async()=>{
+    setGuardando(true);
+    await sb.rpc("portal_vehiculo_actualizar",{p_token:token,p_vehiculo_id:v.id,p_kilometraje:null,p_fecha_ultimo_servicio:null,p_km_ultimo_servicio:null,p_fecha_verificacion:null,p_notificaciones_activas:!v.notificaciones_activas});
+    setGuardando(false);onCambio();
+  };
+  const cotizar=async()=>{
+    setGuardando(true);
+    await sb.rpc("portal_vehiculo_cotizar",{p_token:token,p_vehiculo_id:v.id});
+    setGuardando(false);onCambio();
+  };
+  const eliminar=async()=>{
+    if(!window.confirm(`¿Quitar ${v.marca||"este vehículo"}?`))return;
+    setGuardando(true);
+    const{error}=await sb.rpc("portal_vehiculo_eliminar",{p_token:token,p_vehiculo_id:v.id});
+    setGuardando(false);
+    if(error){alert(error.message);return;}
+    onCambio();
+  };
+
   return <div style={card}>
-    <div style={{fontWeight:700,fontSize:14}}>{v.marca||"—"} {v.modelo||""} {v.anio||""}</div>
-    <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{v.placas||"Sin placas"}</div>
-    {v.fecha_verificacion&&<div style={{fontSize:12,color:"#374151",marginTop:6}}>Verificación: {fecha(v.fecha_verificacion)}</div>}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+      <div>
+        <div style={{fontWeight:700,fontSize:14}}>{v.marca||"—"} {v.modelo||""} {v.anio||""}</div>
+        <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{v.placas||"Sin placas"}{v.estado?` · ${v.estado}`:""}</div>
+      </div>
+      {!v.tiene_poliza&&<button onClick={cotizar} disabled={guardando} style={{background:"none",border:"none",color:"#F59E0B",fontSize:11,fontWeight:700,cursor:"pointer"}}>Cotizar</button>}
+    </div>
+
+    {incompleto&&<div style={{marginTop:8,fontSize:12,color:"#B45309",fontWeight:700}}>Termina de configurar este vehículo ↓</div>}
+
+    {v.requiere_verificacion&&<div style={{marginTop:6,fontSize:12,color:"#374151"}}>
+      Tu estado requiere verificación vehicular{v.fecha_verificacion?` · próxima: ${fecha(v.fecha_verificacion)}`:""}
+    </div>}
+
     <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #f1f5f9"}}>
       {poliza
         ?<div>
@@ -188,12 +244,30 @@ function TarjetaVehiculo({v,poliza}){
         </div>
         :<div style={{fontSize:12,color:"#8FA0B4"}}>Sin póliza de auto vinculada</div>}
     </div>
+
+    <div style={{marginTop:8,fontSize:12.5,color:"#374151"}}>
+      {v.kilometraje_actual!=null?`Último kilometraje: ${v.kilometraje_actual.toLocaleString("es-MX")} km`:"Sin kilometraje registrado"}
+      {kmFaltan!=null&&<div style={{marginTop:2,fontWeight:600,color:kmFaltan<=500?"#F59E0B":"#8FA0B4"}}>
+        {kmFaltan<=0?"Ya te toca servicio":`Faltan ~${kmFaltan.toLocaleString("es-MX")} km para tu próximo servicio`}
+      </div>}
+    </div>
+
+    <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap",alignItems:"center"}}>
+      <input value={kmNuevo} onChange={e=>setKmNuevo(e.target.value)} placeholder="Km actual" type="number" style={{...campo,width:90,marginBottom:0,padding:"8px 10px",fontSize:12.5}}/>
+      <button onClick={registrarKm} disabled={guardando||!kmNuevo} style={{background:"#F4F7FB",border:"none",borderRadius:8,cursor:"pointer",fontSize:11.5,fontWeight:700,color:"#10284A",padding:"9px 10px"}}>Actualizar</button>
+      <button onClick={marcarServicioHecho} disabled={guardando} style={{background:"none",border:"none",color:"#53647D",fontSize:11.5,cursor:"pointer"}}>Ya le hice servicio</button>
+    </div>
+
+    <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11.5,color:"#374151",marginTop:8,cursor:"pointer"}}>
+      <input type="checkbox" checked={v.notificaciones_activas} onChange={toggleNotificaciones} disabled={guardando}/>
+      Avisarme cuando se acerque el mantenimiento
+    </label>
+
+    {!v.tiene_poliza&&<button onClick={eliminar} disabled={guardando} style={{background:"none",border:"none",color:"#dc2626",fontSize:11,cursor:"pointer",marginTop:6,padding:0}}>Quitar</button>}
   </div>;
 }
 
-const INTERVALOS_MANTENIMIENTO=[{value:10000,label:"cada 10,000 km"},{value:15000,label:"cada 15,000 km"}];
-
-function FormularioFlotilla({token,polizasAuto,onGuardado,onCancelar}){
+function FormularioVehiculoNuevo({token,onGuardado,onCancelar}){
   const[placas,setPlacas]=useState("");
   const[estado,setEstado]=useState("");
   const[marca,setMarca]=useState("");
@@ -201,26 +275,24 @@ function FormularioFlotilla({token,polizasAuto,onGuardado,onCancelar}){
   const[anio,setAnio]=useState("");
   const[kilometraje,setKilometraje]=useState("");
   const[intervalo,setIntervalo]=useState(10000);
-  const[polizaId,setPolizaId]=useState("");
   const[guardando,setGuardando]=useState(false);
   const[error,setError]=useState("");
 
   const guardar=async(e)=>{
     e.preventDefault();
     setError("");setGuardando(true);
-    const{error:errRpc}=await sb.rpc("portal_flotilla_agregar",{
+    const{error:errRpc}=await sb.rpc("portal_vehiculo_agregar",{
       p_token:token,p_placas:placas.trim()||null,p_estado:estado||null,p_marca:marca.trim()||null,
       p_modelo:modelo.trim()||null,p_anio:anio?parseInt(anio,10):null,
-      p_kilometraje:kilometraje?parseInt(kilometraje,10):null,p_intervalo:intervalo,
-      p_poliza_id:polizaId||null
+      p_kilometraje:kilometraje?parseInt(kilometraje,10):null,p_intervalo:intervalo
     });
     setGuardando(false);
     if(errRpc){setError(errRpc.message||"No se pudo agregar el vehículo.");return;}
     onGuardado();
   };
 
-  return <form onSubmit={guardar} style={{...card,marginBottom:16}}>
-    <div style={{fontSize:15,fontWeight:700,marginBottom:14}}>Agregar vehículo a mi flotilla</div>
+  return <form onSubmit={guardar} style={{...card,marginBottom:10}}>
+    <div style={{fontSize:15,fontWeight:700,marginBottom:14}}>Agregar otro vehículo</div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
       <input value={marca} onChange={e=>setMarca(e.target.value)} placeholder="Marca" style={campo}/>
       <input value={modelo} onChange={e=>setModelo(e.target.value)} placeholder="Modelo" style={campo}/>
@@ -239,10 +311,6 @@ function FormularioFlotilla({token,polizasAuto,onGuardado,onCancelar}){
         {INTERVALOS_MANTENIMIENTO.map(i=><option key={i.value} value={i.value}>{i.label}</option>)}
       </select>
     </div>
-    {polizasAuto.length>0&&<select value={polizaId} onChange={e=>setPolizaId(e.target.value)} style={campo}>
-      <option value="">Sin vincular a ninguna póliza</option>
-      {polizasAuto.map(p=><option key={p.id} value={p.id}>Vincular a póliza {p.numero_poliza||"—"} ({p.aseguradora||"sin aseguradora"})</option>)}
-    </select>}
     {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
     <div style={{display:"flex",gap:10}}>
       <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":"Agregar"}</Boton>
@@ -251,123 +319,25 @@ function FormularioFlotilla({token,polizasAuto,onGuardado,onCancelar}){
   </form>;
 }
 
-function TarjetaFlotilla({v,token,onCambio}){
-  const[kmNuevo,setKmNuevo]=useState("");
-  const[guardando,setGuardando]=useState(false);
-
-  const proximoServicioKm=v.km_ultimo_servicio!=null?v.km_ultimo_servicio+v.intervalo_mantenimiento_km:null;
-  const kmFaltan=proximoServicioKm!=null&&v.kilometraje_actual!=null?proximoServicioKm-v.kilometraje_actual:null;
-
-  const registrarKm=async()=>{
-    if(!kmNuevo)return;
-    setGuardando(true);
-    await sb.rpc("portal_flotilla_actualizar",{p_token:token,p_vehiculo_id:v.id,p_kilometraje:parseInt(kmNuevo,10),p_fecha_ultimo_servicio:null,p_km_ultimo_servicio:null,p_fecha_verificacion:null,p_notificaciones_activas:null});
-    setGuardando(false);setKmNuevo("");onCambio();
-  };
-  const marcarServicioHecho=async()=>{
-    if(!v.kilometraje_actual)return;
-    setGuardando(true);
-    await sb.rpc("portal_flotilla_actualizar",{p_token:token,p_vehiculo_id:v.id,p_kilometraje:null,p_fecha_ultimo_servicio:new Date().toISOString().slice(0,10),p_km_ultimo_servicio:v.kilometraje_actual,p_fecha_verificacion:null,p_notificaciones_activas:null});
-    setGuardando(false);onCambio();
-  };
-  const toggleNotificaciones=async()=>{
-    setGuardando(true);
-    await sb.rpc("portal_flotilla_actualizar",{p_token:token,p_vehiculo_id:v.id,p_kilometraje:null,p_fecha_ultimo_servicio:null,p_km_ultimo_servicio:null,p_fecha_verificacion:null,p_notificaciones_activas:!v.notificaciones_activas});
-    setGuardando(false);onCambio();
-  };
-  const cotizar=async()=>{
-    setGuardando(true);
-    await sb.rpc("portal_flotilla_cotizar",{p_token:token,p_vehiculo_id:v.id});
-    setGuardando(false);onCambio();
-  };
-  const eliminar=async()=>{
-    if(!window.confirm(`¿Quitar ${v.marca||"este vehículo"} de tu flotilla?`))return;
-    setGuardando(true);
-    await sb.rpc("portal_flotilla_eliminar",{p_token:token,p_vehiculo_id:v.id});
-    setGuardando(false);onCambio();
-  };
-
-  return <div style={{...card,marginBottom:10}}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-      <div>
-        <div style={{fontWeight:700,fontSize:14}}>{v.marca||"—"} {v.modelo||""} {v.anio||""}</div>
-        <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{v.placas||"Sin placas"}{v.estado?` · ${v.estado}`:""}</div>
-      </div>
-      {!v.poliza_id&&<button onClick={cotizar} disabled={guardando} style={{background:"none",border:"none",color:"#F59E0B",fontSize:12,fontWeight:700,cursor:"pointer"}}>Solicitar cotización</button>}
-    </div>
-
-    {v.requiere_verificacion&&<div style={{marginTop:8,fontSize:12,color:"#374151"}}>
-      Tu estado requiere verificación vehicular{v.fecha_verificacion?` · próxima: ${fecha(v.fecha_verificacion)}`:" · agrégale fecha cuando la tengas"}
-    </div>}
-
-    <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #f1f5f9",fontSize:12.5,color:"#374151"}}>
-      {v.kilometraje_actual!=null?`Último kilometraje: ${v.kilometraje_actual.toLocaleString("es-MX")} km`:"Sin kilometraje registrado"}
-      {kmFaltan!=null&&<div style={{marginTop:2,fontWeight:600,color:kmFaltan<=500?"#F59E0B":"#8FA0B4"}}>
-        {kmFaltan<=0?"Ya te toca servicio":`Faltan ~${kmFaltan.toLocaleString("es-MX")} km para tu próximo servicio`}
-      </div>}
-    </div>
-
-    <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap",alignItems:"center"}}>
-      <input value={kmNuevo} onChange={e=>setKmNuevo(e.target.value)} placeholder="Nuevo km" type="number" style={{...campo,width:110,marginBottom:0}}/>
-      <button onClick={registrarKm} disabled={guardando||!kmNuevo} style={{...campo,width:"auto",marginBottom:0,background:"#F4F7FB",cursor:"pointer",fontSize:12,fontWeight:700,color:"#10284A",padding:"10px 12px"}}>Actualizar</button>
-      <button onClick={marcarServicioHecho} disabled={guardando} style={{background:"none",border:"none",color:"#53647D",fontSize:12,cursor:"pointer"}}>Ya le hice servicio</button>
-    </div>
-
-    <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#374151",marginTop:10,cursor:"pointer"}}>
-      <input type="checkbox" checked={v.notificaciones_activas} onChange={toggleNotificaciones} disabled={guardando}/>
-      Avisarme por correo cuando se acerque el mantenimiento
-    </label>
-
-    <button onClick={eliminar} disabled={guardando} style={{background:"none",border:"none",color:"#dc2626",fontSize:11,cursor:"pointer",marginTop:8,padding:0}}>Quitar de mi flotilla</button>
-  </div>;
-}
-
-function SeccionFlotilla({token}){
-  const[datos,setDatos]=useState(null);
-  const[formAbierto,setFormAbierto]=useState(false);
-  const[error,setError]=useState("");
-
-  const cargar=async()=>{
-    const{data,error}=await sb.rpc("portal_flotilla_listar",{p_token:token});
-    if(error||!data){setError("No se pudo cargar tu flotilla.");return;}
-    setDatos(data);
-  };
-  useEffect(()=>{cargar()},[]);
-
-  if(error)return null;
-  if(!datos)return null;
-
-  const limite=datos.flotilla.length>=5;
-
-  return <div style={{marginTop:32}}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-      <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4"}}>MI FLOTILLA ({datos.flotilla.length}/5)</div>
-      {!formAbierto&&!limite&&<button onClick={()=>setFormAbierto(true)} style={{background:"none",border:"none",color:"#10284A",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Agregar vehículo</button>}
-    </div>
-    <div style={{fontSize:12,color:"#8FA0B4",marginBottom:12}}>Lleva el mantenimiento de tus autos, tengan o no póliza contigo — hasta 5 vehículos.</div>
-
-    {formAbierto&&<FormularioFlotilla token={token} polizasAuto={datos.polizas_auto}
-      onGuardado={()=>{setFormAbierto(false);cargar();}} onCancelar={()=>setFormAbierto(false)}/>}
-
-    {datos.flotilla.length===0&&!formAbierto&&<div style={{...card,textAlign:"center",color:"#6B7280"}}>Todavía no tienes vehículos en tu flotilla.</div>}
-    {datos.flotilla.map(v=><TarjetaFlotilla key={v.id} v={v} token={token} onCambio={cargar}/>)}
-  </div>;
-}
-
 function Portal(){
   const[estado,setEstado]=useState("cargando"); // cargando | invalido | listo
   const[datos,setDatos]=useState(null);
   const[token,setToken]=useState(null);
+  const[formVehiculoAbierto,setFormVehiculoAbierto]=useState(false);
+
+  const cargar=(t)=>{
+    sb.rpc("portal_cliente",{p_token:t}).then(({data,error})=>{
+      if(error||!data){setEstado("invalido");return;}
+      setDatos(data);setEstado("listo");
+    });
+  };
 
   useEffect(()=>{
     const t=leerToken();
     if(!t){setEstado("invalido");return;}
     history.replaceState(null,"","/p/"+t);
     setToken(t);
-    sb.rpc("portal_cliente",{p_token:t}).then(({data,error})=>{
-      if(error||!data){setEstado("invalido");return;}
-      setDatos(data);setEstado("listo");
-    });
+    cargar(t);
   },[]);
 
   if(estado==="cargando")return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando tus pólizas...</div>;
@@ -397,7 +367,10 @@ function Portal(){
       </div>
     </div>
 
-    <div style={{fontSize:16,fontWeight:700,margin:"20px 0 12px"}}>Hola, {cliente.nombre.split(" ")[0]} 👋</div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10,margin:"20px 0 12px"}}>
+      <div style={{fontSize:16,fontWeight:700}}>Hola, {cliente.nombre.split(" ")[0]} 👋</div>
+      <BotonNotificaciones token={token}/>
+    </div>
 
     <SeccionAcciones token={token}/>
 
@@ -405,12 +378,16 @@ function Portal(){
     {polizas.length===0&&<div style={{...card,textAlign:"center",color:"#6B7280",marginBottom:24}}>Todavía no tienes pólizas registradas.</div>}
     {polizas.map(p=><TarjetaPoliza key={p.id} p={p} vehiculo={p.vehiculo_id?vehiculosPorId[p.vehiculo_id]:null} token={token}/>)}
 
-    {vehiculos.length>0&&<>
-      <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",margin:"24px 0 10px"}}>TUS VEHÍCULOS ({vehiculos.length})</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
-        {vehiculos.map(v=><TarjetaVehiculo key={v.id} v={v} poliza={polizaPorVehiculo[v.id]}/>)}
-      </div>
-    </>}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"24px 0 10px"}}>
+      <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4"}}>TUS VEHÍCULOS ({vehiculos.length}/5)</div>
+      {!formVehiculoAbierto&&vehiculos.length<5&&<button onClick={()=>setFormVehiculoAbierto(true)} style={{background:"none",border:"none",color:"#10284A",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Agregar vehículo</button>}
+    </div>
+    {formVehiculoAbierto&&<FormularioVehiculoNuevo token={token}
+      onGuardado={()=>{setFormVehiculoAbierto(false);cargar(token);}} onCancelar={()=>setFormVehiculoAbierto(false)}/>}
+    {vehiculos.length===0&&!formVehiculoAbierto&&<div style={{...card,textAlign:"center",color:"#6B7280"}}>Todavía no tienes vehículos registrados.</div>}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:10}}>
+      {vehiculos.map(v=><TarjetaVehiculo key={v.id} v={v} poliza={polizaPorVehiculo[v.id]} token={token} onCambio={()=>cargar(token)}/>)}
+    </div>
 
     <div style={{textAlign:"center",fontSize:12,color:"#8FA0B4",marginTop:32}}>Upco InsurGest</div>
   </div>;
