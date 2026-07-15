@@ -67,7 +67,7 @@ function HeaderBar(){
 }
 
 function Login(){
-  const[modo,setModo]=useState("entrar"); // entrar | registro
+  const[modo,setModo]=useState(new URLSearchParams(location.search).get("registro")?"registro":"entrar"); // entrar | registro
   const[email,setEmail]=useState("");
   const[password,setPassword]=useState("");
   const[nombre,setNombre]=useState("");

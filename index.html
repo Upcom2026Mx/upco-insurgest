@@ -3,26 +3,91 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Upco InsurGest</title>
-<meta name="robots" content="noindex, nofollow"/>
+<title>Upco InsurGest — Software para agentes de seguros independientes</title>
+<meta name="description" content="Administra clientes, pólizas y vencimientos de tu cartera en un solo lugar. Liga mágica para tus clientes, avisos automáticos y dashboard de tu cartera."/>
 <link rel="manifest" href="manifest.webmanifest"/>
 <link rel="icon" href="icon-192.png"/>
 <style>
   *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
-    font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35;padding:20px}
-  .card{background:#fff;border-radius:16px;padding:32px;max-width:380px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.08)}
-  .brand{font-size:22px;font-weight:800;margin-bottom:6px}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35}
+  a{text-decoration:none}
+  .header{background:#10284A;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;max-width:1040px;margin:0 auto}
+  .brand{color:#fff;font-weight:800;font-size:18px}
   .brand span{color:#F59E0B}
-  .msg{font-size:14px;color:#6B7280;line-height:1.5;margin-bottom:20px}
-  .boton{display:inline-block;background:#10284A;color:#fff;text-decoration:none;border-radius:10px;padding:12px 20px;font-size:15px;font-weight:700}
+  .navlink{color:#DDE4EE;font-size:14px;font-weight:600;padding:8px 14px}
+  .hero{max-width:720px;margin:0 auto;padding:64px 20px 40px;text-align:center}
+  .hero h1{font-size:32px;font-weight:800;line-height:1.25;margin:0 0 16px}
+  .hero p{font-size:16px;color:#374151;line-height:1.6;margin:0 0 28px}
+  .cta-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:8px}
+  .boton{display:inline-block;background:#10284A;color:#fff;border-radius:10px;padding:14px 26px;font-size:16px;font-weight:700}
+  .boton-sec{display:inline-block;background:#fff;color:#10284A;border:1.5px solid #DDE4EE;border-radius:10px;padding:14px 26px;font-size:16px;font-weight:700}
+  .subnota{font-size:13px;color:#8FA0B4;margin-top:14px}
+  .features{max-width:1040px;margin:0 auto;padding:20px 20px 60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+  .fcard{background:#fff;border:1px solid #DDE4EE;border-radius:14px;padding:22px}
+  .ficon{width:40px;height:40px;border-radius:10px;background:#F59E0B1a;color:#F59E0B;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;margin-bottom:14px}
+  .fcard h3{font-size:15px;margin:0 0 8px;color:#10284A}
+  .fcard p{font-size:13.5px;color:#6B7280;line-height:1.55;margin:0}
+  .cta-final{background:#10284A;padding:56px 20px;text-align:center}
+  .cta-final h2{color:#fff;font-size:24px;font-weight:800;margin:0 0 10px}
+  .cta-final p{color:#DDE4EE;font-size:14px;margin:0 0 24px}
+  .cta-final .boton{background:#F59E0B;color:#10284A}
+  footer{max-width:1040px;margin:0 auto;padding:24px 20px;text-align:center;font-size:12.5px;color:#8FA0B4}
+  footer a{color:#53647D;font-weight:600}
+  @media(min-width:640px){.hero h1{font-size:40px}}
 </style>
 </head>
 <body>
-  <div class="card">
-    <div class="brand">Upco <span>InsurGest</span></div>
-    <div class="msg">Control de pólizas para agentes de seguros independientes.</div>
-    <a class="boton" href="./app/">Entrar a mi panel</a>
+
+<div class="header">
+  <div class="brand">Upco <span>InsurGest</span></div>
+  <div>
+    <a class="navlink" href="./app/">Iniciar sesión</a>
+    <a class="navlink" href="./app/?registro=1" style="background:rgba(255,255,255,.12);border-radius:8px">Crear cuenta</a>
   </div>
+</div>
+
+<div class="hero">
+  <h1>Administra las pólizas y clientes de tu cartera, todo en un solo lugar.</h1>
+  <p>Upco InsurGest es la herramienta para agentes de seguros independientes en México: controla tus clientes, sus vehículos y sus pólizas, sin hojas de cálculo ni carpetas sueltas.</p>
+  <div class="cta-row">
+    <a class="boton" href="./app/?registro=1">Crear mi cuenta gratis</a>
+    <a class="boton-sec" href="./app/">Ya tengo cuenta</a>
+  </div>
+  <div class="subnota">Registro sujeto a validación — tu cuenta queda activa en cuanto la revisamos.</div>
+</div>
+
+<div class="features">
+  <div class="fcard">
+    <div class="ficon">☰</div>
+    <h3>Todo tu negocio en un solo lugar</h3>
+    <p>Clientes, vehículos y pólizas organizados por cada cliente, con vigencias calculadas automáticamente — ya no dependes de tu memoria ni de una hoja de cálculo.</p>
+  </div>
+  <div class="fcard">
+    <div class="ficon">🔗</div>
+    <h3>Liga mágica para tus clientes</h3>
+    <p>Cada cliente tiene su propia liga para ver sus pólizas y descargar sus PDFs cuando quiera, sin necesidad de registrarse ni instalar nada.</p>
+  </div>
+  <div class="fcard">
+    <div class="ficon">✉</div>
+    <h3>Avisos automáticos de vencimiento</h3>
+    <p>Te avisamos por correo antes de que venza una póliza, y avisamos directo a tu cliente antes de que venza la verificación vehicular de su auto.</p>
+  </div>
+  <div class="fcard">
+    <div class="ficon">▤</div>
+    <h3>Tu cartera en números</h3>
+    <p>Dashboard con tus pólizas vigentes, por vencer y vencidas, prima total gestionada, y desglose por aseguradora y ramo.</p>
+  </div>
+</div>
+
+<div class="cta-final">
+  <h2>Empieza a controlar tu cartera hoy</h2>
+  <p>Crear tu cuenta toma dos minutos.</p>
+  <a class="boton" href="./app/?registro=1">Crear mi cuenta gratis</a>
+</div>
+
+<footer>
+  © 2026 Upco InsurGest · <a href="./terminos/">Términos y Aviso de Privacidad</a>
+</footer>
+
 </body>
 </html>
