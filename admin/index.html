@@ -105,9 +105,72 @@ function Resumen(){
     <TarjetaKPI label="Agentes totales" valor={r.agentes_totales} grande/>
     <TarjetaKPI label="Agentes aprobados" valor={r.agentes_aprobados} color="#16a34a"/>
     <TarjetaKPI label="Agentes pendientes" valor={r.agentes_pendientes} color="#F59E0B"/>
+    <TarjetaKPI label="Promotorías" valor={r.promotorias_totales}/>
+    <TarjetaKPI label="Promotorías pendientes" valor={r.promotorias_pendientes} color="#F59E0B"/>
     <TarjetaKPI label="Clientes gestionados" valor={r.clientes_totales}/>
     <TarjetaKPI label="Pólizas gestionadas" valor={r.polizas_totales} grande/>
     <TarjetaKPI label="Prima total vigente" valor={pesos(r.prima_total_vigente)}/>
+  </div>;
+}
+
+function Promotorias(){
+  const[promotorias,setPromotorias]=useState(null);
+  const[error,setError]=useState("");
+  const[filtro,setFiltro]=useState("pendiente");
+
+  const cargar=async()=>{
+    const{data,error}=await sb.rpc("admin_promotorias");
+    if(error){setError(error.message);return;}
+    setPromotorias(data||[]);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const aprobar=async(p)=>{
+    const{error}=await sb.rpc("admin_aprobar_promotoria",{p_promotoria_id:p.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+  const rechazar=async(p)=>{
+    if(!window.confirm(`¿Rechazar el registro de ${p.correo}?`))return;
+    const{error}=await sb.rpc("admin_rechazar_promotoria",{p_promotoria_id:p.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
+  if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
+  if(!promotorias)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+
+  const lista=filtro==="pendiente"?promotorias.filter(p=>p.estatus_aprobacion==="pendiente"):promotorias;
+
+  return <div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{fontSize:16,fontWeight:700}}>Promotorías {lista?`(${lista.length})`:""}</div>
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={()=>setFiltro("pendiente")} style={{...est.linkBtn,fontWeight:filtro==="pendiente"?700:500,color:filtro==="pendiente"?"#10284A":"#8FA0B4"}}>Pendientes</button>
+        <button onClick={()=>setFiltro("todos")} style={{...est.linkBtn,fontWeight:filtro==="todos"?700:500,color:filtro==="todos"?"#10284A":"#8FA0B4"}}>Todos</button>
+      </div>
+    </div>
+
+    {lista.length===0&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
+      {filtro==="pendiente"?"No hay registros pendientes de aprobación.":"No hay promotorías registradas."}
+    </div>}
+
+    {lista.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
+      {lista.map(p=><div key={p.id} style={est.fila}>
+        <div>
+          <div style={{fontWeight:700,fontSize:14}}>{p.nombre_negocio||p.correo}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>
+            {p.correo}{p.nombre?` · ${p.nombre}`:""}{p.rfc?` · RFC ${p.rfc}`:""}
+          </div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>Código {p.codigo_invitacion} · {p.agentes} agentes en su red</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={est.badge(colorEstatusAgente[p.estatus_aprobacion]||"#6b7280")}>{p.estatus_aprobacion}</span>
+          {p.estatus_aprobacion!=="aprobado"&&<button onClick={()=>aprobar(p)} style={{...est.linkBtn,color:"#16a34a"}}>Aprobar</button>}
+          {p.estatus_aprobacion!=="rechazado"&&<button onClick={()=>rechazar(p)} style={{...est.linkBtn,color:"#dc2626"}}>Rechazar</button>}
+        </div>
+      </div>)}
+    </div>}
   </div>;
 }
 
@@ -207,9 +270,10 @@ function PanelAdmin({session,onSalir}){
     <div style={{display:"flex",gap:16,marginBottom:24,borderBottom:"1px solid #DDE4EE"}}>
       <button onClick={()=>setVista("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
       <button onClick={()=>setVista("agentes")} style={tabStyle(vista==="agentes")}>Agentes</button>
+      <button onClick={()=>setVista("promotorias")} style={tabStyle(vista==="promotorias")}>Promotorías</button>
     </div>
 
-    {vista==="resumen"?<Resumen/>:<Agentes/>}
+    {vista==="resumen"?<Resumen/>:vista==="promotorias"?<Promotorias/>:<Agentes/>}
   </div>;
 }
 

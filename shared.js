@@ -23,3 +23,8 @@ function textoDias(dias){
 }
 const pesos=n=>n==null?"—":new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(n);
 const fecha=d=>d?new Date(d+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"}):"—";
+function formatBytes(bytes){
+  if(!bytes)return"0 MB";
+  const mb=bytes/(1024*1024);
+  return mb>=1024?`${(mb/1024).toFixed(2)} GB`:`${mb.toFixed(1)} MB`;
+}

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Upco InsurGest — Portal de promotoría</title>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="icon" href="../icon-192.png"/>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../shared.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect}=React;
+
+const VERSION_TERMINOS="2026-07-10";
+
+const est={
+  input:{width:"100%",padding:"12px 14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"},
+  label:{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"},
+  card:{background:"#fff",borderRadius:14,padding:18,border:"1px solid #DDE4EE"},
+  fila:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:"1px solid #f1f5f9"},
+  linkBtn:{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer",padding:"4px 8px"},
+  badge:(color)=>({display:"inline-block",fontSize:11,fontWeight:700,color,background:color+"1a",borderRadius:6,padding:"3px 8px"})
+};
+
+const colorEstatusAgente={pendiente:"#F59E0B",aprobado:"#16a34a",rechazado:"#dc2626"};
+
+const ALTO_HEADER=54;
+function HeaderBar(){
+  return <div style={{background:"#10284A",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:10,height:ALTO_HEADER}}>
+    <span style={{color:"#fff",fontWeight:800,fontSize:16}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></span>
+    <span style={{color:"#fff",fontSize:12,fontWeight:600,background:"rgba(255,255,255,.15)",borderRadius:20,padding:"3px 10px"}}>Portal de Promotoría</span>
+  </div>;
+}
+
+function Boton({children,onClick,disabled,color="#10284A",type="button"}){
+  return <button type={type} onClick={onClick} disabled={disabled}
+    style={{background:disabled?"#DDE4EE":color,color:disabled?"#9ca3af":"#fff",border:"none",borderRadius:10,padding:"12px 18px",fontSize:15,fontWeight:700,cursor:disabled?"not-allowed":"pointer"}}>
+    {children}
+  </button>;
+}
+
+function Login(){
+  const[modo,setModo]=useState(new URLSearchParams(location.search).get("registro")?"registro":"entrar"); // entrar | registro
+  const[email,setEmail]=useState("");
+  const[password,setPassword]=useState("");
+  const[nombre,setNombre]=useState("");
+  const[nombreNegocio,setNombreNegocio]=useState("");
+  const[rfc,setRfc]=useState("");
+  const[aceptoTerminos,setAceptoTerminos]=useState(false);
+  const[error,setError]=useState("");
+  const[cargando,setCargando]=useState(false);
+  const[registroListo,setRegistroListo]=useState(false);
+
+  const entrar=async(e)=>{
+    e.preventDefault();
+    if(!email||!email.includes("@")){setError("Escribe un correo válido.");return;}
+    if(!password){setError("Escribe tu contraseña.");return;}
+    setError("");setCargando(true);
+    const{error}=await sb.auth.signInWithPassword({email:email.trim(),password});
+    setCargando(false);
+    if(error){setError(`Correo o contraseña incorrectos. (${error.message||"sin detalle"})`);return;}
+  };
+
+  const registrar=async(e)=>{
+    e.preventDefault();
+    if(!email||!email.includes("@")){setError("Escribe un correo válido.");return;}
+    if(!nombreNegocio.trim()){setError("Escribe el nombre de tu promotoría.");return;}
+    if(!password||password.length<6){setError("La contraseña debe tener al menos 6 caracteres.");return;}
+    if(!aceptoTerminos){setError("Debes aceptar los Términos y Condiciones y el Aviso de Privacidad para registrarte.");return;}
+    setError("");setCargando(true);
+    const{data,error}=await sb.auth.signUp({
+      email:email.trim(),
+      password,
+      options:{data:{
+        nombre:nombre.trim()||null,
+        nombre_negocio:nombreNegocio.trim(),
+        rfc:rfc.trim()||null,
+        acepto_terminos:true,
+        acepto_terminos_version:VERSION_TERMINOS,
+        acepto_terminos_fecha:new Date().toISOString()
+      }}
+    });
+    setCargando(false);
+    if(error){setError(error.message);return;}
+    if(!data.session)setRegistroListo(true);
+  };
+
+  if(registroListo)return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>¡Cuenta creada!</div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.6}}>Revisa tu correo para confirmar tu cuenta. Tu acceso quedará pendiente de aprobación hasta que lo revisemos.</div>
+    </div>
+  </div>;
+
+  return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <form onSubmit={modo==="entrar"?entrar:registrar} style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:20,color:"#10284A"}}>{modo==="entrar"?"Iniciar sesión":"Registrar mi promotoría"}</div>
+
+      {modo==="registro"&&<>
+        <input value={nombreNegocio} onChange={e=>setNombreNegocio(e.target.value)} placeholder="nombre de tu promotoría" style={est.input}/>
+        <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="nombre de contacto (opcional)" style={est.input}/>
+        <input value={rfc} onChange={e=>setRfc(e.target.value.toUpperCase())} placeholder="RFC (opcional)" style={est.input}/>
+      </>}
+      <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username" style={est.input}/>
+      <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="tu contraseña" type="password" autoComplete={modo==="entrar"?"current-password":"new-password"} style={{...est.input,marginBottom:12}}/>
+
+      {modo==="registro"&&<label style={{display:"flex",alignItems:"flex-start",gap:8,fontSize:13,color:"#374151",marginBottom:12,cursor:"pointer"}}>
+        <input type="checkbox" checked={aceptoTerminos} onChange={e=>setAceptoTerminos(e.target.checked)} style={{marginTop:2}}/>
+        <span>Acepto los <a href="../terminos/" target="_blank" rel="noopener" style={{color:"#10284A"}}>Términos y Condiciones y el Aviso de Privacidad</a>.</span>
+      </label>}
+
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <div style={{width:"100%"}}><Boton type="submit" disabled={cargando}>
+        {cargando?(modo==="entrar"?"Entrando...":"Registrando..."):(modo==="entrar"?"Iniciar sesión":"Registrar mi promotoría")}
+      </Boton></div>
+      <button type="button" onClick={()=>{setModo(modo==="entrar"?"registro":"entrar");setError("");}} style={{...est.linkBtn,marginTop:12,padding:0}}>
+        {modo==="entrar"?"¿Administras una red de agentes? Regístrate":"¿Ya tienes cuenta? Inicia sesión"}
+      </button>
+    </form>
+  </div>;
+}
+
+function TarjetaKPI({label,valor,color,grande}){
+  return <div style={{...est.card,textAlign:"center"}}>
+    <div style={{fontSize:grande?30:22,fontWeight:700,color:color||"#10284A"}}>{valor}</div>
+    <div style={{fontSize:12,color:"#8FA0B4",marginTop:4}}>{label}</div>
+  </div>;
+}
+
+function CodigoInvitacion({codigo}){
+  const[copiado,setCopiado]=useState(false);
+  const copiar=async()=>{
+    try{await navigator.clipboard.writeText(codigo);setCopiado(true);setTimeout(()=>setCopiado(false),2000);}
+    catch(e){}
+  };
+  return <div style={{...est.card,marginBottom:24,background:"#F4F7FB"}}>
+    <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",marginBottom:8}}>TU CÓDIGO DE INVITACIÓN</div>
+    <div style={{fontSize:13,color:"#374151",marginBottom:10,lineHeight:1.5}}>
+      Comparte este código con tus agentes — al registrarse en Upco InsurGest lo escriben en "Código de promotoría" y quedan ligados a tu red.
+    </div>
+    <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <div style={{background:"#fff",border:"1px solid #DDE4EE",borderRadius:10,padding:"10px 16px",fontSize:20,fontWeight:800,letterSpacing:2,color:"#10284A"}}>{codigo}</div>
+      <Boton color="#53647D" onClick={copiar}>{copiado?"¡Copiado!":"Copiar"}</Boton>
+    </div>
+  </div>;
+}
+
+function Resumen({codigo}){
+  const[r,setR]=useState(null);
+  const[error,setError]=useState("");
+
+  useEffect(()=>{
+    sb.rpc("promotoria_resumen").then(({data,error})=>{
+      if(error){setError(error.message);return;}
+      setR(data);
+    });
+  },[]);
+
+  return <div>
+    <CodigoInvitacion codigo={codigo}/>
+    {error&&<div style={{color:"#dc2626",fontSize:13}}>{error}</div>}
+    {!error&&!r&&<div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>}
+    {r&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+      <TarjetaKPI label="Agentes en tu red" valor={r.agentes_totales} grande/>
+      <TarjetaKPI label="Agentes aprobados" valor={r.agentes_aprobados} color="#16a34a"/>
+      <TarjetaKPI label="Agentes pendientes" valor={r.agentes_pendientes} color="#F59E0B"/>
+      <TarjetaKPI label="Clientes gestionados" valor={r.clientes_totales}/>
+      <TarjetaKPI label="Pólizas gestionadas" valor={r.polizas_totales} grande/>
+    </div>}
+  </div>;
+}
+
+function Agentes(){
+  const[agentes,setAgentes]=useState(null);
+  const[error,setError]=useState("");
+  const[filtro,setFiltro]=useState("pendiente");
+
+  const cargar=async()=>{
+    const{data,error}=await sb.rpc("promotoria_agentes");
+    if(error){setError(error.message);return;}
+    setAgentes(data||[]);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const aprobar=async(a)=>{
+    const{error}=await sb.rpc("promotoria_aprobar_agente",{p_agente_id:a.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+  const rechazar=async(a)=>{
+    if(!window.confirm(`¿Rechazar el registro de ${a.correo}?`))return;
+    const{error}=await sb.rpc("promotoria_rechazar_agente",{p_agente_id:a.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
+  if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
+  if(!agentes)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+
+  const lista=filtro==="pendiente"?agentes.filter(a=>a.estatus_aprobacion==="pendiente"):agentes;
+
+  return <div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{fontSize:16,fontWeight:700}}>Agentes de tu red {lista?`(${lista.length})`:""}</div>
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={()=>setFiltro("pendiente")} style={{...est.linkBtn,fontWeight:filtro==="pendiente"?700:500,color:filtro==="pendiente"?"#10284A":"#8FA0B4"}}>Pendientes</button>
+        <button onClick={()=>setFiltro("todos")} style={{...est.linkBtn,fontWeight:filtro==="todos"?700:500,color:filtro==="todos"?"#10284A":"#8FA0B4"}}>Todos</button>
+      </div>
+    </div>
+
+    {lista.length===0&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
+      {filtro==="pendiente"?"No hay registros pendientes de aprobación.":"Todavía no tienes agentes en tu red — comparte tu código de invitación."}
+    </div>}
+
+    {lista.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
+      {lista.map(a=><div key={a.id} style={est.fila}>
+        <div>
+          <div style={{fontWeight:700,fontSize:14}}>{a.nombre||a.correo}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>
+            {a.correo}{a.nombre_negocio?` · ${a.nombre_negocio}`:""}{a.telefono?` · ${a.telefono}`:""}
+          </div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{a.clientes} clientes · {a.polizas} pólizas</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={est.badge(colorEstatusAgente[a.estatus_aprobacion]||"#6b7280")}>{a.estatus_aprobacion}</span>
+          {a.estatus_aprobacion!=="aprobado"&&<button onClick={()=>aprobar(a)} style={{...est.linkBtn,color:"#16a34a"}}>Aprobar</button>}
+          {a.estatus_aprobacion!=="rechazado"&&<button onClick={()=>rechazar(a)} style={{...est.linkBtn,color:"#dc2626"}}>Rechazar</button>}
+        </div>
+      </div>)}
+    </div>}
+  </div>;
+}
+
+const tabStyle=(activo)=>({
+  background:"none",border:"none",borderBottom:activo?"2px solid #10284A":"2px solid transparent",
+  padding:"8px 4px",marginBottom:-1,fontSize:14,fontWeight:activo?700:500,
+  color:activo?"#10284A":"#8FA0B4",cursor:"pointer"
+});
+
+function PanelPromotoria({session,onSalir}){
+  const[promotoria,setPromotoria]=useState(null);
+  const[vista,setVista]=useState("resumen");
+  const[error,setError]=useState("");
+
+  useEffect(()=>{
+    (async()=>{
+      const{data,error:errSel}=await sb.from("promotorias").select("*").eq("id",session.user.id).maybeSingle();
+      if(errSel){setError(errSel.message);return;}
+      if(data){setPromotoria(data);return;}
+      const meta=session.user.user_metadata||{};
+      const{data:nueva,error:errIns}=await sb.from("promotorias")
+        .insert({
+          id:session.user.id,correo:session.user.email,
+          nombre:meta.nombre||null,nombre_negocio:meta.nombre_negocio||null,rfc:meta.rfc||null,
+          acepto_terminos:meta.acepto_terminos||false,acepto_terminos_version:meta.acepto_terminos_version||null,acepto_terminos_fecha:meta.acepto_terminos_fecha||null
+        })
+        .select().single();
+      if(errIns){
+        if(errIns.code==="23505"){
+          const{data:existente,error:errSel2}=await sb.from("promotorias").select("*").eq("id",session.user.id).maybeSingle();
+          if(errSel2){setError(errSel2.message);return;}
+          if(existente){setPromotoria(existente);return;}
+        }
+        setError(errIns.message);return;
+      }
+      setPromotoria(nueva);
+    })();
+  },[]);
+
+  if(error)return <div style={{padding:40,textAlign:"center",color:"#dc2626"}}>Ocurrió un error: {error}</div>;
+  if(!promotoria)return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando tu panel...</div>;
+
+  if(promotoria.estatus_aprobacion==="pendiente")return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>Cuenta pendiente de aprobación</div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.6,marginBottom:20}}>Te avisaremos por correo en cuanto podamos activar tu portal de promotoría.</div>
+      <button onClick={onSalir} style={est.linkBtn}>Salir</button>
+    </div>
+  </div>;
+
+  if(promotoria.estatus_aprobacion==="rechazado")return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>Solicitud no aprobada</div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.6,marginBottom:20}}>Tu solicitud de registro no fue aprobada. Si crees que es un error, contáctanos.</div>
+      <button onClick={onSalir} style={est.linkBtn}>Salir</button>
+    </div>
+  </div>;
+
+  return <div style={{maxWidth:760,margin:"0 auto",padding:"24px 16px 60px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+      <div style={{fontSize:16,fontWeight:700,color:"#10284A"}}>Hola, {promotoria.nombre_negocio||promotoria.correo}</div>
+      <button onClick={onSalir} style={{background:"none",border:"none",color:"#6B7280",fontSize:14,cursor:"pointer"}}>Salir ({promotoria.correo})</button>
+    </div>
+
+    <div style={{display:"flex",gap:16,marginBottom:24,borderBottom:"1px solid #DDE4EE"}}>
+      <button onClick={()=>setVista("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
+      <button onClick={()=>setVista("agentes")} style={tabStyle(vista==="agentes")}>Agentes</button>
+    </div>
+
+    {vista==="resumen"?<Resumen codigo={promotoria.codigo_invitacion}/>:<Agentes/>}
+  </div>;
+}
+
+function App(){
+  const[sesion,setSesion]=useState(undefined);
+  useEffect(()=>{
+    sb.auth.getSession().then(({data})=>setSesion(data.session||null));
+    const{data:sub}=sb.auth.onAuthStateChange((_e,s)=>setSesion(s));
+    return ()=>sub.subscription.unsubscribe();
+  },[]);
+  return <>
+    <HeaderBar/>
+    {sesion===undefined
+      ?<div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>
+      :!sesion
+        ?<Login/>
+        :<PanelPromotoria session={sesion} onSalir={()=>sb.auth.signOut()}/>}
+  </>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

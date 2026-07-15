@@ -31,6 +31,7 @@ const UN_ANIO_SEGUNDOS=60*60*24*365;
 const ESTADOS_MX=["Aguascalientes","Baja California","Baja California Sur","Campeche","Chiapas","Chihuahua","Ciudad de México","Coahuila","Colima","Durango","Estado de México","Guanajuato","Guerrero","Hidalgo","Jalisco","Michoacán","Morelos","Nayarit","Nuevo León","Oaxaca","Puebla","Querétaro","Quintana Roo","San Luis Potosí","Sinaloa","Sonora","Tabasco","Tamaulipas","Tlaxcala","Veracruz","Yucatán","Zacatecas"];
 const TIPOS_CEDULA=["A","B","C","D","F","Otra"];
 const VERSION_TERMINOS="2026-07-10";
+const LIMITE_STORAGE_BYTES=5*1024*1024*1024; // 5 GB por agente, para PDFs de pólizas
 
 function sumarAnios(fechaISO,anios){
   const d=new Date(fechaISO+"T00:00:00");
@@ -77,6 +78,7 @@ function Login(){
   const[tieneCedula,setTieneCedula]=useState(false);
   const[tiposCedula,setTiposCedula]=useState([]);
   const[numeroCedula,setNumeroCedula]=useState("");
+  const[codigoPromotoria,setCodigoPromotoria]=useState("");
   const[aceptoTerminos,setAceptoTerminos]=useState(false);
   const[error,setError]=useState("");
   const[cargando,setCargando]=useState(false);
@@ -123,7 +125,8 @@ function Login(){
         numero_cedula:tieneCedula?(numeroCedula.trim()||null):null,
         acepto_terminos:true,
         acepto_terminos_version:VERSION_TERMINOS,
-        acepto_terminos_fecha:new Date().toISOString()
+        acepto_terminos_fecha:new Date().toISOString(),
+        codigo_promotoria:codigoPromotoria.trim()||null
       }}
     });
     setCargando(false);
@@ -164,6 +167,8 @@ function Login(){
           </div>
           <input value={numeroCedula} onChange={e=>setNumeroCedula(e.target.value)} placeholder="Número de cédula" style={est.input}/>
         </div>}
+
+        <input value={codigoPromotoria} onChange={e=>setCodigoPromotoria(e.target.value.toUpperCase())} placeholder="Código de promotoría (opcional)" style={est.input}/>
       </>}
       <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username" style={est.input}/>
       <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="tu contraseña" type="password" autoComplete={modo==="entrar"?"current-password":"new-password"} style={{...est.input,marginBottom:12}}/>
@@ -644,6 +649,12 @@ function PolizaForm({clienteId,clientesDisponibles,agenteId,polizaExistente,onGu
     let polizaFinal=resultado.data;
 
     if(archivo){
+      const{data:usoActual}=await sb.rpc("mi_uso_almacenamiento");
+      if((usoActual||0)+archivo.size>LIMITE_STORAGE_BYTES){
+        setGuardando(false);
+        setError(`La póliza se guardó, pero el PDF no cabe: ya usas ${formatBytes(usoActual||0)} de tu límite de 5 GB. Elimina PDFs viejos o contáctanos para más espacio.`);
+        return;
+      }
       const ruta=`${agenteId}/${polizaFinal.id}.pdf`;
       const{error:errSubida}=await sb.storage.from("polizas").upload(ruta,archivo,{upsert:true,contentType:"application/pdf"});
       if(errSubida){setGuardando(false);setError("La póliza se guardó pero el PDF no se pudo subir: "+errSubida.message);return;}
@@ -960,6 +971,32 @@ function DashboardAgente(){
   </div>;
 }
 
+function MedidorAlmacenamiento(){
+  const[uso,setUso]=useState(null);
+  const[error,setError]=useState("");
+
+  useEffect(()=>{
+    sb.rpc("mi_uso_almacenamiento").then(({data,error})=>{
+      if(error){setError(error.message);return;}
+      setUso(data||0);
+    });
+  },[]);
+
+  if(error)return null;
+  if(uso==null)return null;
+
+  const pct=Math.min((uso/LIMITE_STORAGE_BYTES)*100,100);
+  const color=pct>=95?"#dc2626":pct>=80?"#F59E0B":"#10284A";
+
+  return <div style={{...est.card,maxWidth:420,marginTop:16}}>
+    <div style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:8}}>ALMACENAMIENTO PARA PDFs DE PÓLIZAS</div>
+    <div style={{height:10,background:"#F4F7FB",borderRadius:6,overflow:"hidden"}}>
+      <div style={{height:"100%",width:`${Math.max(pct,2)}%`,background:color,borderRadius:6}}/>
+    </div>
+    <div style={{fontSize:12,color:"#8FA0B4",marginTop:6}}>{formatBytes(uso)} de 5 GB usados</div>
+  </div>;
+}
+
 function MiPerfil({agente,onAgenteCambiado}){
   const[nombre,setNombre]=useState(agente.nombre||"");
   const[telefono,setTelefono]=useState(agente.telefono||"");
@@ -980,21 +1017,24 @@ function MiPerfil({agente,onAgenteCambiado}){
     setTimeout(()=>setGuardado(false),2000);
   };
 
-  return <form onSubmit={guardar} style={{...est.card,maxWidth:420}}>
-    <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>Mi perfil</div>
-    <Campo label="Nombre">
-      <input name="nombre" value={nombre} onChange={e=>setNombre(e.target.value)} style={est.input}/>
-    </Campo>
-    <Campo label="Teléfono">
-      <input name="telefono" value={telefono} onChange={e=>setTelefono(e.target.value)} style={est.input}/>
-    </Campo>
-    <Campo label="Correo">
-      <input value={agente.correo||""} disabled style={{...est.input,background:"#F4F7FB",color:"#8FA0B4"}}/>
-    </Campo>
-    <div style={{fontSize:12,color:"#8FA0B4",marginBottom:14}}>Tu nombre y teléfono son los que ve tu cliente en su liga mágica.</div>
-    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
-    <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":guardado?"¡Guardado!":"Guardar"}</Boton>
-  </form>;
+  return <div>
+    <form onSubmit={guardar} style={{...est.card,maxWidth:420}}>
+      <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>Mi perfil</div>
+      <Campo label="Nombre">
+        <input name="nombre" value={nombre} onChange={e=>setNombre(e.target.value)} style={est.input}/>
+      </Campo>
+      <Campo label="Teléfono">
+        <input name="telefono" value={telefono} onChange={e=>setTelefono(e.target.value)} style={est.input}/>
+      </Campo>
+      <Campo label="Correo">
+        <input value={agente.correo||""} disabled style={{...est.input,background:"#F4F7FB",color:"#8FA0B4"}}/>
+      </Campo>
+      <div style={{fontSize:12,color:"#8FA0B4",marginBottom:14}}>Tu nombre y teléfono son los que ve tu cliente en su liga mágica.</div>
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":guardado?"¡Guardado!":"Guardar"}</Boton>
+    </form>
+    <MedidorAlmacenamiento/>
+  </div>;
 }
 
 // ============ PANEL / APP ============
@@ -1012,12 +1052,18 @@ function Panel({session,onSalir}){
       if(errSel){setError(errSel.message);return;}
       if(data){setAgente(data);return;}
       const meta=session.user.user_metadata||{};
+      let promotoriaId=null;
+      if(meta.codigo_promotoria){
+        const{data:idResuelto}=await sb.rpc("resolver_codigo_promotoria",{p_codigo:meta.codigo_promotoria});
+        promotoriaId=idResuelto||null;
+      }
       const{data:nuevo,error:errIns}=await sb.from("agentes")
         .insert({
           id:session.user.id,correo:session.user.email,
           nombre:meta.nombre||null,nombre_negocio:meta.nombre_negocio||null,telefono:meta.telefono||null,
           rfc:meta.rfc||null,tiene_cedula:meta.tiene_cedula||false,tipos_cedula:meta.tipos_cedula||null,numero_cedula:meta.numero_cedula||null,
-          acepto_terminos:meta.acepto_terminos||false,acepto_terminos_version:meta.acepto_terminos_version||null,acepto_terminos_fecha:meta.acepto_terminos_fecha||null
+          acepto_terminos:meta.acepto_terminos||false,acepto_terminos_version:meta.acepto_terminos_version||null,acepto_terminos_fecha:meta.acepto_terminos_fecha||null,
+          promotoria_id:promotoriaId
         })
         .select().single();
       if(errIns){
