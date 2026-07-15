@@ -180,6 +180,7 @@ function Login(){
       <button type="button" onClick={()=>{setModo(modo==="entrar"?"registro":"entrar");setError("");}} style={{...est.linkBtn,marginTop:12,padding:0}}>
         {modo==="entrar"?"¿Eres nuevo? Crea tu cuenta de agente":"¿Ya tienes cuenta? Inicia sesión"}
       </button>
+      <div style={{marginTop:10}}><a href="../precios/" style={{fontSize:13,color:"#8FA0B4"}}>Ver precios</a></div>
     </form>
   </div>;
 }
@@ -1044,7 +1045,8 @@ function Panel({session,onSalir}){
   if(agente.estatus_aprobacion==="pendiente")return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
     <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
       <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>Cuenta pendiente de aprobación</div>
-      <div style={{fontSize:14,color:"#374151",lineHeight:1.6,marginBottom:20}}>Te avisaremos por correo en cuanto puedas empezar a usar tu panel.</div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.6,marginBottom:16}}>Te avisaremos por correo en cuanto puedas empezar a usar tu panel — arrancas con 30 días de prueba gratis.</div>
+      <div style={{fontSize:13,color:"#8FA0B4",marginBottom:16}}><a href="../precios/" style={{color:"#8FA0B4"}}>Ver precios para después de la prueba</a></div>
       <button onClick={onSalir} style={est.linkBtn}>Salir</button>
     </div>
   </div>;

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Precios — Upco InsurGest</title>
+<meta name="description" content="Planes para agentes de seguros independientes y promotorías. Paga mensual, trimestral, semestral o anual, como una póliza."/>
+<link rel="icon" href="../icon-192.png"/>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35}
+  a{text-decoration:none}
+  .header{background:#10284A;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;max-width:1040px;margin:0 auto}
+  .brand{color:#fff;font-weight:800;font-size:18px}
+  .brand span{color:#F59E0B}
+  .navlink{color:#DDE4EE;font-size:14px;font-weight:600;padding:8px 14px}
+  .hero{max-width:640px;margin:0 auto;padding:52px 20px 8px;text-align:center}
+  .hero h1{font-size:30px;font-weight:800;line-height:1.25;margin:0 0 12px}
+  .hero p{font-size:15px;color:#374151;line-height:1.6;margin:0}
+
+  .wrap{max-width:1040px;margin:0 auto;padding:36px 20px 20px}
+  .tier-label{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#8FA0B4;margin:0 0 4px}
+  .tier-title{font-size:20px;font-weight:800;color:#10284A;margin:0 0 4px}
+  .tier-sub{font-size:13.5px;color:#6B7280;margin:0 0 18px}
+
+  .plancard{background:#fff;border:1px solid #DDE4EE;border-radius:14px;padding:26px;margin-bottom:36px}
+  .table-scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;min-width:460px}
+  th{text-align:left;font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#8FA0B4;padding:9px 12px;border-bottom:1.5px solid #DDE4EE}
+  td{padding:12px;border-bottom:1px solid #EEF2F8;font-size:14px;color:#0a1c35}
+  tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  td.hi{font-weight:700;color:#10284A}
+  .ahorro{display:inline-block;font-size:11.5px;font-weight:700;color:#157F3C;background:#EAF7EF;border-radius:6px;padding:2px 7px}
+  .footnote{font-size:12px;color:#8FA0B4;margin-top:14px}
+  .cta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+  .boton{display:inline-block;background:#10284A;color:#fff;border-radius:10px;padding:12px 22px;font-size:14.5px;font-weight:700}
+  .boton-sec{display:inline-block;background:#F4F7FB;color:#10284A;border:1.5px solid #DDE4EE;border-radius:10px;padding:12px 22px;font-size:14.5px;font-weight:700}
+
+  .compare{margin:44px auto 20px;max-width:1040px;padding:0 20px}
+  .compare h2{font-size:22px;font-weight:800;color:#10284A;text-align:center;margin:0 0 6px}
+  .compare-sub{font-size:14px;color:#6B7280;text-align:center;max-width:520px;margin:0 auto 28px}
+  .cmp-table{background:#fff;border:1px solid #DDE4EE;border-radius:14px;overflow:hidden}
+  .cmp-table table{min-width:640px}
+  .cmp-table th{background:#F4F7FB}
+  .cmp-table th.us{color:#F59E0B;background:#10284A}
+  td.check{color:#157F3C;font-weight:800;text-align:center}
+  td.cross{color:#B42318;font-weight:800;text-align:center}
+  td.partial{color:#B45309;font-weight:700;text-align:center;font-size:12.5px}
+
+  .cta-final{background:#10284A;padding:52px 20px;text-align:center;margin-top:50px}
+  .cta-final h2{color:#fff;font-size:22px;font-weight:800;margin:0 0 10px}
+  .cta-final p{color:#DDE4EE;font-size:14px;margin:0 0 22px}
+  .cta-final .boton{background:#F59E0B;color:#10284A}
+
+  footer{max-width:1040px;margin:0 auto;padding:24px 20px;text-align:center;font-size:12.5px;color:#8FA0B4}
+  footer a{color:#53647D;font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">Upco <span>InsurGest</span></div>
+  <div>
+    <a class="navlink" href="../">Inicio</a>
+    <a class="navlink" href="../app/">Iniciar sesión</a>
+    <a class="navlink" href="../app/?registro=1" style="background:rgba(255,255,255,.12);border-radius:8px">Crear cuenta</a>
+  </div>
+</div>
+
+<div class="hero">
+  <h1>Precios simples, hechos para tu cartera</h1>
+  <p>Paga mensual, trimestral, semestral o anual — como la prima de una póliza. Entre más largo el plazo, menor el precio. Precios antes de IVA.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="plancard">
+    <div class="tier-label">Agente individual</div>
+    <div class="tier-title">Para el agente que trabaja solo</div>
+    <div class="tier-sub">Clientes y pólizas ilimitados · 5 GB de almacenamiento para PDFs · liga mágica para tus clientes · avisos automáticos de vencimiento · dashboard de cartera · 30 días de prueba gratis</div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Forma de pago</th><th class="num">Monto</th><th class="num">Equivalente mensual</th><th class="num">Ahorro</th></tr></thead>
+        <tbody>
+          <tr><td>Mensual</td><td class="num hi">$299 MXN/mes</td><td class="num">$299</td><td class="num">—</td></tr>
+          <tr><td>Trimestral</td><td class="num hi">$865 cada 3 meses</td><td class="num">$288</td><td class="num"><span class="ahorro">3.5%</span></td></tr>
+          <tr><td>Semestral</td><td class="num hi">$1,670 cada 6 meses</td><td class="num">$278</td><td class="num"><span class="ahorro">7%</span></td></tr>
+          <tr><td>Anual</td><td class="num hi">$2,990 / año</td><td class="num">$249</td><td class="num"><span class="ahorro">16.7%</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="footnote">Precios +IVA. Anual equivale a "paga 10 meses, usa 12".</div>
+    <div class="cta-row">
+      <a class="boton" href="../app/?registro=1">Crear mi cuenta gratis</a>
+    </div>
+  </div>
+
+  <div class="plancard">
+    <div class="tier-label">Promotoría</div>
+    <div class="tier-title">Para quien administra una red de agentes</div>
+    <div class="tier-sub">Incluye 5 agentes en la red, con todo lo del plan Agente para cada uno, más un panel para ver y dar seguimiento a tu red</div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Forma de pago</th><th class="num">Cuota base (5 agentes)</th><th class="num">Por agente adicional</th></tr></thead>
+        <tbody>
+          <tr><td>Mensual</td><td class="num hi">$999 MXN/mes</td><td class="num">$249/mes</td></tr>
+          <tr><td>Trimestral</td><td class="num hi">$2,890 cada 3 meses</td><td class="num">$720 c/3 meses</td></tr>
+          <tr><td>Semestral</td><td class="num hi">$5,570 cada 6 meses</td><td class="num">$1,390 c/6 meses</td></tr>
+          <tr><td>Anual</td><td class="num hi">$9,990 / año</td><td class="num">$2,490/año</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="footnote">Precios +IVA. Estamos incorporando las primeras promotorías por invitación mientras terminamos su panel.</div>
+    <div class="cta-row">
+      <a class="boton-sec" href="mailto:hola@upco.app?subject=Promotor%C3%ADa%20Upco%20InsurGest">Contáctanos</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="compare">
+  <h2>¿Cómo se compara con lo que ya conoces?</h2>
+  <p class="compare-sub">No comparamos contra ninguna marca en particular — esto es lo que suele ofrecer cada tipo de herramienta que un agente independiente podría estar considerando hoy.</p>
+  <div class="cmp-table">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>&nbsp;</th>
+            <th>CRM genérico (no hecho para seguros)</th>
+            <th>Plataforma de seguros para brokers medianos</th>
+            <th class="us">Upco InsurGest</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Precio de referencia</td><td>$250–1,800 MXN/usuario/mes</td><td>desde $555 MXN/usuario/mes</td><td class="hi">desde $249 MXN/mes</td></tr>
+          <tr><td>Pensado para agentes de seguros en México (cédula, RFC, ramos)</td><td class="cross">✕</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Liga para que tu cliente vea sus pólizas sin registrarse</td><td class="cross">✕</td><td class="partial">Variable</td><td class="check">✓</td></tr>
+          <tr><td>Avisos automáticos de vencimiento (póliza y verificación vehicular)</td><td class="cross">✕</td><td class="partial">Configuración extra</td><td class="check">✓ incluido</td></tr>
+          <tr><td>Dashboard de cartera por aseguradora y ramo</td><td class="partial">De paga extra</td><td class="check">✓</td><td class="check">✓ incluido</td></tr>
+          <tr><td>Curva de aprendizaje</td><td>Alta — sobra lo que no usas</td><td>Media</td><td class="hi">Baja</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="footnote" style="text-align:center;margin-top:12px">Rangos de precio de referencia pública de categorías comparables, julio 2026 — conviértelos siempre a lo que tu operación realmente necesita.</div>
+</div>
+
+<div class="cta-final">
+  <h2>Empieza gratis, sin tarjeta</h2>
+  <p>30 días de prueba. Tu cuenta queda activa en cuanto la aprobamos.</p>
+  <a class="boton" href="../app/?registro=1">Crear mi cuenta gratis</a>
+</div>
+
+<footer>
+  © 2026 Upco InsurGest · <a href="../terminos/">Términos y Aviso de Privacidad</a>
+</footer>
+
+</body>
+</html>
