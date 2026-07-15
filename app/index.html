@@ -845,7 +845,7 @@ function SolicitudesInbox({onAbrirCliente}){
   const[error,setError]=useState("");
 
   const cargar=async()=>{
-    const{data,error}=await sb.from("solicitudes").select("*,clientes(*)").order("created_at",{ascending:false});
+    const{data,error}=await sb.from("solicitudes").select("*,clientes(*),polizas(numero_poliza,ramo,aseguradora)").order("created_at",{ascending:false});
     if(error){setError(error.message);return;}
     setSolicitudes(data);
   };
@@ -873,6 +873,7 @@ function SolicitudesInbox({onAbrirCliente}){
         <div>
           <div style={{fontWeight:700,fontSize:14}}>{s.tipo==="endoso"?"Endoso":"Cotización"} — {s.clientes?s.clientes.nombre:"Cliente"}</div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{s.tipo==="endoso"?s.tipo_cambio:s.ramo_interes}{" · "}{new Date(s.created_at).toLocaleString("es-MX",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}</div>
+          {s.polizas&&<div style={{fontSize:12,color:"#374151",marginTop:2}}>Sobre: {s.polizas.ramo} — {s.polizas.aseguradora||"Sin aseguradora"}{s.polizas.numero_poliza?` (${s.polizas.numero_poliza})`:""}</div>}
           {s.descripcion&&<div style={{fontSize:13,color:"#374151",marginTop:6}}>{s.descripcion}</div>}
         </div>
         <span style={est.badge(s.estatus==="nueva"?"#F59E0B":"#6b7280")}>{s.estatus}</span>

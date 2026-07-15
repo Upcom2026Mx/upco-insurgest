@@ -49,7 +49,7 @@ function SolicitudEnviada({onCerrar}){
   </div>;
 }
 
-function FormularioEndoso({token,onEnviado,onCancelar}){
+function FormularioEndoso({token,polizaId,polizaLabel,onEnviado,onCancelar}){
   const[tipoCambio,setTipoCambio]=useState(TIPOS_CAMBIO[0]);
   const[descripcion,setDescripcion]=useState("");
   const[foto,setFoto]=useState(null);
@@ -66,7 +66,7 @@ function FormularioEndoso({token,onEnviado,onCancelar}){
       if(errSubida){setEnviando(false);setError("No se pudo subir la foto. Intenta de nuevo.");return;}
     }
     const{error:errRpc}=await sb.rpc("portal_crear_solicitud",{
-      p_token:token,p_tipo:"endoso",p_tipo_cambio:tipoCambio,p_descripcion:descripcion.trim()||null,p_foto_path:fotoPath
+      p_token:token,p_tipo:"endoso",p_tipo_cambio:tipoCambio,p_descripcion:descripcion.trim()||null,p_foto_path:fotoPath,p_poliza_id:polizaId||null
     });
     setEnviando(false);
     if(errRpc){setError("No se pudo enviar tu solicitud. Intenta de nuevo.");return;}
@@ -74,7 +74,8 @@ function FormularioEndoso({token,onEnviado,onCancelar}){
   };
 
   return <form onSubmit={enviar} style={{...card,marginBottom:24}}>
-    <div style={{fontSize:15,fontWeight:700,marginBottom:14}}>Solicitar cambio a mi póliza (endoso)</div>
+    <div style={{fontSize:15,fontWeight:700,marginBottom:2}}>Solicitar cambio a mi póliza (endoso)</div>
+    {polizaLabel&&<div style={{fontSize:12,color:"#8FA0B4",marginBottom:14}}>Sobre: {polizaLabel}</div>}
     <label style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"}}>Tipo de cambio</label>
     <select value={tipoCambio} onChange={e=>setTipoCambio(e.target.value)} style={campo}>
       {TIPOS_CAMBIO.map(t=><option key={t} value={t}>{t}</option>)}
@@ -125,19 +126,34 @@ function FormularioCotizacion({token,onEnviado,onCancelar}){
   </form>;
 }
 
-function SeccionSolicitudes({token}){
-  const[vista,setVista]=useState("botones"); // botones | endoso | cotizacion | enviado
+function SeccionAcciones({token}){
+  const[vista,setVista]=useState("botones"); // botones | cotizacion | flotilla | enviado
   if(vista==="enviado")return <SolicitudEnviada onCerrar={()=>setVista("botones")}/>;
-  if(vista==="endoso")return <FormularioEndoso token={token} onEnviado={()=>setVista("enviado")} onCancelar={()=>setVista("botones")}/>;
   if(vista==="cotizacion")return <FormularioCotizacion token={token} onEnviado={()=>setVista("enviado")} onCancelar={()=>setVista("botones")}/>;
+  if(vista==="flotilla")return <div style={{marginBottom:24}}>
+    <button onClick={()=>setVista("botones")} style={{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer",padding:0,marginBottom:12}}>‹ Volver</button>
+    <SeccionFlotilla token={token}/>
+  </div>;
   return <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:24}}>
-    <Boton color="#53647D" onClick={()=>setVista("endoso")}>Solicitar cambio a mi póliza</Boton>
     <Boton color="#F59E0B" onClick={()=>setVista("cotizacion")}>Solicitar cotización</Boton>
+    <Boton color="#53647D" onClick={()=>setVista("flotilla")}>Mi flotilla</Boton>
   </div>;
 }
 
-function TarjetaPoliza({p,vehiculo}){
+function TarjetaPoliza({p,vehiculo,token}){
+  const[vista,setVista]=useState("normal"); // normal | endoso | enviado
   const vig=vigenciaCalculada(p);
+
+  if(vista==="enviado")return <div style={{...card,marginBottom:10,textAlign:"center",background:"#F4F7FB"}}>
+    <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>¡Listo! Tu agente ya la recibió.</div>
+    <button onClick={()=>setVista("normal")} style={{background:"none",border:"none",color:"#53647D",fontSize:12,cursor:"pointer"}}>Cerrar</button>
+  </div>;
+
+  if(vista==="endoso")return <div style={{marginBottom:10}}>
+    <FormularioEndoso token={token} polizaId={p.id} polizaLabel={`${p.ramo} — ${p.aseguradora||"Sin aseguradora"}`}
+      onEnviado={()=>setVista("enviado")} onCancelar={()=>setVista("normal")}/>
+  </div>;
+
   return <div style={{...card,marginBottom:10}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
       <div>
@@ -150,7 +166,10 @@ function TarjetaPoliza({p,vehiculo}){
     </div>
     <div style={{marginTop:10,fontSize:13,color:"#374151",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
       <span>{pesos(p.prima)} {p.forma_pago?`· ${p.forma_pago}`:""}</span>
-      {p.pdf_url&&<a href={p.pdf_url} target="_blank" rel="noopener" style={{color:"#10284A",fontSize:13,fontWeight:700,textDecoration:"none"}}>Descargar PDF ↓</a>}
+      <div style={{display:"flex",gap:12,alignItems:"center"}}>
+        {p.pdf_url&&<a href={p.pdf_url} target="_blank" rel="noopener" style={{color:"#10284A",fontSize:13,fontWeight:700,textDecoration:"none"}}>Descargar PDF ↓</a>}
+        <button onClick={()=>setVista("endoso")} style={{background:"none",border:"none",color:"#53647D",fontSize:13,fontWeight:700,cursor:"pointer",padding:0}}>Solicitar cambio</button>
+      </div>
     </div>
   </div>;
 }
@@ -380,11 +399,11 @@ function Portal(){
 
     <div style={{fontSize:16,fontWeight:700,margin:"20px 0 12px"}}>Hola, {cliente.nombre.split(" ")[0]} 👋</div>
 
-    <SeccionSolicitudes token={token}/>
+    <SeccionAcciones token={token}/>
 
     <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",marginBottom:10}}>TUS PÓLIZAS ({polizas.length})</div>
     {polizas.length===0&&<div style={{...card,textAlign:"center",color:"#6B7280",marginBottom:24}}>Todavía no tienes pólizas registradas.</div>}
-    {polizas.map(p=><TarjetaPoliza key={p.id} p={p} vehiculo={p.vehiculo_id?vehiculosPorId[p.vehiculo_id]:null}/>)}
+    {polizas.map(p=><TarjetaPoliza key={p.id} p={p} vehiculo={p.vehiculo_id?vehiculosPorId[p.vehiculo_id]:null} token={token}/>)}
 
     {vehiculos.length>0&&<>
       <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",margin:"24px 0 10px"}}>TUS VEHÍCULOS ({vehiculos.length})</div>
@@ -392,8 +411,6 @@ function Portal(){
         {vehiculos.map(v=><TarjetaVehiculo key={v.id} v={v} poliza={polizaPorVehiculo[v.id]}/>)}
       </div>
     </>}
-
-    <SeccionFlotilla token={token}/>
 
     <div style={{textAlign:"center",fontSize:12,color:"#8FA0B4",marginTop:32}}>Upco InsurGest</div>
   </div>;
