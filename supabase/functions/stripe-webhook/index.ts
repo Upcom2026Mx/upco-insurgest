@@ -29,6 +29,17 @@ function periodoDesdePrice(interval: string | undefined, intervalCount: number |
   return "mensual";
 }
 
+// current_period_end vivía en la suscripción, pero a partir de las versiones de API 2025+
+// Stripe lo movió a cada ítem de la suscripción. Buscamos en ambos lugares y devolvemos
+// null si no hay un valor usable — nunca una fecha inválida, que es lo que tronaba antes.
+function finDePeriodo(sub: Stripe.Subscription): string | null {
+  const item = sub.items?.data?.[0] as unknown as { current_period_end?: number } | undefined;
+  const segundos = (sub as unknown as { current_period_end?: number }).current_period_end ?? item?.current_period_end;
+  if (typeof segundos !== "number" || !Number.isFinite(segundos)) return null;
+  const fecha = new Date(segundos * 1000);
+  return Number.isNaN(fecha.getTime()) ? null : fecha.toISOString();
+}
+
 Deno.serve(async (req) => {
   const signature = req.headers.get("stripe-signature") ?? "";
   const rawBody = await req.text();
@@ -49,15 +60,14 @@ Deno.serve(async (req) => {
         const tabla = tipo === "agente" ? "agentes" : "promotorias";
         const item = sub.items.data[0];
         const periodo = periodoDesdePrice(item?.price?.recurring?.interval, item?.price?.recurring?.interval_count);
-        await supabase
-          .from(tabla)
-          .update({
-            stripe_subscription_id: sub.id,
-            estatus_suscripcion: sub.status,
-            plan_periodo: periodo,
-            suscripcion_vigente_hasta: new Date(sub.current_period_end * 1000).toISOString(),
-          })
-          .eq("id", id);
+        const cambios: Record<string, unknown> = {
+          stripe_subscription_id: sub.id,
+          estatus_suscripcion: sub.status,
+          plan_periodo: periodo,
+        };
+        const vigenteHasta = finDePeriodo(sub);
+        if (vigenteHasta) cambios.suscripcion_vigente_hasta = vigenteHasta;
+        await supabase.from(tabla).update(cambios).eq("id", id);
       }
     } else if (event.type === "customer.subscription.deleted") {
       const sub = event.data.object as Stripe.Subscription;
