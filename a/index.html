@@ -118,6 +118,11 @@ function Tarjeta({datos,alias}){
       {datos.ramos.map(r=><Chip key={r}>{r}</Chip>)}
     </div>}
 
+    {datos.aseguradoras&&datos.aseguradoras.length>0&&<div style={{...card,marginBottom:12}}>
+      <div style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:8}}>ASEGURADORAS CON LAS QUE TRABAJO</div>
+      {datos.aseguradoras.map(a=><Chip key={a}>{a}</Chip>)}
+    </div>}
+
     <div style={{display:"grid",gap:8,marginBottom:12}}>
       {wa&&<a href={`https://wa.me/${wa}`} target="_blank" rel="noopener" style={{textDecoration:"none"}}>
         <div style={{background:"#25D366",color:"#fff",borderRadius:10,padding:"13px 18px",fontSize:15,fontWeight:700,textAlign:"center"}}>Escribirme por WhatsApp</div>

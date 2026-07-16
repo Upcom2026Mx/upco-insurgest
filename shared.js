@@ -73,7 +73,16 @@ function accesoVigente(cuenta){
 }
 
 const colorEstatus={vigente:"#16a34a",vencida:"#dc2626",renovada:"#2563eb",cancelada:"#6b7280"};
-const RAMOS_SUGERIDOS=["Auto","Vida","PPR","Gastos Médicos","Hogar"];
+// Solo se agrega al final: renombrar una entrada existente haría que las pólizas ya guardadas
+// con el texto viejo se detecten como "Otro" al editarlas.
+const RAMOS_SUGERIDOS=["Auto","Vida","PPR","Gastos Médicos","Hogar",
+  "Accidentes Personales","Daños","Responsabilidad Civil","Empresariales",
+  "Ahorro / Inversión","Transporte","Fianzas","Viaje","Educativo"];
+// Catálogo solo sugerido para la tarjeta del agente; en las pólizas la aseguradora sigue
+// siendo texto libre porque cada agente trabaja con quien sea.
+const ASEGURADORAS_MX=["GNP","AXA","Quálitas","HDI Seguros","Mapfre","Zurich","Chubb","Allianz",
+  "MetLife","Seguros Monterrey New York Life","Seguros Banorte","Inbursa","Atlas","ANA Seguros",
+  "Afirme","Sura","BBVA Seguros","Plan Seguro","Bupa","El Águila","Primero Seguros","Thona Seguros"];
 const ESTADOS_MX=["Aguascalientes","Baja California","Baja California Sur","Campeche","Chiapas","Chihuahua","Ciudad de México","Coahuila","Colima","Durango","Estado de México","Guanajuato","Guerrero","Hidalgo","Jalisco","Michoacán","Morelos","Nayarit","Nuevo León","Oaxaca","Puebla","Querétaro","Quintana Roo","San Luis Potosí","Sinaloa","Sonora","Tabasco","Tamaulipas","Tlaxcala","Veracruz","Yucatán","Zacatecas"];
 
 function vigenciaCalculada(p){

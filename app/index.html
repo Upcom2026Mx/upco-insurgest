@@ -1057,6 +1057,11 @@ function MiTarjeta({agente,onAgenteCambiado}){
   const[ramos,setRamos]=useState(agente.tarjeta_ramos||[]);
   const[whatsapp,setWhatsapp]=useState(agente.tarjeta_whatsapp||"");
   const[correoPub,setCorreoPub]=useState(agente.tarjeta_correo_publico||"");
+  // Las que están en el catálogo van por checkbox; las que no, en un campo aparte separadas
+  // por coma. Al guardar se juntan en un solo arreglo.
+  const guardadas=agente.tarjeta_aseguradoras||[];
+  const[aseguradoras,setAseguradoras]=useState(guardadas.filter(a=>ASEGURADORAS_MX.includes(a)));
+  const[otrasAseg,setOtrasAseg]=useState(guardadas.filter(a=>!ASEGURADORAS_MX.includes(a)).join(", "));
   const[foto,setFoto]=useState(null);
   const[guardando,setGuardando]=useState(false);
   const[guardado,setGuardado]=useState(false);
@@ -1066,6 +1071,7 @@ function MiTarjeta({agente,onAgenteCambiado}){
   const url=agente.alias_publico?`https://insurgest.upco.app/a/${agente.alias_publico}`:null;
 
   const toggleRamo=(r)=>setRamos(prev=>prev.includes(r)?prev.filter(x=>x!==r):[...prev,r]);
+  const toggleAseg=(a)=>setAseguradoras(prev=>prev.includes(a)?prev.filter(x=>x!==a):[...prev,a]);
 
   const guardar=async(e)=>{
     e.preventDefault();
@@ -1082,10 +1088,13 @@ function MiTarjeta({agente,onAgenteCambiado}){
       fotoUrl=`${pub.publicUrl}?v=${Date.now()}`;
     }
 
+    const listaAseg=[...aseguradoras,...otrasAseg.split(",").map(s=>s.trim()).filter(Boolean)];
+
     const{error:err}=await sb.rpc("agente_guardar_tarjeta",{
       p_alias:alias,p_activa:activa,p_titulo:titulo||null,p_bio:bio||null,
       p_ramos:ramos.length?ramos:null,p_whatsapp:whatsapp||null,
-      p_correo_publico:correoPub||null,p_foto_path:fotoPath,p_foto_url:fotoUrl
+      p_correo_publico:correoPub||null,p_foto_path:fotoPath,p_foto_url:fotoUrl,
+      p_aseguradoras:listaAseg.length?listaAseg:null
     });
     if(err){setGuardando(false);setError(err.message);return;}
 
@@ -1133,11 +1142,21 @@ function MiTarjeta({agente,onAgenteCambiado}){
       </Campo>
 
       <Campo label="Qué manejo">
-        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:4}}>
+        <div style={{display:"flex",flexWrap:"wrap",gap:"8px 14px",marginTop:4}}>
           {RAMOS_SUGERIDOS.map(r=><label key={r} style={{display:"flex",alignItems:"center",gap:5,fontSize:14,cursor:"pointer"}}>
             <input type="checkbox" checked={ramos.includes(r)} onChange={()=>toggleRamo(r)}/>{r}
           </label>)}
         </div>
+      </Campo>
+
+      <Campo label="Aseguradoras con las que trabajo">
+        <div style={{display:"flex",flexWrap:"wrap",gap:"8px 14px",marginTop:4,marginBottom:10}}>
+          {ASEGURADORAS_MX.map(a=><label key={a} style={{display:"flex",alignItems:"center",gap:5,fontSize:14,cursor:"pointer"}}>
+            <input type="checkbox" checked={aseguradoras.includes(a)} onChange={()=>toggleAseg(a)}/>{a}
+          </label>)}
+        </div>
+        <input name="otras_aseguradoras" value={otrasAseg} onChange={e=>setOtrasAseg(e.target.value)}
+          placeholder="Otras, separadas por coma" style={est.input}/>
       </Campo>
 
       <Campo label="WhatsApp (si es distinto a tu teléfono)">
