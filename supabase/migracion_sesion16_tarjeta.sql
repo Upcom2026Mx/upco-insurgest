@@ -304,7 +304,14 @@ revoke all on function public.tarjeta_contactar(text,text,text,text,text,text) f
 grant execute on function public.tarjeta_contactar(text,text,text,text,text,text) to anon, authenticated;
 
 -- ============ FOTO DE LA TARJETA (Storage, bucket público 'tarjetas') ============
--- La lectura es pública (así lo es el bucket); escribir solo en la carpeta propia.
+-- Que el bucket sea público solo abre la URL pública de lectura; la API sigue pasando por
+-- estas reglas. Hacen falta las 4 operaciones, igual que en 'polizas': sin SELECT, el upsert
+-- de la foto falla con "new row violates row-level security policy", porque para reemplazar
+-- el archivo la base necesita poder leer la fila que está escribiendo.
+create policy "agente ve su foto de tarjeta"
+on storage.objects for select
+using (bucket_id = 'tarjetas' and (storage.foldername(name))[1] = auth.uid()::text);
+
 create policy "agente sube su foto de tarjeta"
 on storage.objects for insert
 with check (bucket_id = 'tarjetas' and (storage.foldername(name))[1] = auth.uid()::text);
