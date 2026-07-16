@@ -16,7 +16,22 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 
 const stripe = new Stripe(STRIPE_SECRET_KEY);
 
+// El navegador llama a esta función desde insurgest.upco.app (otro dominio), así que manda
+// primero un preflight OPTIONS y exige estos encabezados en toda respuesta. Sin ellos la
+// petición se bloquea antes de llegar al código. No hay riesgo en abrir el origen: la
+// autorización real es el JWT del propio agente, que viaja en el header Authorization.
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+const json = { ...cors, "Content-Type": "application/json" };
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: cors });
+  }
+
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
     const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -24,14 +39,14 @@ Deno.serve(async (req) => {
     });
     const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
     if (userError || !userData?.user) {
-      return new Response(JSON.stringify({ error: "No autenticado" }), { status: 401 });
+      return new Response(JSON.stringify({ error: "No autenticado" }), { status: 401, headers: json });
     }
     const userId = userData.user.id;
     const userEmail = userData.user.email ?? undefined;
 
     const { tipo, periodo } = await req.json();
     if (!["agente", "promotoria_base"].includes(tipo) || !["mensual", "trimestral", "semestral", "anual"].includes(periodo)) {
-      return new Response(JSON.stringify({ error: "tipo o periodo inválido" }), { status: 400 });
+      return new Response(JSON.stringify({ error: "tipo o periodo inválido" }), { status: 400, headers: json });
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -39,7 +54,7 @@ Deno.serve(async (req) => {
 
     const { data: cuenta, error: cuentaError } = await supabase.from(tabla).select("*").eq("id", userId).maybeSingle();
     if (cuentaError || !cuenta) {
-      return new Response(JSON.stringify({ error: "Cuenta no encontrada" }), { status: 404 });
+      return new Response(JSON.stringify({ error: "Cuenta no encontrada" }), { status: 404, headers: json });
     }
 
     const { data: precio } = await supabase
@@ -49,7 +64,7 @@ Deno.serve(async (req) => {
       .eq("periodo", periodo)
       .maybeSingle();
     if (!precio?.price_id) {
-      return new Response(JSON.stringify({ error: "Ese plan todavía no tiene precio configurado en Stripe" }), { status: 400 });
+      return new Response(JSON.stringify({ error: "Ese plan todavía no tiene precio configurado en Stripe" }), { status: 400, headers: json });
     }
 
     let customerId = cuenta.stripe_customer_id as string | null;
@@ -70,8 +85,8 @@ Deno.serve(async (req) => {
       subscription_data: { metadata: { tipo, id: userId } },
     });
 
-    return new Response(JSON.stringify({ url: session.url }), { headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ url: session.url }), { headers: json });
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500 });
+    return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500, headers: json });
   }
 });
