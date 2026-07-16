@@ -871,8 +871,16 @@ function SolicitudesInbox({onAbrirCliente}){
     {solicitudes.map(s=><div key={s.id} style={{...est.card,marginBottom:10,opacity:s.estatus==="atendida"?0.6:1}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div>
-          <div style={{fontWeight:700,fontSize:14}}>{s.tipo==="endoso"?"Endoso":"Cotización"} — {s.clientes?s.clientes.nombre:"Cliente"}</div>
+          <div style={{fontWeight:700,fontSize:14}}>
+            {s.tipo==="endoso"?"Endoso":"Cotización"} — {s.clientes?s.clientes.nombre:s.prospecto_nombre}
+            {!s.cliente_id&&<span style={{...est.badge("#F59E0B"),marginLeft:6}}>prospecto</span>}
+          </div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{s.tipo==="endoso"?s.tipo_cambio:s.ramo_interes}{" · "}{new Date(s.created_at).toLocaleString("es-MX",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}</div>
+          {!s.cliente_id&&<div style={{fontSize:13,color:"#374151",marginTop:4}}>
+            {s.prospecto_correo&&<span>{s.prospecto_correo}</span>}
+            {s.prospecto_correo&&s.prospecto_telefono&&" · "}
+            {s.prospecto_telefono&&<span>{s.prospecto_telefono}</span>}
+          </div>}
           {s.polizas&&<div style={{fontSize:12,color:"#374151",marginTop:2}}>Sobre: {s.polizas.ramo} — {s.polizas.aseguradora||"Sin aseguradora"}{s.polizas.numero_poliza?` (${s.polizas.numero_poliza})`:""}</div>}
           {s.descripcion&&<div style={{fontSize:13,color:"#374151",marginTop:6}}>{s.descripcion}</div>}
         </div>
@@ -1034,6 +1042,167 @@ function MiPerfil({agente,onAgenteCambiado}){
       <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":guardado?"¡Guardado!":"Guardar"}</Boton>
     </form>
     <MedidorAlmacenamiento/>
+  </div>;
+}
+
+// ============ MI TARJETA DIGITAL ============
+
+// La tarjeta es pública y para prospectos — no confundir con la liga mágica del cliente,
+// que es privada y muestra pólizas de alguien que ya es cliente.
+function MiTarjeta({agente,onAgenteCambiado}){
+  const[alias,setAlias]=useState(agente.alias_publico||"");
+  const[activa,setActiva]=useState(!!agente.tarjeta_activa);
+  const[titulo,setTitulo]=useState(agente.tarjeta_titulo||"");
+  const[bio,setBio]=useState(agente.tarjeta_bio||"");
+  const[ramos,setRamos]=useState(agente.tarjeta_ramos||[]);
+  const[whatsapp,setWhatsapp]=useState(agente.tarjeta_whatsapp||"");
+  const[correoPub,setCorreoPub]=useState(agente.tarjeta_correo_publico||"");
+  const[foto,setFoto]=useState(null);
+  const[guardando,setGuardando]=useState(false);
+  const[guardado,setGuardado]=useState(false);
+  const[error,setError]=useState("");
+  const[copiado,setCopiado]=useState(false);
+
+  const url=agente.alias_publico?`https://insurgest.upco.app/a/${agente.alias_publico}`:null;
+
+  const toggleRamo=(r)=>setRamos(prev=>prev.includes(r)?prev.filter(x=>x!==r):[...prev,r]);
+
+  const guardar=async(e)=>{
+    e.preventDefault();
+    setError("");setGuardado(false);setGuardando(true);
+
+    let fotoPath=null,fotoUrl=null;
+    if(foto){
+      fotoPath=`${agente.id}/foto.jpg`;
+      const{error:errSubida}=await sb.storage.from("tarjetas").upload(fotoPath,foto,{upsert:true,contentType:foto.type});
+      if(errSubida){setGuardando(false);setError("No se pudo subir la foto: "+errSubida.message);return;}
+      const{data:pub}=sb.storage.from("tarjetas").getPublicUrl(fotoPath);
+      // el nombre del archivo no cambia al reemplazarlo, así que sin esto el navegador
+      // seguiría mostrando la foto vieja
+      fotoUrl=`${pub.publicUrl}?v=${Date.now()}`;
+    }
+
+    const{error:err}=await sb.rpc("agente_guardar_tarjeta",{
+      p_alias:alias,p_activa:activa,p_titulo:titulo||null,p_bio:bio||null,
+      p_ramos:ramos.length?ramos:null,p_whatsapp:whatsapp||null,
+      p_correo_publico:correoPub||null,p_foto_path:fotoPath,p_foto_url:fotoUrl
+    });
+    if(err){setGuardando(false);setError(err.message);return;}
+
+    const{data:fresco}=await sb.from("agentes").select("*").eq("id",agente.id).single();
+    setGuardando(false);setGuardado(true);setFoto(null);
+    if(fresco)onAgenteCambiado(fresco);
+    setTimeout(()=>setGuardado(false),2000);
+  };
+
+  const copiar=()=>{navigator.clipboard.writeText(url);setCopiado(true);setTimeout(()=>setCopiado(false),1500);};
+
+  return <div>
+    <form onSubmit={guardar} style={{...est.card,maxWidth:520,marginBottom:14}}>
+      <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>Mi tarjeta digital</div>
+      <div style={{fontSize:13,color:"#6B7280",marginBottom:16}}>Una página tuya para compartir con prospectos por WhatsApp o redes. No muestra datos de tus clientes.</div>
+
+      <Campo label="Dirección de tu tarjeta">
+        <div style={{display:"flex",alignItems:"center",gap:4}}>
+          <span style={{fontSize:13,color:"#8FA0B4"}}>insurgest.upco.app/a/</span>
+          <input name="alias" value={alias} onChange={e=>setAlias(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,""))}
+            placeholder="tu-nombre" style={{...est.input,flex:1}}/>
+        </div>
+      </Campo>
+      <div style={{fontSize:12,color:"#8FA0B4",marginTop:-8,marginBottom:14}}>Solo minúsculas, números y guiones. Elígela bien: es la que vas a dictar por teléfono.</div>
+
+      <Campo label="Foto (opcional)">
+        <input name="foto" type="file" accept="image/*" onChange={e=>setFoto(e.target.files[0]||null)} style={{fontSize:14}}/>
+      </Campo>
+      {agente.tarjeta_foto_url&&!foto&&<div style={{marginBottom:14}}>
+        <img src={agente.tarjeta_foto_url} alt="Tu foto" style={{width:70,height:70,borderRadius:"50%",objectFit:"cover",border:"2px solid #DDE4EE"}}/>
+      </div>}
+
+      <Campo label="Título">
+        <input name="titulo" value={titulo} onChange={e=>setTitulo(e.target.value)} placeholder="Agente de seguros certificado" style={est.input}/>
+      </Campo>
+      <Campo label="Presentación">
+        <textarea name="bio" value={bio} onChange={e=>setBio(e.target.value)} rows={3}
+          placeholder="Dos o tres líneas sobre ti y cómo ayudas a tus clientes." style={{...est.input,resize:"vertical",fontFamily:"inherit"}}/>
+      </Campo>
+
+      <Campo label="Qué manejo">
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:4}}>
+          {RAMOS_SUGERIDOS.map(r=><label key={r} style={{display:"flex",alignItems:"center",gap:5,fontSize:14,cursor:"pointer"}}>
+            <input type="checkbox" checked={ramos.includes(r)} onChange={()=>toggleRamo(r)}/>{r}
+          </label>)}
+        </div>
+      </Campo>
+
+      <Campo label="WhatsApp (si es distinto a tu teléfono)">
+        <input name="whatsapp" value={whatsapp} onChange={e=>setWhatsapp(e.target.value)} placeholder="8112345678" style={est.input}/>
+      </Campo>
+      <Campo label="Correo público">
+        <input name="correo_publico" type="email" value={correoPub} onChange={e=>setCorreoPub(e.target.value)} placeholder="tu@correo.com" style={est.input}/>
+      </Campo>
+
+      <label style={{display:"flex",alignItems:"center",gap:8,fontSize:14,marginBottom:14,cursor:"pointer"}}>
+        <input type="checkbox" checked={activa} onChange={e=>setActiva(e.target.checked)}/>
+        Publicar mi tarjeta (si la apagas, deja de abrirse para todos)
+      </label>
+
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":guardado?"¡Guardado!":"Guardar tarjeta"}</Boton>
+    </form>
+
+    {url&&agente.tarjeta_activa&&<div style={{...est.card,maxWidth:520,marginBottom:14}}>
+      <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",marginBottom:8}}>TU TARJETA ESTÁ PUBLICADA</div>
+      <div style={{fontSize:14,wordBreak:"break-all",marginBottom:10,color:"#10284A"}}>{url}</div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <Boton onClick={copiar}>{copiado?"¡Copiada!":"Copiar liga"}</Boton>
+        <a href={url} target="_blank" rel="noopener"><Boton color="#F59E0B">Verla</Boton></a>
+      </div>
+    </div>}
+
+    <ServicioUpco/>
+  </div>;
+}
+
+// Cross-sell del negocio de sitios web / correos del fundador. Solo levanta el interés;
+// el trato se cierra por fuera.
+function ServicioUpco(){
+  const[abierto,setAbierto]=useState(false);
+  const[servicio,setServicio]=useState("ambos");
+  const[notas,setNotas]=useState("");
+  const[enviando,setEnviando]=useState(false);
+  const[enviado,setEnviado]=useState(false);
+  const[error,setError]=useState("");
+
+  const enviar=async(e)=>{
+    e.preventDefault();
+    setError("");setEnviando(true);
+    const{error:err}=await sb.rpc("solicitar_servicio",{p_servicio:servicio,p_notas:notas||null});
+    setEnviando(false);
+    if(err){setError(err.message);return;}
+    setEnviado(true);
+  };
+
+  return <div style={{...est.card,maxWidth:520,background:"#10284A",border:"none"}}>
+    <div style={{fontSize:16,fontWeight:700,color:"#fff",marginBottom:6}}>¿La quieres en tu propio dominio?</div>
+    <div style={{fontSize:13,color:"#C7D3E3",lineHeight:1.5,marginBottom:14}}>
+      En Upco también hacemos sitios web y correos con tu dominio (tunombre.com, hola@tunombre.com). Déjanos saber y te contactamos.
+    </div>
+    {enviado
+      ? <div style={{fontSize:14,color:"#F59E0B",fontWeight:700}}>¡Listo! Te vamos a contactar pronto.</div>
+      : abierto
+        ? <form onSubmit={enviar}>
+            <select value={servicio} onChange={e=>setServicio(e.target.value)} name="servicio"
+              style={{...est.input,marginBottom:10}}>
+              <option value="ambos">Sitio web y correo</option>
+              <option value="sitio_web">Solo sitio web</option>
+              <option value="correo">Solo correo con mi dominio</option>
+            </select>
+            <textarea value={notas} onChange={e=>setNotas(e.target.value)} rows={2} name="notas"
+              placeholder="¿Ya tienes dominio? ¿Algo en mente?" style={{...est.input,marginBottom:10,resize:"vertical",fontFamily:"inherit"}}/>
+            {error&&<div style={{color:"#FCA5A5",fontSize:13,marginBottom:10}}>{error}</div>}
+            <Boton type="submit" disabled={enviando} color="#F59E0B">{enviando?"Enviando...":"Me interesa"}</Boton>
+          </form>
+        : <Boton onClick={()=>setAbierto(true)} color="#F59E0B">Quiero saber más</Boton>}
   </div>;
 }
 
@@ -1301,6 +1470,7 @@ function Panel({session,onSalir}){
       <button onClick={()=>setVista("clientes")} style={tabStyle(vista==="clientes")}>Mis clientes</button>
       <button onClick={()=>setVista("solicitudes")} style={tabStyle(vista==="solicitudes")}>Solicitudes{pendientes>0?` (${pendientes})`:""}</button>
       <button onClick={()=>setVista("avisos")} style={tabStyle(vista==="avisos")}>Avisos</button>
+      <button onClick={()=>setVista("tarjeta")} style={tabStyle(vista==="tarjeta")}>Mi tarjeta</button>
       <button onClick={()=>setVista("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
       <button onClick={()=>setVista("suscripcion")} style={tabStyle(vista==="suscripcion")}>Suscripción</button>
       <button onClick={()=>setVista("perfil")} style={tabStyle(vista==="perfil")}>Mi perfil</button>
@@ -1314,6 +1484,8 @@ function Panel({session,onSalir}){
         ?<SolicitudesInbox onAbrirCliente={(c)=>{setClienteActivo(c);setVista("clientes");}}/>
         :vista==="avisos"
           ?<AvisosAgente agenteId={agente.id}/>
+          :vista==="tarjeta"
+            ?<MiTarjeta agente={agente} onAgenteCambiado={setAgente}/>
           :vista==="resumen"
             ?<DashboardAgente/>
             :vista==="suscripcion"

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tarjeta digital — Upco InsurGest</title>
+<link rel="icon" href="../icon-192.png"/>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../shared.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect}=React;
+
+// A diferencia de /p/{token}, esta página SÍ quiere ser encontrada: es material público
+// que el agente comparte a propósito con prospectos.
+function leerAlias(){
+  const porQuery=new URLSearchParams(location.search).get("u");
+  if(porQuery)return porQuery;
+  const m=location.pathname.match(/^\/a\/([^\/]+)\/?$/);
+  return m?decodeURIComponent(m[1]):null;
+}
+
+const card={background:"#fff",borderRadius:14,padding:18,border:"1px solid #DDE4EE"};
+const campo={width:"100%",padding:"12px 14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"};
+
+function Boton({children,onClick,disabled,color="#10284A",type="button"}){
+  return <button type={type} onClick={onClick} disabled={disabled}
+    style={{background:disabled?"#DDE4EE":color,color:disabled?"#9ca3af":"#fff",border:"none",borderRadius:10,padding:"12px 18px",fontSize:15,fontWeight:700,cursor:disabled?"not-allowed":"pointer",width:"100%"}}>
+    {children}
+  </button>;
+}
+
+// Los teléfonos se guardan como los escribió el agente; para wa.me hay que dejar solo dígitos
+// y anteponer 52 si no trae lada de país.
+function aWhatsapp(tel){
+  if(!tel)return null;
+  let d=tel.replace(/\D/g,"");
+  if(d.length===10)d="52"+d;
+  return d.length>=11?d:null;
+}
+
+function Chip({children}){
+  return <span style={{display:"inline-block",fontSize:12,fontWeight:700,color:"#10284A",background:"#E8EEF7",borderRadius:8,padding:"5px 10px",marginRight:6,marginBottom:6}}>{children}</span>;
+}
+
+function FormularioContacto({alias,onListo}){
+  const[nombre,setNombre]=useState("");
+  const[correo,setCorreo]=useState("");
+  const[telefono,setTelefono]=useState("");
+  const[ramo,setRamo]=useState("");
+  const[descripcion,setDescripcion]=useState("");
+  const[guardando,setGuardando]=useState(false);
+  const[error,setError]=useState("");
+
+  const enviar=async(e)=>{
+    e.preventDefault();
+    setError("");
+    if(!nombre.trim()){setError("Necesitamos tu nombre.");return;}
+    if(!correo.trim()&&!telefono.trim()){setError("Déjanos un correo o un teléfono para poder contactarte.");return;}
+    setGuardando(true);
+    const{error:err}=await sb.rpc("tarjeta_contactar",{
+      p_alias:alias,p_nombre:nombre,p_correo:correo||null,p_telefono:telefono||null,
+      p_ramo_interes:ramo||null,p_descripcion:descripcion||null
+    });
+    setGuardando(false);
+    if(err){setError(err.message||"No se pudo enviar. Intenta de nuevo.");return;}
+    onListo();
+  };
+
+  return <form onSubmit={enviar}>
+    <input style={campo} placeholder="Tu nombre *" value={nombre} onChange={e=>setNombre(e.target.value)} name="nombre"/>
+    <input style={campo} placeholder="Tu correo" type="email" value={correo} onChange={e=>setCorreo(e.target.value)} name="correo"/>
+    <input style={campo} placeholder="Tu teléfono" value={telefono} onChange={e=>setTelefono(e.target.value)} name="telefono"/>
+    <select style={campo} value={ramo} onChange={e=>setRamo(e.target.value)} name="ramo">
+      <option value="">¿Qué te interesa cotizar?</option>
+      {RAMOS_SUGERIDOS.map(r=><option key={r} value={r}>{r}</option>)}
+      <option value="Otro">Otro</option>
+    </select>
+    <textarea style={{...campo,minHeight:80,resize:"vertical"}} placeholder="Cuéntale brevemente qué necesitas" value={descripcion} onChange={e=>setDescripcion(e.target.value)} name="descripcion"/>
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    <Boton type="submit" disabled={guardando} color="#F59E0B">{guardando?"Enviando...":"Enviar mis datos"}</Boton>
+  </form>;
+}
+
+function Tarjeta({datos,alias}){
+  const[enviado,setEnviado]=useState(false);
+  const wa=aWhatsapp(datos.whatsapp||datos.telefono);
+  const cedula=(datos.tipos_cedula&&datos.tipos_cedula.length)?datos.tipos_cedula.join(", "):null;
+
+  return <div style={{maxWidth:520,margin:"0 auto",padding:16}}>
+    <div style={{...card,textAlign:"center",marginBottom:12}}>
+      {datos.foto_url
+        ? <img src={datos.foto_url} alt={datos.nombre||"Agente"} style={{width:110,height:110,borderRadius:"50%",objectFit:"cover",border:"3px solid #10284A"}}/>
+        : <div style={{width:110,height:110,borderRadius:"50%",background:"#10284A",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:38,fontWeight:800,margin:"0 auto"}}>
+            {(datos.nombre||"?").trim().charAt(0).toUpperCase()}
+          </div>}
+      <div style={{fontSize:22,fontWeight:800,color:"#10284A",marginTop:12}}>{datos.nombre||"Agente de seguros"}</div>
+      {datos.titulo&&<div style={{fontSize:14,color:"#F59E0B",fontWeight:700,marginTop:2}}>{datos.titulo}</div>}
+      {datos.nombre_negocio&&<div style={{fontSize:14,color:"#6B7280",marginTop:4}}>{datos.nombre_negocio}</div>}
+      {(datos.numero_cedula||cedula)&&<div style={{fontSize:12,color:"#8FA0B4",marginTop:8}}>
+        Cédula {cedula?`${cedula} `:""}{datos.numero_cedula||""}
+      </div>}
+    </div>
+
+    {datos.bio&&<div style={{...card,marginBottom:12,fontSize:15,lineHeight:1.5,color:"#374151"}}>{datos.bio}</div>}
+
+    {datos.ramos&&datos.ramos.length>0&&<div style={{...card,marginBottom:12}}>
+      <div style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:8}}>QUÉ MANEJO</div>
+      {datos.ramos.map(r=><Chip key={r}>{r}</Chip>)}
+    </div>}
+
+    <div style={{display:"grid",gap:8,marginBottom:12}}>
+      {wa&&<a href={`https://wa.me/${wa}`} target="_blank" rel="noopener" style={{textDecoration:"none"}}>
+        <div style={{background:"#25D366",color:"#fff",borderRadius:10,padding:"13px 18px",fontSize:15,fontWeight:700,textAlign:"center"}}>Escribirme por WhatsApp</div>
+      </a>}
+      {datos.telefono&&<a href={`tel:${datos.telefono.replace(/\s/g,"")}`} style={{textDecoration:"none"}}>
+        <div style={{background:"#10284A",color:"#fff",borderRadius:10,padding:"13px 18px",fontSize:15,fontWeight:700,textAlign:"center"}}>Llamarme</div>
+      </a>}
+      {datos.correo&&<a href={`mailto:${datos.correo}`} style={{textDecoration:"none"}}>
+        <div style={{background:"#fff",color:"#10284A",border:"1.5px solid #10284A",borderRadius:10,padding:"13px 18px",fontSize:15,fontWeight:700,textAlign:"center"}}>Mandarme un correo</div>
+      </a>}
+    </div>
+
+    <div style={{...card,marginBottom:12}}>
+      <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>¿Quieres que te cotice?</div>
+      {enviado
+        ? <div style={{fontSize:14,color:"#16a34a",marginTop:8}}>¡Listo! {datos.nombre||"Tu agente"} ya recibió tus datos y te va a contactar pronto.</div>
+        : <div>
+            <div style={{fontSize:13,color:"#6B7280",marginBottom:12}}>Déjame tus datos y yo te busco.</div>
+            <FormularioContacto alias={alias} onListo={()=>setEnviado(true)}/>
+          </div>}
+    </div>
+
+    <div style={{textAlign:"center",fontSize:12,color:"#8FA0B4",padding:"8px 0 20px"}}>
+      Tarjeta hecha con <a href="/" style={{color:"#10284A",fontWeight:700,textDecoration:"none"}}>Upco InsurGest</a>
+    </div>
+  </div>;
+}
+
+function App(){
+  const[estado,setEstado]=useState("cargando");
+  const[datos,setDatos]=useState(null);
+  const alias=leerAlias();
+
+  useEffect(()=>{
+    if(!alias){setEstado("noexiste");return;}
+    // deja la URL bonita: /a/index.html?u=alias -> /a/alias
+    if(location.search){history.replaceState(null,"","/a/"+encodeURIComponent(alias));}
+    sb.rpc("tarjeta_publica",{p_alias:alias}).then(({data,error})=>{
+      if(error||!data){setEstado("noexiste");return;}
+      setDatos(data);
+      document.title=`${data.nombre||"Agente de seguros"}${data.nombre_negocio?" — "+data.nombre_negocio:""}`;
+      setEstado("ok");
+    });
+  },[alias]);
+
+  if(estado==="cargando")return <div style={{padding:40,textAlign:"center",color:"#8FA0B4"}}>Cargando...</div>;
+  if(estado==="noexiste")return <div style={{maxWidth:420,margin:"60px auto",padding:20,textAlign:"center"}}>
+    <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:8}}>Esta tarjeta no está disponible</div>
+    <div style={{fontSize:14,color:"#6B7280"}}>Puede que la dirección esté mal escrita o que el agente la haya desactivado.</div>
+    <div style={{marginTop:20}}><a href="/" style={{color:"#10284A",fontWeight:700}}>Ir a Upco InsurGest</a></div>
+  </div>;
+  return <Tarjeta datos={datos} alias={alias}/>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

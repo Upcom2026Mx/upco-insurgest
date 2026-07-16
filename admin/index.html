@@ -281,8 +281,56 @@ const tabStyle=(activo)=>({
   color:activo?"#10284A":"#8FA0B4",cursor:"pointer"
 });
 
+const ETIQUETA_SERVICIO={sitio_web:"Sitio web",correo:"Correo con dominio",ambos:"Sitio web y correo"};
+
+function SolicitudesServicio(){
+  const[filas,setFilas]=useState(null);
+  const[error,setError]=useState("");
+
+  const cargar=async()=>{
+    const{data,error}=await sb.rpc("admin_solicitudes_servicio");
+    if(error){setError(error.message);return;}
+    setFilas(data||[]);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const marcar=async(s,estatus)=>{
+    const{error}=await sb.rpc("admin_marcar_servicio",{p_id:s.id,p_estatus:estatus});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
+  if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
+  if(!filas)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+  if(filas.length===0)return <div style={{...est.card,textAlign:"center",color:"#6B7280"}}>Todavía nadie ha pedido sitio web o correo.</div>;
+
+  return <div>
+    {filas.map(s=><div key={s.id} style={{...est.card,marginBottom:10,opacity:s.estatus==="atendida"?0.6:1}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div>
+          <div style={{fontWeight:700,fontSize:14}}>{ETIQUETA_SERVICIO[s.servicio]||s.servicio} — {s.solicitante_nombre||"—"}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>
+            {s.solicitante_tipo}{s.solicitante_negocio?` · ${s.solicitante_negocio}`:""}{" · "}
+            {new Date(s.created_at).toLocaleString("es-MX",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}
+          </div>
+          <div style={{fontSize:13,color:"#374151",marginTop:4}}>
+            {s.solicitante_correo}{s.solicitante_telefono?` · ${s.solicitante_telefono}`:""}
+          </div>
+          {s.notas&&<div style={{fontSize:13,color:"#374151",marginTop:6}}>{s.notas}</div>}
+        </div>
+        <span style={est.badge(s.estatus==="nueva"?"#F59E0B":"#6b7280")}>{s.estatus}</span>
+      </div>
+      <div style={{marginTop:10}}>
+        <button onClick={()=>marcar(s,s.estatus==="nueva"?"atendida":"nueva")} style={est.linkBtn}>
+          {s.estatus==="nueva"?"Marcar atendida":"Reabrir"}
+        </button>
+      </div>
+    </div>)}
+  </div>;
+}
+
 function PanelAdmin({session,onSalir}){
-  const[vista,setVista]=useState("resumen"); // resumen | agentes
+  const[vista,setVista]=useState("resumen"); // resumen | agentes | promotorias | servicios
   const[noAutorizado,setNoAutorizado]=useState(false);
 
   useEffect(()=>{
@@ -306,9 +354,10 @@ function PanelAdmin({session,onSalir}){
       <button onClick={()=>setVista("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
       <button onClick={()=>setVista("agentes")} style={tabStyle(vista==="agentes")}>Agentes</button>
       <button onClick={()=>setVista("promotorias")} style={tabStyle(vista==="promotorias")}>Promotorías</button>
+      <button onClick={()=>setVista("servicios")} style={tabStyle(vista==="servicios")}>Servicios</button>
     </div>
 
-    {vista==="resumen"?<Resumen/>:vista==="promotorias"?<Promotorias/>:<Agentes/>}
+    {vista==="resumen"?<Resumen/>:vista==="promotorias"?<Promotorias/>:vista==="servicios"?<SolicitudesServicio/>:<Agentes/>}
   </div>;
 }
 

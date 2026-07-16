@@ -3,17 +3,24 @@
 <head><meta charset="UTF-8"/><title>Upco InsurGest</title></head>
 <body>
 <script>
-// GitHub Pages no soporta rutas dinámicas como /p/{token} directamente.
+// GitHub Pages no soporta rutas dinámicas como /p/{token} o /a/{alias} directamente.
 // Cuando una URL así no coincide con ningún archivo, GitHub sirve este 404.html;
-// aquí detectamos el patrón /p/{token} y redirigimos a la página real con el token
-// como parámetro. p/index.html luego restaura la URL limpia con history.replaceState.
+// aquí detectamos el patrón y redirigimos a la página real con el dato como parámetro.
+// Cada index.html luego restaura la URL limpia con history.replaceState.
+//   /p/{token} = liga privada del cliente (sus pólizas)
+//   /a/{alias} = tarjeta pública del agente (para prospectos)
 (function(){
-  var m = location.pathname.match(/^\/p\/([^\/]+)\/?$/);
-  if (m) {
-    location.replace("/p/index.html?t=" + encodeURIComponent(m[1]));
-  } else {
-    location.replace("/");
+  var p = location.pathname.match(/^\/p\/([^\/]+)\/?$/);
+  if (p) {
+    location.replace("/p/index.html?t=" + encodeURIComponent(p[1]));
+    return;
   }
+  var a = location.pathname.match(/^\/a\/([^\/]+)\/?$/);
+  if (a) {
+    location.replace("/a/index.html?u=" + encodeURIComponent(a[1]));
+    return;
+  }
+  location.replace("/");
 })();
 </script>
 </body>
