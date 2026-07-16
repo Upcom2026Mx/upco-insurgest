@@ -32,8 +32,12 @@ const est={
 const colorEstatusAgente={pendiente:"#F59E0B",aprobado:"#16a34a",rechazado:"#dc2626"};
 
 function textoEstatusPago(cuenta){
-  if(cuenta.estatus_suscripcion==="active"||cuenta.estatus_suscripcion==="trialing")
-    return`Suscripción activa (${cuenta.plan_periodo||"—"})`;
+  if(cuenta.estatus_suscripcion==="active"||cuenta.estatus_suscripcion==="trialing"){
+    const proximo=cuenta.suscripcion_vigente_hasta?` · próximo cobro ${fecha(cuenta.suscripcion_vigente_hasta.slice(0,10))}`:"";
+    return`Suscripción activa (${cuenta.plan_periodo||"—"})${proximo}`;
+  }
+  // El orden de aquí en adelante tiene que ser el mismo que el de accesoVigente() en shared.js,
+  // o el panel diría una cosa y el candado haría otra.
   const ahora=new Date();
   if(cuenta.acceso_extendido_hasta&&ahora<=new Date(cuenta.acceso_extendido_hasta))
     return`Acceso extendido hasta ${fecha(cuenta.acceso_extendido_hasta.slice(0,10))}`;
@@ -41,6 +45,10 @@ function textoEstatusPago(cuenta){
     const finPrueba=new Date(new Date(cuenta.aprobado_en).getTime()+30*86400000);
     if(ahora<=finPrueba)return`En prueba — vence ${fecha(finPrueba.toISOString().slice(0,10))}`;
   }
+  // past_due / unpaid / canceled son estados reales de Stripe: ya pagó alguna vez pero hoy
+  // no está al corriente — no es lo mismo que nunca haber pagado.
+  if(cuenta.estatus_suscripcion)
+    return`Suscripción ${cuenta.estatus_suscripcion} — sin acceso, revisar en Stripe`;
   return"Sin acceso vigente (sin pagar)";
 }
 
