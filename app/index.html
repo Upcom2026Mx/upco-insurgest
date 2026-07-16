@@ -1135,8 +1135,14 @@ function MiTarjeta({agente,onAgenteCambiado}){
       </Campo>
 
       <Campo label="WhatsApp (si es distinto a tu teléfono)">
-        <input name="whatsapp" value={whatsapp} onChange={e=>setWhatsapp(e.target.value)} placeholder="8112345678" style={est.input}/>
+        <input name="whatsapp" value={whatsapp} onChange={e=>setWhatsapp(e.target.value)} placeholder="5512345678" style={est.input}/>
       </Campo>
+      {/* Sin esto, un número mal escrito solo hace que el botón de WhatsApp no aparezca en la
+          tarjeta, sin que el agente se entere nunca de por qué. */}
+      {whatsapp.replace(/\D/g,"").length>0&&whatsapp.replace(/\D/g,"").length!==10&&whatsapp.replace(/\D/g,"").length!==12&&
+        <div style={{fontSize:12,color:"#dc2626",marginTop:-8,marginBottom:14}}>
+          Ese número lleva {whatsapp.replace(/\D/g,"").length} dígitos. Un celular mexicano lleva 10 (o 12 con el 52 al inicio). Si lo dejas así, el botón de WhatsApp no va a aparecer en tu tarjeta.
+        </div>}
       <Campo label="Correo público">
         <input name="correo_publico" type="email" value={correoPub} onChange={e=>setCorreoPub(e.target.value)} placeholder="tu@correo.com" style={est.input}/>
       </Campo>
