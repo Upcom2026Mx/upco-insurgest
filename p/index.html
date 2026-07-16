@@ -307,13 +307,17 @@ function SeccionAcciones({token,tieneVida}){
 }
 
 function BotonNotificaciones({token}){
-  const[activado,setActivado]=useState(false);
+  const[estado,setEstado]=useState("inactivo"); // inactivo | activando | activado | solo-correo
   const activar=async()=>{
+    setEstado("activando");
     await sb.rpc("portal_activar_notificaciones",{p_token:token});
-    setActivado(true);
+    const resultadoPush=await suscribirPush(token);
+    setEstado(resultadoPush==="ok"?"activado":"solo-correo");
   };
-  return <button onClick={activar} disabled={activado} style={{background:activado?"#EAF7EF":"#FEF3E2",border:"none",borderRadius:20,padding:"7px 14px",fontSize:12.5,fontWeight:700,color:activado?"#16a34a":"#B45309",cursor:activado?"default":"pointer",whiteSpace:"nowrap"}}>
-    {activado?"✓ Notificaciones activadas":"🔔 Activar notificaciones"}
+  const activado=estado==="activado"||estado==="solo-correo";
+  const etiqueta=estado==="activando"?"Activando...":estado==="activado"?"✓ Notificaciones activadas":estado==="solo-correo"?"✓ Avisos por correo activados":"🔔 Activar notificaciones";
+  return <button onClick={activar} disabled={activado||estado==="activando"} style={{background:activado?"#EAF7EF":"#FEF3E2",border:"none",borderRadius:20,padding:"7px 14px",fontSize:12.5,fontWeight:700,color:activado?"#16a34a":"#B45309",cursor:activado?"default":"pointer",whiteSpace:"nowrap"}}>
+    {etiqueta}
   </button>;
 }
 
