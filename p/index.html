@@ -126,12 +126,183 @@ function FormularioCotizacion({token,onEnviado,onCancelar}){
   </form>;
 }
 
-function SeccionAcciones({token}){
-  const[vista,setVista]=useState("botones"); // botones | cotizacion | enviado
+const GRUPOS_PRESUPUESTO={
+  necesidad:{pct:.5,label:"Necesidades",color:"#10284A"},
+  gusto:{pct:.3,label:"Gustos",color:"#F59E0B"},
+  ahorro:{pct:.2,label:"Ahorro",color:"#16a34a"}
+};
+
+function cargarPresupuesto(token){
+  try{
+    const raw=localStorage.getItem(`insurgest_presupuesto_${token}`);
+    return raw?JSON.parse(raw):{ingreso:0,categorias:[]};
+  }catch(e){return{ingreso:0,categorias:[]};}
+}
+function guardarPresupuestoLocal(token,datos){
+  try{localStorage.setItem(`insurgest_presupuesto_${token}`,JSON.stringify(datos));}catch(e){}
+}
+
+function ModalCategoria({categoria,onGuardar,onCerrar}){
+  const c=categoria;
+  const[nombre,setNombre]=useState(c?c.nombre:"");
+  const[limite,setLimite]=useState(c?String(c.limite):"");
+  const[grupo,setGrupo]=useState(c?c.grupo:"necesidad");
+
+  const guardar=(e)=>{
+    e.preventDefault();
+    if(!nombre.trim()||!limite)return;
+    onGuardar({id:c?c.id:crypto.randomUUID(),nombre:nombre.trim(),limite:parseFloat(limite),gastado:c?c.gastado:0,grupo});
+  };
+
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.4)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:50}}>
+    <form onSubmit={guardar} style={{...card,maxWidth:360,width:"100%"}}>
+      <div style={{fontSize:15,fontWeight:700,marginBottom:14}}>{c?"Editar categoría":"Nueva categoría"}</div>
+      <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre (ej. Renta, Comida)" style={campo}/>
+      <input value={limite} onChange={e=>setLimite(e.target.value)} placeholder="Presupuesto mensual" type="number" min="0" style={campo}/>
+      <select value={grupo} onChange={e=>setGrupo(e.target.value)} style={campo}>
+        <option value="necesidad">Necesidad</option>
+        <option value="gusto">Gusto</option>
+        <option value="ahorro">Ahorro</option>
+      </select>
+      <div style={{display:"flex",gap:10}}>
+        <Boton type="submit">Guardar</Boton>
+        <button type="button" onClick={onCerrar} style={{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer"}}>Cancelar</button>
+      </div>
+    </form>
+  </div>;
+}
+
+function BarraCategoria({c,onEditarGastado,onEliminar}){
+  const pct=c.limite>0?Math.min((c.gastado/c.limite)*100,100):0;
+  const colorGrupo=(GRUPOS_PRESUPUESTO[c.grupo]||{}).color||"#10284A";
+  const color=pct>=100?"#dc2626":pct>=80?"#F59E0B":colorGrupo;
+  return <div style={{marginBottom:14}}>
+    <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}>
+      <span style={{fontWeight:600,color:"#374151"}}>{c.nombre}</span>
+      <span style={{color:"#8FA0B4"}}>{pesos(c.gastado)} / {pesos(c.limite)}</span>
+    </div>
+    <div style={{height:8,background:"#F4F7FB",borderRadius:4}}>
+      <div style={{height:"100%",width:`${Math.max(pct,3)}%`,background:color,borderRadius:4}}/>
+    </div>
+    <div style={{display:"flex",gap:10,marginTop:4}}>
+      <button onClick={onEditarGastado} style={{background:"none",border:"none",color:"#53647D",fontSize:11,cursor:"pointer",padding:0}}>Registrar gasto</button>
+      <button onClick={onEliminar} style={{background:"none",border:"none",color:"#dc2626",fontSize:11,cursor:"pointer",padding:0}}>Eliminar</button>
+    </div>
+  </div>;
+}
+
+function SeccionPresupuesto({token}){
+  const[datos,setDatos]=useState(()=>cargarPresupuesto(token));
+  const[editandoIngreso,setEditandoIngreso]=useState(false);
+  const[ingresoTemp,setIngresoTemp]=useState("");
+  const[modalCategoria,setModalCategoria]=useState(null); // null | "nueva" | categoria
+  const[editandoGastado,setEditandoGastado]=useState(null);
+  const[gastadoTemp,setGastadoTemp]=useState("");
+
+  const guardar=(nuevo)=>{setDatos(nuevo);guardarPresupuestoLocal(token,nuevo);};
+
+  const guardarIngreso=()=>{guardar({...datos,ingreso:parseFloat(ingresoTemp)||0});setEditandoIngreso(false);};
+  const guardarCategoria=(cat)=>{
+    const existe=datos.categorias.some(c=>c.id===cat.id);
+    const categorias=existe?datos.categorias.map(c=>c.id===cat.id?cat:c):[...datos.categorias,cat];
+    guardar({...datos,categorias});
+    setModalCategoria(null);
+  };
+  const eliminarCategoria=(id)=>guardar({...datos,categorias:datos.categorias.filter(c=>c.id!==id)});
+  const guardarGastado=()=>{
+    guardar({...datos,categorias:datos.categorias.map(c=>c.id===editandoGastado?{...c,gastado:parseFloat(gastadoTemp)||0}:c)});
+    setEditandoGastado(null);
+  };
+
+  const asignadoPorGrupo={necesidad:0,gusto:0,ahorro:0};
+  datos.categorias.forEach(c=>{if(asignadoPorGrupo[c.grupo]!=null)asignadoPorGrupo[c.grupo]+=c.limite;});
+  const presupuestado=datos.categorias.reduce((s,c)=>s+c.limite,0);
+  const gastado=datos.categorias.reduce((s,c)=>s+c.gastado,0);
+  const sinAsignar=Math.max(datos.ingreso-presupuestado,0);
+
+  return <div style={{marginBottom:24}}>
+    <div style={{...card,marginBottom:16}}>
+      <div style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4}}>INGRESO MENSUAL</div>
+      {editandoIngreso
+        ?<div style={{display:"flex",gap:8}}>
+          <input value={ingresoTemp} onChange={e=>setIngresoTemp(e.target.value)} type="number" min="0" style={{...campo,marginBottom:0}}/>
+          <Boton onClick={guardarIngreso}>OK</Boton>
+        </div>
+        :<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontSize:24,fontWeight:800,color:"#10284A"}}>{pesos(datos.ingreso)}</div>
+          <button onClick={()=>{setIngresoTemp(String(datos.ingreso||""));setEditandoIngreso(true);}} style={{background:"none",border:"none",color:"#53647D",fontSize:12,cursor:"pointer"}}>Editar</button>
+        </div>}
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>
+      <div style={{...card,textAlign:"center",padding:12}}>
+        <div style={{fontSize:15,fontWeight:700,color:"#10284A"}}>{pesos(presupuestado)}</div>
+        <div style={{fontSize:10.5,color:"#8FA0B4",marginTop:2}}>PRESUPUESTADO</div>
+      </div>
+      <div style={{...card,textAlign:"center",padding:12}}>
+        <div style={{fontSize:15,fontWeight:700,color:"#374151"}}>{pesos(gastado)}</div>
+        <div style={{fontSize:10.5,color:"#8FA0B4",marginTop:2}}>GASTADO</div>
+      </div>
+      <div style={{...card,textAlign:"center",padding:12}}>
+        <div style={{fontSize:15,fontWeight:700,color:sinAsignar>0?"#16a34a":"#dc2626"}}>{pesos(sinAsignar)}</div>
+        <div style={{fontSize:10.5,color:"#8FA0B4",marginTop:2}}>SIN ASIGNAR</div>
+      </div>
+    </div>
+
+    {datos.ingreso>0&&<div style={{...card,marginBottom:16}}>
+      <div style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:10}}>REGLA 50/30/20</div>
+      {Object.entries(GRUPOS_PRESUPUESTO).map(([key,g])=>{
+        const sugerido=datos.ingreso*g.pct;
+        const asignado=asignadoPorGrupo[key];
+        const pct=sugerido>0?Math.min((asignado/sugerido)*100,100):0;
+        return <div key={key} style={{marginBottom:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}>
+            <span style={{fontWeight:600,color:"#374151"}}>{g.label} ({Math.round(g.pct*100)}%)</span>
+            <span style={{color:"#8FA0B4"}}>{pesos(asignado)} de {pesos(sugerido)} sugerido</span>
+          </div>
+          <div style={{height:8,background:"#F4F7FB",borderRadius:4}}>
+            <div style={{height:"100%",width:`${Math.max(pct,3)}%`,background:g.color,borderRadius:4}}/>
+          </div>
+        </div>;
+      })}
+    </div>}
+
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+      <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4"}}>CATEGORÍAS ({datos.categorias.length})</div>
+      <button onClick={()=>setModalCategoria("nueva")} style={{background:"none",border:"none",color:"#10284A",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Nueva categoría</button>
+    </div>
+    {datos.categorias.length===0&&<div style={{...card,textAlign:"center",color:"#6B7280"}}>Agrega tu primera categoría de gasto.</div>}
+    {datos.categorias.length>0&&<div style={card}>
+      {datos.categorias.map(c=>
+        editandoGastado===c.id
+          ?<div key={c.id} style={{display:"flex",gap:8,marginBottom:14,alignItems:"center"}}>
+            <span style={{fontSize:13,fontWeight:600,flex:1}}>{c.nombre}</span>
+            <input value={gastadoTemp} onChange={e=>setGastadoTemp(e.target.value)} type="number" min="0" style={{...campo,width:100,marginBottom:0}}/>
+            <button onClick={guardarGastado} style={{background:"none",border:"none",color:"#10284A",fontSize:12,fontWeight:700,cursor:"pointer"}}>OK</button>
+          </div>
+          :<BarraCategoria key={c.id} c={c}
+              onEditarGastado={()=>{setGastadoTemp(String(c.gastado||""));setEditandoGastado(c.id);}}
+              onEliminar={()=>eliminarCategoria(c.id)}/>
+      )}
+    </div>}
+
+    {modalCategoria&&<ModalCategoria categoria={modalCategoria==="nueva"?null:modalCategoria} onGuardar={guardarCategoria} onCerrar={()=>setModalCategoria(null)}/>}
+
+    <div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Se guarda solo en este dispositivo — nadie más puede verlo.</div>
+  </div>;
+}
+
+function SeccionAcciones({token,tieneVida}){
+  const[vista,setVista]=useState("botones"); // botones | cotizacion | presupuesto | enviado
   if(vista==="enviado")return <SolicitudEnviada onCerrar={()=>setVista("botones")}/>;
   if(vista==="cotizacion")return <FormularioCotizacion token={token} onEnviado={()=>setVista("enviado")} onCancelar={()=>setVista("botones")}/>;
+  if(vista==="presupuesto")return <div style={{marginBottom:24}}>
+    <button onClick={()=>setVista("botones")} style={{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer",padding:0,marginBottom:12}}>‹ Volver</button>
+    <SeccionPresupuesto token={token}/>
+  </div>;
   return <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:24}}>
     <Boton color="#F59E0B" onClick={()=>setVista("cotizacion")}>Solicitar cotización</Boton>
+    {tieneVida&&<Boton color="#53647D" onClick={()=>setVista("presupuesto")}>Mi presupuesto</Boton>}
   </div>;
 }
 
@@ -372,7 +543,7 @@ function Portal(){
       <BotonNotificaciones token={token}/>
     </div>
 
-    <SeccionAcciones token={token}/>
+    <SeccionAcciones token={token} tieneVida={polizas.some(p=>p.ramo==="Vida")}/>
 
     <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",marginBottom:10}}>TUS PÓLIZAS ({polizas.length})</div>
     {polizas.length===0&&<div style={{...card,textAlign:"center",color:"#6B7280",marginBottom:24}}>Todavía no tienes pólizas registradas.</div>}
