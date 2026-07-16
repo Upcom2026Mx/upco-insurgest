@@ -1066,6 +1066,22 @@ function PantallaSuscripcion({cuenta,bloqueado}){
     window.location.href=data.url;
   };
 
+  // Manda al Portal de Cliente de Stripe: ahí cancela, cambia tarjeta y baja sus facturas.
+  const administrar=async()=>{
+    setError("");setCargando("portal");
+    const{data,error:errFn}=await sb.functions.invoke("create-portal-session",{body:{tipo:"agente"}});
+    setCargando(null);
+    if(errFn||!data?.url){
+      let detalle=(data&&data.error)||"";
+      if(!detalle&&errFn&&errFn.context&&typeof errFn.context.json==="function"){
+        try{const cuerpo=await errFn.context.json();detalle=cuerpo&&cuerpo.error;}catch(e){}
+      }
+      setError(detalle?`No se pudo abrir tu suscripción: ${detalle}`:"No se pudo abrir tu suscripción. Intenta de nuevo.");
+      return;
+    }
+    window.location.href=data.url;
+  };
+
   const suscripcionActiva=cuenta.estatus_suscripcion==="active"||cuenta.estatus_suscripcion==="trialing";
   const ahora=new Date();
   const finPrueba=cuenta.aprobado_en?new Date(new Date(cuenta.aprobado_en).getTime()+30*86400000):null;
@@ -1085,15 +1101,21 @@ function PantallaSuscripcion({cuenta,bloqueado}){
       {!suscripcionActiva&&!(diasExtendido>0)&&diasPrueba!=null&&<div style={{fontSize:13,color:diasPrueba<=5?"#F59E0B":"#8FA0B4"}}>Prueba gratuita — quedan {Math.max(diasPrueba,0)} días</div>}
     </div>}
 
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
+    {!suscripcionActiva&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
       {PLANES_AGENTE.map(p=><div key={p.periodo} style={est.card}>
         <div style={{fontSize:11,fontWeight:700,color:"#8FA0B4",marginBottom:4}}>{p.label.toUpperCase()}</div>
         <div style={{fontSize:14,fontWeight:700,color:"#10284A",marginBottom:12}}>{p.monto}</div>
         <Boton onClick={()=>suscribirse(p.periodo)} disabled={cargando!==null}>{cargando===p.periodo?"Redirigiendo...":"Elegir"}</Boton>
       </div>)}
-    </div>
+    </div>}
+
+    {suscripcionActiva&&<div style={est.card}>
+      <div style={{fontSize:13,color:"#374151",marginBottom:12}}>Desde Stripe puedes cambiar tu tarjeta, descargar tus facturas o cancelar tu suscripción.</div>
+      <Boton onClick={administrar} disabled={cargando!==null}>{cargando==="portal"?"Abriendo...":"Administrar mi suscripción"}</Boton>
+    </div>}
+
     {error&&<div style={{color:"#dc2626",fontSize:13,marginTop:14,textAlign:"center"}}>{error}</div>}
-    <div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Precios +IVA. Se cobra por Stripe, cancela cuando quieras.</div>
+    {!suscripcionActiva&&<div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Precios +IVA. Se cobra por Stripe, cancela cuando quieras.</div>}
   </div>;
 
   if(!bloqueado)return contenido;
