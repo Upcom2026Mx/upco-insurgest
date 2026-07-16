@@ -37,6 +37,28 @@ async function suscribirPush(token){
   }
 }
 
+// Igual que suscribirPush, pero para un agente ya autenticado (usa su sesión, no un token de liga).
+async function suscribirPushAgente(){
+  if(!("serviceWorker" in navigator)||!("PushManager" in window))return"no-soportado";
+  try{
+    const registro=await navigator.serviceWorker.register("../sw.js");
+    const permiso=await Notification.requestPermission();
+    if(permiso!=="granted")return"rechazado";
+    let suscripcion=await registro.pushManager.getSubscription();
+    if(!suscripcion){
+      suscripcion=await registro.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    const json=suscripcion.toJSON();
+    await sb.rpc("agente_suscribir_push",{p_endpoint:json.endpoint,p_p256dh:json.keys.p256dh,p_auth:json.keys.auth});
+    return"ok";
+  }catch(e){
+    return"rechazado";
+  }
+}
+
 const colorEstatus={vigente:"#16a34a",vencida:"#dc2626",renovada:"#2563eb",cancelada:"#6b7280"};
 const RAMOS_SUGERIDOS=["Auto","Vida","PPR","Gastos Médicos","Hogar"];
 const ESTADOS_MX=["Aguascalientes","Baja California","Baja California Sur","Campeche","Chiapas","Chihuahua","Ciudad de México","Coahuila","Colima","Durango","Estado de México","Guanajuato","Guerrero","Hidalgo","Jalisco","Michoacán","Morelos","Nayarit","Nuevo León","Oaxaca","Puebla","Querétaro","Quintana Roo","San Luis Potosí","Sinaloa","Sonora","Tabasco","Tamaulipas","Tlaxcala","Veracruz","Yucatán","Zacatecas"];

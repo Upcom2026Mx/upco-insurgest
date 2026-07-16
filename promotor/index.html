@@ -241,6 +241,90 @@ function Agentes(){
   </div>;
 }
 
+function AvisosPromotoria(){
+  const[agentes,setAgentes]=useState(null);
+  const[clientes,setClientes]=useState(null);
+  const[selAgentes,setSelAgentes]=useState({});
+  const[selClientes,setSelClientes]=useState({});
+  const[asunto,setAsunto]=useState("");
+  const[mensaje,setMensaje]=useState("");
+  const[viaCorreo,setViaCorreo]=useState(true);
+  const[viaPush,setViaPush]=useState(true);
+  const[enviando,setEnviando]=useState(false);
+  const[resultado,setResultado]=useState(null);
+  const[error,setError]=useState("");
+
+  useEffect(()=>{
+    sb.rpc("promotoria_agentes").then(({data,error})=>{if(error){setError(error.message);return;}setAgentes(data||[]);});
+    sb.rpc("promotoria_clientes").then(({data,error})=>{if(error){setError(error.message);return;}setClientes(data||[]);});
+  },[]);
+
+  const toggleAgente=(id)=>setSelAgentes(prev=>({...prev,[id]:!prev[id]}));
+  const toggleCliente=(id)=>setSelClientes(prev=>({...prev,[id]:!prev[id]}));
+
+  const enviar=async(e)=>{
+    e.preventDefault();
+    const agenteIds=Object.keys(selAgentes).filter(id=>selAgentes[id]);
+    const clienteIds=Object.keys(selClientes).filter(id=>selClientes[id]);
+    if(agenteIds.length===0&&clienteIds.length===0){setError("Selecciona al menos un destinatario.");return;}
+    if(!asunto.trim()||!mensaje.trim()){setError("Escribe un asunto y un mensaje.");return;}
+    setError("");setEnviando(true);setResultado(null);
+    const{data,error:errRpc}=await sb.rpc("promotoria_notificar",{
+      p_agente_ids:agenteIds,p_cliente_ids:clienteIds,p_asunto:asunto.trim(),p_mensaje:mensaje.trim(),
+      p_via_correo:viaCorreo,p_via_push:viaPush
+    });
+    setEnviando(false);
+    if(errRpc){setError(errRpc.message);return;}
+    setResultado(data);setAsunto("");setMensaje("");setSelAgentes({});setSelClientes({});
+  };
+
+  if(!agentes||!clientes)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+  const totalSel=Object.values(selAgentes).filter(Boolean).length+Object.values(selClientes).filter(Boolean).length;
+
+  return <div>
+    <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>Avisos a tu red</div>
+    <div style={{fontSize:13,color:"#8FA0B4",marginBottom:16}}>Manda un correo y/o notificación push a los agentes de tu red, o directo a sus clientes.</div>
+
+    <form onSubmit={enviar} style={est.card}>
+      <label style={est.label}>Agentes de tu red</label>
+      <div style={{maxHeight:150,overflowY:"auto",border:"1px solid #DDE4EE",borderRadius:10,padding:"6px 12px",marginBottom:14}}>
+        {agentes.length===0&&<div style={{fontSize:13,color:"#8FA0B4",padding:"8px 0"}}>Todavía no tienes agentes en tu red.</div>}
+        {agentes.map(a=><label key={a.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",fontSize:13,color:"#374151",cursor:"pointer"}}>
+          <input type="checkbox" checked={!!selAgentes[a.id]} onChange={()=>toggleAgente(a.id)}/>
+          {a.nombre||a.correo}
+        </label>)}
+      </div>
+
+      <label style={est.label}>Clientes directos de tus agentes</label>
+      <div style={{maxHeight:150,overflowY:"auto",border:"1px solid #DDE4EE",borderRadius:10,padding:"6px 12px",marginBottom:14}}>
+        {clientes.length===0&&<div style={{fontSize:13,color:"#8FA0B4",padding:"8px 0"}}>Todavía no hay clientes en tu red.</div>}
+        {clientes.map(c=><label key={c.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",fontSize:13,color:c.correo?"#374151":"#C4CDD9",cursor:c.correo?"pointer":"not-allowed"}}>
+          <input type="checkbox" checked={!!selClientes[c.id]} disabled={!c.correo} onChange={()=>toggleCliente(c.id)}/>
+          {c.nombre} <span style={{color:"#8FA0B4"}}>— {c.agente_nombre}</span>{!c.correo&&" (sin correo)"}
+        </label>)}
+      </div>
+
+      <div style={{fontSize:12,color:"#8FA0B4",marginBottom:10}}>{totalSel} destinatarios seleccionados</div>
+
+      <input value={asunto} onChange={e=>setAsunto(e.target.value)} placeholder="Asunto" style={est.input}/>
+      <textarea value={mensaje} onChange={e=>setMensaje(e.target.value)} placeholder="Mensaje" rows={4} style={est.input}/>
+
+      <div style={{display:"flex",gap:16,marginBottom:14}}>
+        <label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"#374151",cursor:"pointer"}}>
+          <input type="checkbox" checked={viaCorreo} onChange={e=>setViaCorreo(e.target.checked)}/> Por correo
+        </label>
+        <label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"#374151",cursor:"pointer"}}>
+          <input type="checkbox" checked={viaPush} onChange={e=>setViaPush(e.target.checked)}/> Por notificación push
+        </label>
+      </div>
+
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      {resultado&&<div style={{color:"#16a34a",fontSize:13,marginBottom:10}}>Enviado: {resultado.correos_enviados} correos, {resultado.push_disparados} avisos push.</div>}
+      <Boton type="submit" disabled={enviando||(!viaCorreo&&!viaPush)}>{enviando?"Enviando...":"Enviar aviso"}</Boton>
+    </form>
+  </div>;
+}
+
 const tabStyle=(activo)=>({
   background:"none",border:"none",borderBottom:activo?"2px solid #10284A":"2px solid transparent",
   padding:"8px 4px",marginBottom:-1,fontSize:14,fontWeight:activo?700:500,
@@ -305,9 +389,10 @@ function PanelPromotoria({session,onSalir}){
     <div style={{display:"flex",gap:16,marginBottom:24,borderBottom:"1px solid #DDE4EE"}}>
       <button onClick={()=>setVista("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
       <button onClick={()=>setVista("agentes")} style={tabStyle(vista==="agentes")}>Agentes</button>
+      <button onClick={()=>setVista("avisos")} style={tabStyle(vista==="avisos")}>Avisos</button>
     </div>
 
-    {vista==="resumen"?<Resumen codigo={promotoria.codigo_invitacion}/>:<Agentes/>}
+    {vista==="resumen"?<Resumen codigo={promotoria.codigo_invitacion}/>:vista==="avisos"?<AvisosPromotoria/>:<Agentes/>}
   </div>;
 }
 

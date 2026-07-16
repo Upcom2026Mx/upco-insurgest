@@ -1037,6 +1037,100 @@ function MiPerfil({agente,onAgenteCambiado}){
   </div>;
 }
 
+// ============ AVISOS A CLIENTES ============
+
+function AvisosAgente({agenteId}){
+  const[clientes,setClientes]=useState(null);
+  const[seleccion,setSeleccion]=useState({});
+  const[asunto,setAsunto]=useState("");
+  const[mensaje,setMensaje]=useState("");
+  const[viaCorreo,setViaCorreo]=useState(true);
+  const[viaPush,setViaPush]=useState(true);
+  const[enviando,setEnviando]=useState(false);
+  const[resultado,setResultado]=useState(null);
+  const[error,setError]=useState("");
+  const[pushActivo,setPushActivo]=useState(false);
+  const[activandoPush,setActivandoPush]=useState(false);
+
+  useEffect(()=>{
+    sb.from("clientes").select("id,nombre,correo").eq("agente_id",agenteId).order("nombre")
+      .then(({data,error})=>{if(error){setError(error.message);return;}setClientes(data||[]);});
+  },[agenteId]);
+
+  const toggleCliente=(id)=>setSeleccion(prev=>({...prev,[id]:!prev[id]}));
+  const seleccionarTodos=()=>{
+    const todos={};
+    (clientes||[]).forEach(c=>{if(c.correo)todos[c.id]=true;});
+    setSeleccion(todos);
+  };
+
+  const activarMisPush=async()=>{
+    setActivandoPush(true);
+    const r=await suscribirPushAgente();
+    setActivandoPush(false);
+    setPushActivo(r==="ok");
+  };
+
+  const enviar=async(e)=>{
+    e.preventDefault();
+    const ids=Object.keys(seleccion).filter(id=>seleccion[id]);
+    if(ids.length===0){setError("Selecciona al menos un cliente.");return;}
+    if(!asunto.trim()||!mensaje.trim()){setError("Escribe un asunto y un mensaje.");return;}
+    setError("");setEnviando(true);setResultado(null);
+    const{data,error:errRpc}=await sb.rpc("agente_notificar_clientes",{
+      p_cliente_ids:ids,p_asunto:asunto.trim(),p_mensaje:mensaje.trim(),p_via_correo:viaCorreo,p_via_push:viaPush
+    });
+    setEnviando(false);
+    if(errRpc){setError(errRpc.message);return;}
+    setResultado(data);setAsunto("");setMensaje("");setSeleccion({});
+  };
+
+  if(!clientes)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+  const seleccionados=Object.values(seleccion).filter(Boolean).length;
+
+  return <div>
+    <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>Avisos a tus clientes</div>
+    <div style={{fontSize:13,color:"#8FA0B4",marginBottom:16}}>Manda un correo y/o notificación push a los clientes que elijas.</div>
+
+    <button type="button" onClick={activarMisPush} disabled={pushActivo||activandoPush} style={{background:pushActivo?"#EAF7EF":"#FEF3E2",border:"none",borderRadius:20,padding:"7px 14px",fontSize:12.5,fontWeight:700,color:pushActivo?"#16a34a":"#B45309",cursor:pushActivo?"default":"pointer",marginBottom:16}}>
+      {pushActivo?"✓ Recibirás avisos push":activandoPush?"Activando...":"🔔 Activar mis notificaciones push"}
+    </button>
+
+    <form onSubmit={enviar} style={est.card}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        <label style={est.label}>Destinatarios ({seleccionados} seleccionados)</label>
+        <div style={{display:"flex",gap:10}}>
+          <button type="button" onClick={seleccionarTodos} style={est.linkBtn}>Todos</button>
+          <button type="button" onClick={()=>setSeleccion({})} style={est.linkBtn}>Ninguno</button>
+        </div>
+      </div>
+      <div style={{maxHeight:200,overflowY:"auto",border:"1px solid #DDE4EE",borderRadius:10,padding:"6px 12px",marginBottom:14}}>
+        {clientes.length===0&&<div style={{fontSize:13,color:"#8FA0B4",padding:"8px 0"}}>Todavía no tienes clientes registrados.</div>}
+        {clientes.map(c=><label key={c.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",fontSize:13,color:c.correo?"#374151":"#C4CDD9",cursor:c.correo?"pointer":"not-allowed"}}>
+          <input type="checkbox" checked={!!seleccion[c.id]} disabled={!c.correo} onChange={()=>toggleCliente(c.id)}/>
+          {c.nombre}{!c.correo&&" (sin correo)"}
+        </label>)}
+      </div>
+
+      <input value={asunto} onChange={e=>setAsunto(e.target.value)} placeholder="Asunto" style={est.input}/>
+      <textarea value={mensaje} onChange={e=>setMensaje(e.target.value)} placeholder="Mensaje" rows={4} style={est.input}/>
+
+      <div style={{display:"flex",gap:16,marginBottom:14}}>
+        <label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"#374151",cursor:"pointer"}}>
+          <input type="checkbox" checked={viaCorreo} onChange={e=>setViaCorreo(e.target.checked)}/> Por correo
+        </label>
+        <label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"#374151",cursor:"pointer"}}>
+          <input type="checkbox" checked={viaPush} onChange={e=>setViaPush(e.target.checked)}/> Por notificación push
+        </label>
+      </div>
+
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      {resultado&&<div style={{color:"#16a34a",fontSize:13,marginBottom:10}}>Enviado: {resultado.correos_enviados} correos, {resultado.push_disparados} avisos push.</div>}
+      <Boton type="submit" disabled={enviando||(!viaCorreo&&!viaPush)}>{enviando?"Enviando...":"Enviar aviso"}</Boton>
+    </form>
+  </div>;
+}
+
 // ============ PANEL / APP ============
 
 function Panel({session,onSalir}){
@@ -1111,9 +1205,10 @@ function Panel({session,onSalir}){
       <button onClick={onSalir} style={{background:"none",border:"none",color:"#6B7280",fontSize:14,cursor:"pointer"}}>Salir ({agente.correo})</button>
     </div>
 
-    {!clienteActivo&&<div style={{display:"flex",gap:16,marginBottom:24,borderBottom:"1px solid #DDE4EE"}}>
+    {!clienteActivo&&<div style={{display:"flex",gap:16,marginBottom:24,borderBottom:"1px solid #DDE4EE",flexWrap:"wrap"}}>
       <button onClick={()=>setVista("clientes")} style={tabStyle(vista==="clientes")}>Mis clientes</button>
       <button onClick={()=>setVista("solicitudes")} style={tabStyle(vista==="solicitudes")}>Solicitudes{pendientes>0?` (${pendientes})`:""}</button>
+      <button onClick={()=>setVista("avisos")} style={tabStyle(vista==="avisos")}>Avisos</button>
       <button onClick={()=>setVista("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
       <button onClick={()=>setVista("perfil")} style={tabStyle(vista==="perfil")}>Mi perfil</button>
     </div>}
@@ -1124,11 +1219,13 @@ function Panel({session,onSalir}){
           onClienteCambiado={(actualizado)=>setClienteActivo(actualizado)}/>
       :vista==="solicitudes"
         ?<SolicitudesInbox onAbrirCliente={(c)=>{setClienteActivo(c);setVista("clientes");}}/>
-        :vista==="resumen"
-          ?<DashboardAgente/>
-          :vista==="perfil"
-            ?<MiPerfil agente={agente} onAgenteCambiado={setAgente}/>
-            :<ClientesList agenteId={agente.id} onAbrirCliente={setClienteActivo}/>}
+        :vista==="avisos"
+          ?<AvisosAgente agenteId={agente.id}/>
+          :vista==="resumen"
+            ?<DashboardAgente/>
+            :vista==="perfil"
+              ?<MiPerfil agente={agente} onAgenteCambiado={setAgente}/>
+              :<ClientesList agenteId={agente.id} onAbrirCliente={setClienteActivo}/>}
   </div>;
 }
 

@@ -26,16 +26,16 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401 });
   }
 
-  const { cliente_id, title, body, url } = await req.json();
-  if (!cliente_id || !title) {
-    return new Response(JSON.stringify({ error: "Falta cliente_id o title" }), { status: 400 });
+  const { cliente_id, agente_id, title, body, url } = await req.json();
+  if ((!cliente_id && !agente_id) || !title) {
+    return new Response(JSON.stringify({ error: "Falta cliente_id/agente_id o title" }), { status: 400 });
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const { data: subs, error } = await supabase
-    .from("push_subscripciones")
-    .select("*")
-    .eq("cliente_id", cliente_id);
+  const query = supabase.from("push_subscripciones").select("*");
+  const { data: subs, error } = cliente_id
+    ? await query.eq("cliente_id", cliente_id)
+    : await query.eq("agente_id", agente_id);
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
