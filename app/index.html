@@ -1102,6 +1102,12 @@ function MiTarjeta({agente,onAgenteCambiado}){
       <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>Mi tarjeta digital</div>
       <div style={{fontSize:13,color:"#6B7280",marginBottom:16}}>Una página tuya para compartir con prospectos por WhatsApp o redes. No muestra datos de tus clientes.</div>
 
+      {/* El nombre no se captura aquí sino en Mi perfil; si está vacío la tarjeta saluda a los
+          prospectos con un genérico y el agente no tiene cómo darse cuenta desde esta pantalla. */}
+      {!agente.nombre&&<div style={{background:"#FEF3C7",border:"1px solid #F59E0B",borderRadius:10,padding:12,fontSize:13,color:"#92400E",marginBottom:16}}>
+        Tu perfil no tiene nombre, así que tu tarjeta va a decir “Agente de seguros” en vez del tuyo. Cárgalo en la pestaña <strong>Mi perfil</strong>.
+      </div>}
+
       <Campo label="Dirección de tu tarjeta">
         <div style={{display:"flex",alignItems:"center",gap:4}}>
           <span style={{fontSize:13,color:"#8FA0B4"}}>insurgest.upco.app/a/</span>
@@ -1146,6 +1152,9 @@ function MiTarjeta({agente,onAgenteCambiado}){
       <Campo label="Correo público">
         <input name="correo_publico" type="email" value={correoPub} onChange={e=>setCorreoPub(e.target.value)} placeholder="tu@correo.com" style={est.input}/>
       </Campo>
+      <div style={{fontSize:12,color:"#8FA0B4",marginTop:-8,marginBottom:14}}>
+        Es el correo que verán tus prospectos en la tarjeta. Los avisos de prospectos nuevos te seguimos mandando a {agente.correo}.
+      </div>
 
       <label style={{display:"flex",alignItems:"center",gap:8,fontSize:14,marginBottom:14,cursor:"pointer"}}>
         <input type="checkbox" checked={activa} onChange={e=>setActiva(e.target.checked)}/>
