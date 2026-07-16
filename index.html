@@ -31,7 +31,13 @@
   .nuevo{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;color:#10284A;background:#F59E0B;border-radius:5px;padding:2px 7px;margin-left:7px;vertical-align:middle}
   .secheader{max-width:1040px;margin:0 auto;padding:44px 20px 0;text-align:center}
   .secheader h2{font-size:24px;font-weight:800;color:#10284A;margin:0 0 6px}
-  .secheader p{font-size:14px;color:#6B7280;max-width:560px;margin:0 auto}
+  .secheader p{font-size:14px;color:#6B7280;max-width:600px;margin:0 auto}
+  .ejenum{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#F59E0B;color:#10284A;font-weight:800;font-size:15px;margin-bottom:10px}
+  .ejes{max-width:1040px;margin:0 auto;padding:36px 20px 8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+  .eje{background:#10284A;border-radius:14px;padding:22px}
+  .eje .ejenum{background:#F59E0B}
+  .eje h3{color:#fff;font-size:16px;margin:0 0 8px}
+  .eje p{color:#C7D3E3;font-size:13.5px;line-height:1.55;margin:0}
   .cta-final{background:#10284A;padding:56px 20px;text-align:center}
   .cta-final h2{color:#fff;font-size:24px;font-weight:800;margin:0 0 10px}
   .cta-final p{color:#DDE4EE;font-size:14px;margin:0 0 24px}
@@ -89,69 +95,88 @@
   <div class="subnota">Registro sujeto a validación — tu cuenta queda activa en cuanto la revisamos.</div>
 </div>
 
-<div class="secheader">
-  <h2>Para vender más</h2>
-  <p>Un sistema de administración no te trae clientes. Estas herramientas sí.</p>
-</div>
-
-<div class="features">
-  <div class="fcard destacada">
-    <div class="ficon">◉</div>
-    <h3>Tu tarjeta digital <span class="nuevo">NUEVO</span></h3>
-    <p>Tu propia página con tu foto, tu cédula, los ramos que manejas y las aseguradoras con las que trabajas. Una liga corta que compartes por WhatsApp o pones en tus redes: <b>insurgest.upco.app/a/tu-nombre</b></p>
+<div class="ejes">
+  <div class="eje">
+    <div class="ejenum">1</div>
+    <h3>Controla tu cartera</h3>
+    <p>Todo en un lugar, y un solo módulo de notificaciones que trabaja por ti.</p>
   </div>
-  <div class="fcard destacada">
-    <div class="ficon">✚</div>
-    <h3>Prospectos que llegan solos <span class="nuevo">NUEVO</span></h3>
-    <p>Tu tarjeta trae un formulario. Quien lo llena cae directo en tu bandeja con su teléfono y qué quiere cotizar, y te avisamos al instante. Se queda registrado, no se pierde en tu WhatsApp.</p>
+  <div class="eje">
+    <div class="ejenum">2</div>
+    <h3>Consiente a tus clientes</h3>
+    <p>Dales herramientas que ningún otro agente les da, con tu nombre encima.</p>
   </div>
-  <div class="fcard destacada">
-    <div class="ficon">✽</div>
-    <h3>Motivos para volver a llamar <span class="nuevo">NUEVO</span></h3>
-    <p>Tus clientes registran el kilometraje de sus autos y les avisamos cuando toca servicio o verificación. Cada aviso es una razón natural para que hables con ellos — y para que te pidan cotizar el coche que no traen asegurado contigo.</p>
-  </div>
-  <div class="fcard destacada">
-    <div class="ficon">✦</div>
-    <h3>Escríbeles a todos de una vez <span class="nuevo">NUEVO</span></h3>
-    <p>Manda un aviso por correo y notificación a los clientes que elijas, desde tu panel. Sirve para una promoción, un recordatorio de pago o avisar que cambiaste de número.</p>
+  <div class="eje">
+    <div class="ejenum">3</div>
+    <h3>Consigue clientes nuevos</h3>
+    <p>Tu tarjeta digital trabajando aunque tú estés dormido.</p>
   </div>
 </div>
 
 <div class="secheader">
-  <h2>Para tener todo bajo control</h2>
-  <p>Lo que ya no vas a tener que cargar en la cabeza.</p>
+  <div class="ejenum">1</div>
+  <h2>Controla tu cartera</h2>
+  <p>Deja de cargar tu negocio en la cabeza y en hojas de cálculo. Y deja de perseguir vencimientos: el sistema te persigue a ti.</p>
 </div>
 
 <div class="features">
   <div class="fcard">
     <div class="ficon">☰</div>
     <h3>Todo tu negocio en un solo lugar</h3>
-    <p>Clientes, vehículos y pólizas organizados por cada cliente, con vigencias calculadas automáticamente — ya no dependes de tu memoria ni de una hoja de cálculo.</p>
+    <p>Clientes, vehículos y pólizas organizados por cada cliente, con vigencias calculadas automáticamente y el PDF de cada póliza a un clic.</p>
   </div>
-  <div class="fcard">
-    <div class="ficon">🔗</div>
-    <h3>Liga mágica para tus clientes</h3>
-    <p>Cada cliente tiene su propia liga para ver sus pólizas y descargar sus PDFs cuando quiera, sin registrarse ni instalar nada. Desde ahí te piden cambios y cotizaciones.</p>
-  </div>
-  <div class="fcard">
+  <div class="fcard destacada">
     <div class="ficon">✉</div>
-    <h3>Avisos automáticos de vencimiento</h3>
-    <p>Te avisamos por correo antes de que venza una póliza, y avisamos directo a tu cliente antes de que venza la verificación vehicular de su auto.</p>
-  </div>
-  <div class="fcard">
-    <div class="ficon">🔔</div>
-    <h3>Notificaciones al celular <span class="nuevo">NUEVO</span></h3>
-    <p>Además del correo, los avisos importantes le llegan a tu cliente como notificación en su teléfono. Sin instalar ninguna app.</p>
-  </div>
-  <div class="fcard">
-    <div class="ficon">◈</div>
-    <h3>Presupuesto familiar para Vida <span class="nuevo">NUEVO</span></h3>
-    <p>Tus clientes con póliza de Vida tienen una herramienta para ordenar su gasto familiar con la regla 50/30/20. Un extra que tus competidores no dan.</p>
+    <h3>Un solo centro de avisos <span class="nuevo">NUEVO</span></h3>
+    <p>Correo y notificación al celular, desde el mismo lugar. Automáticos: pólizas por vencer, verificación, servicio del auto. Manuales: escríbele a los clientes que elijas para una promoción o un recordatorio. No necesitas otra herramienta para esto.</p>
   </div>
   <div class="fcard">
     <div class="ficon">▤</div>
     <h3>Tu cartera en números</h3>
-    <p>Dashboard con tus pólizas vigentes, por vencer y vencidas, prima total gestionada, y desglose por aseguradora y ramo.</p>
+    <p>Pólizas vigentes, por vencer y vencidas, prima total gestionada, y desglose por aseguradora y ramo. Sabes cuánto vale tu cartera sin sacar la calculadora.</p>
+  </div>
+</div>
+
+<div class="secheader">
+  <div class="ejenum">2</div>
+  <h2>Consiente a tus clientes</h2>
+  <p>Aquí es donde te separas del agente que solo manda la póliza por WhatsApp y desaparece hasta la renovación. Le das a tu cliente un portal con su nombre y el tuyo — y herramientas que va a usar todo el año.</p>
+</div>
+
+<div class="features">
+  <div class="fcard destacada">
+    <div class="ficon">🔗</div>
+    <h3>Su portal, sin registro ni app</h3>
+    <p>Le compartes una liga y ya. Ahí ve sus pólizas, baja sus PDFs cuando el banco se los pida, y te solicita cambios o cotizaciones sin tener que buscarte en el chat.</p>
+  </div>
+  <div class="fcard destacada">
+    <div class="ficon">🚗</div>
+    <h3>Administrador de flotilla, hasta 5 autos <span class="nuevo">NUEVO</span></h3>
+    <p>Tu cliente lleva el control de sus autos en un lugar: kilometraje, cuándo toca el servicio de los 10 o 15 mil, y si su estado le exige verificación. Le avisamos antes de cada uno. Y si tiene un auto sin asegurar, te lo manda a cotizar con un botón.</p>
+  </div>
+  <div class="fcard destacada">
+    <div class="ficon">◈</div>
+    <h3>Gestor de presupuesto familiar <span class="nuevo">NUEVO</span></h3>
+    <p>Para tus clientes de Vida: una herramienta para ordenar el gasto de su familia con la regla 50/30/20. Ellos cuidan su dinero, tú quedas como el asesor que se los enseñó. Sus números viven en su teléfono, nadie más los ve.</p>
+  </div>
+</div>
+
+<div class="secheader">
+  <div class="ejenum">3</div>
+  <h2>Consigue clientes nuevos</h2>
+  <p>Lo demás te ayuda a conservar lo que ya tienes. Esto te ayuda a crecer, sin pagar publicidad.</p>
+</div>
+
+<div class="features">
+  <div class="fcard destacada">
+    <div class="ficon">◉</div>
+    <h3>Tu tarjeta digital <span class="nuevo">NUEVO</span></h3>
+    <p>Tu propia página con tu foto, tu cédula, los ramos que manejas y las aseguradoras con las que trabajas. Una liga corta para tu WhatsApp, tu Instagram o tu firma de correo: <b>insurgest.upco.app/a/tu-nombre</b></p>
+  </div>
+  <div class="fcard destacada">
+    <div class="ficon">✚</div>
+    <h3>Prospectos que llegan solos <span class="nuevo">NUEVO</span></h3>
+    <p>Tu tarjeta trae un formulario. Quien lo llena cae directo en tu bandeja con su teléfono y qué quiere cotizar, y te avisamos al instante. Queda registrado — no se pierde entre mil chats.</p>
   </div>
 </div>
 
@@ -232,6 +257,58 @@
         </div>
       </div>
       <div class="mock-cap">Lo que ve tu cliente — sin registrarse, sin instalar nada</div>
+    </div>
+
+    <div class="mock">
+      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/p/24ed67a8…</div></div>
+      <div class="mock-body">
+        <div class="mk-h"><span class="mk-h-title" style="color:#8FA0B4;font-size:11px">TUS VEHÍCULOS (2/5)</span><span style="font-size:11px;font-weight:700;color:#10284A">+ Agregar vehículo</span></div>
+        <div class="mk-card">
+          <div class="mk-name" style="font-size:12.5px">Nissan Versa 2021</div>
+          <div class="mk-sub" style="margin-bottom:6px">ABC-123-D · Nuevo León</div>
+          <div style="font-size:10.5px;color:#8FA0B4">Último kilometraje: 14,680 km</div>
+          <div style="font-size:10.5px;color:#F59E0B;font-weight:700;margin-bottom:7px">Faltan ~320 km para tu próximo servicio</div>
+          <div style="display:flex;gap:5px;align-items:center">
+            <span class="mk-input" style="margin:0;width:62px">Km actual</span>
+            <span style="background:#F4F7FB;font-size:9.5px;font-weight:700;color:#10284A;border-radius:6px;padding:5px 7px">Actualizar</span>
+            <span style="font-size:9.5px;color:#53647D">Ya le hice servicio</span>
+          </div>
+        </div>
+        <div class="mk-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="mk-name" style="font-size:12.5px">Mazda 3 2019</div>
+              <div class="mk-sub">XYZ-987-A · Ciudad de México</div>
+            </div>
+            <span style="font-size:10px;font-weight:700;color:#F59E0B">Cotizar</span>
+          </div>
+          <div style="font-size:10.5px;color:#374151;margin-top:6px">Tu estado pide verificación · te toca en 22 días</div>
+        </div>
+      </div>
+      <div class="mock-cap">Tu cliente cuida sus autos — y te pide cotizar el que no trae contigo</div>
+    </div>
+
+    <div class="mock">
+      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/p/24ed67a8…</div></div>
+      <div class="mock-body">
+        <div style="font-size:9.5px;font-weight:700;color:#8FA0B4;margin-bottom:2px">INGRESO MENSUAL</div>
+        <div style="font-size:19px;font-weight:800;color:#10284A;margin-bottom:10px">$32,000</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+          <div class="mk-kpi"><b style="font-size:12.5px">$28,000</b><span>PRESUPUESTADO</span></div>
+          <div class="mk-kpi"><b style="font-size:12.5px;color:#374151">$19,450</b><span>GASTADO</span></div>
+          <div class="mk-kpi"><b style="font-size:12.5px;color:#16a34a">$4,000</b><span>SIN ASIGNAR</span></div>
+        </div>
+        <div class="mk-card">
+          <div style="font-size:9.5px;font-weight:700;color:#8FA0B4;margin-bottom:8px">REGLA 50/30/20</div>
+          <div style="font-size:10.5px;color:#374151;margin-bottom:3px;display:flex;justify-content:space-between"><span>Necesidades (50%)</span><span style="color:#8FA0B4">$15,000 de $16,000</span></div>
+          <div style="height:7px;background:#F4F7FB;border-radius:4px;margin-bottom:8px"><div style="height:100%;width:94%;background:#10284A;border-radius:4px"></div></div>
+          <div style="font-size:10.5px;color:#374151;margin-bottom:3px;display:flex;justify-content:space-between"><span>Gustos (30%)</span><span style="color:#8FA0B4">$7,000 de $9,600</span></div>
+          <div style="height:7px;background:#F4F7FB;border-radius:4px;margin-bottom:8px"><div style="height:100%;width:73%;background:#F59E0B;border-radius:4px"></div></div>
+          <div style="font-size:10.5px;color:#374151;margin-bottom:3px;display:flex;justify-content:space-between"><span>Ahorro (20%)</span><span style="color:#8FA0B4">$6,000 de $6,400</span></div>
+          <div style="height:7px;background:#F4F7FB;border-radius:4px"><div style="height:100%;width:94%;background:#16a34a;border-radius:4px"></div></div>
+        </div>
+      </div>
+      <div class="mock-cap">Para tus clientes de Vida — la regla 50/30/20, con tu nombre encima</div>
     </div>
 
   </div>
