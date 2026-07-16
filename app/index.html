@@ -1054,7 +1054,15 @@ function PantallaSuscripcion({cuenta,bloqueado}){
     setError("");setCargando(periodo);
     const{data,error:errFn}=await sb.functions.invoke("create-checkout-session",{body:{tipo:"agente",periodo}});
     setCargando(null);
-    if(errFn||!data?.url){setError((data&&data.error)||"No se pudo iniciar el pago. Intenta de nuevo.");return;}
+    if(errFn||!data?.url){
+      let detalle=(data&&data.error)||"";
+      // supabase-js guarda la respuesta HTTP real en errFn.context — de ahí sacamos el motivo.
+      if(!detalle&&errFn&&errFn.context&&typeof errFn.context.json==="function"){
+        try{const cuerpo=await errFn.context.json();detalle=cuerpo&&cuerpo.error;}catch(e){}
+      }
+      setError(detalle?`No se pudo iniciar el pago: ${detalle}`:"No se pudo iniciar el pago. Intenta de nuevo.");
+      return;
+    }
     window.location.href=data.url;
   };
 
