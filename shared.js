@@ -59,6 +59,19 @@ async function suscribirPushAgente(){
   }
 }
 
+// true si la cuenta (agente o promotoría) puede usar su panel: suscripción activa, acceso
+// extendido manualmente por el fundador, o todavía dentro de los 30 días de prueba desde su aprobación.
+function accesoVigente(cuenta){
+  if(cuenta.estatus_suscripcion==="active"||cuenta.estatus_suscripcion==="trialing")return true;
+  const ahora=new Date();
+  if(cuenta.acceso_extendido_hasta&&ahora<=new Date(cuenta.acceso_extendido_hasta))return true;
+  if(cuenta.aprobado_en){
+    const finPrueba=new Date(new Date(cuenta.aprobado_en).getTime()+30*86400000);
+    if(ahora<=finPrueba)return true;
+  }
+  return false;
+}
+
 const colorEstatus={vigente:"#16a34a",vencida:"#dc2626",renovada:"#2563eb",cancelada:"#6b7280"};
 const RAMOS_SUGERIDOS=["Auto","Vida","PPR","Gastos Médicos","Hogar"];
 const ESTADOS_MX=["Aguascalientes","Baja California","Baja California Sur","Campeche","Chiapas","Chihuahua","Ciudad de México","Coahuila","Colima","Durango","Estado de México","Guanajuato","Guerrero","Hidalgo","Jalisco","Michoacán","Morelos","Nayarit","Nuevo León","Oaxaca","Puebla","Querétaro","Quintana Roo","San Luis Potosí","Sinaloa","Sonora","Tabasco","Tamaulipas","Tlaxcala","Veracruz","Yucatán","Zacatecas"];

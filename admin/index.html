@@ -31,6 +31,19 @@ const est={
 
 const colorEstatusAgente={pendiente:"#F59E0B",aprobado:"#16a34a",rechazado:"#dc2626"};
 
+function textoEstatusPago(cuenta){
+  if(cuenta.estatus_suscripcion==="active"||cuenta.estatus_suscripcion==="trialing")
+    return`Suscripción activa (${cuenta.plan_periodo||"—"})`;
+  const ahora=new Date();
+  if(cuenta.acceso_extendido_hasta&&ahora<=new Date(cuenta.acceso_extendido_hasta))
+    return`Acceso extendido hasta ${fecha(cuenta.acceso_extendido_hasta.slice(0,10))}`;
+  if(cuenta.aprobado_en){
+    const finPrueba=new Date(new Date(cuenta.aprobado_en).getTime()+30*86400000);
+    if(ahora<=finPrueba)return`En prueba — vence ${fecha(finPrueba.toISOString().slice(0,10))}`;
+  }
+  return"Sin acceso vigente (sin pagar)";
+}
+
 function Boton({children,onClick,disabled,color="#10284A",type="button"}){
   return <button type={type} onClick={onClick} disabled={disabled}
     style={{background:disabled?"#DDE4EE":color,color:disabled?"#9ca3af":"#fff",border:"none",borderRadius:10,padding:"12px 18px",fontSize:15,fontWeight:700,cursor:disabled?"not-allowed":"pointer"}}>
@@ -136,6 +149,11 @@ function Promotorias(){
     if(error){setError(error.message);return;}
     cargar();
   };
+  const extender=async(p)=>{
+    const{error}=await sb.rpc("admin_extender_acceso_promotoria",{p_promotoria_id:p.id,p_dias:30});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
 
   if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
   if(!promotorias)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
@@ -163,11 +181,13 @@ function Promotorias(){
             {p.correo}{p.nombre?` · ${p.nombre}`:""}{p.rfc?` · RFC ${p.rfc}`:""}
           </div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>Código {p.codigo_invitacion} · {p.agentes} agentes en su red</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{textoEstatusPago(p)}</div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span style={est.badge(colorEstatusAgente[p.estatus_aprobacion]||"#6b7280")}>{p.estatus_aprobacion}</span>
           {p.estatus_aprobacion!=="aprobado"&&<button onClick={()=>aprobar(p)} style={{...est.linkBtn,color:"#16a34a"}}>Aprobar</button>}
           {p.estatus_aprobacion!=="rechazado"&&<button onClick={()=>rechazar(p)} style={{...est.linkBtn,color:"#dc2626"}}>Rechazar</button>}
+          {p.estatus_aprobacion==="aprobado"&&<button onClick={()=>extender(p)} style={est.linkBtn}>+30 días</button>}
         </div>
       </div>)}
     </div>}
@@ -194,6 +214,11 @@ function Agentes(){
   const rechazar=async(a)=>{
     if(!window.confirm(`¿Rechazar el registro de ${a.correo}?`))return;
     const{error}=await sb.rpc("admin_rechazar_agente",{p_agente_id:a.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+  const extender=async(a)=>{
+    const{error}=await sb.rpc("admin_extender_acceso_agente",{p_agente_id:a.id,p_dias:30});
     if(error){setError(error.message);return;}
     cargar();
   };
@@ -229,11 +254,13 @@ function Agentes(){
             {a.tiene_cedula?`Cédula ${(a.tipos_cedula||[]).join(", ")||"—"}${a.numero_cedula?` (No. ${a.numero_cedula})`:""}`:"Sin cédula registrada"}
           </div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{a.clientes} clientes · {a.polizas} pólizas{a.acepto_terminos?" · Aceptó términos":" · No ha aceptado términos"}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{textoEstatusPago(a)}</div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span style={est.badge(colorEstatusAgente[a.estatus_aprobacion]||"#6b7280")}>{a.estatus_aprobacion}</span>
           {a.estatus_aprobacion!=="aprobado"&&<button onClick={()=>aprobar(a)} style={{...est.linkBtn,color:"#16a34a"}}>Aprobar</button>}
           {a.estatus_aprobacion!=="rechazado"&&<button onClick={()=>rechazar(a)} style={{...est.linkBtn,color:"#dc2626"}}>Rechazar</button>}
+          {a.estatus_aprobacion==="aprobado"&&<button onClick={()=>extender(a)} style={est.linkBtn}>+30 días</button>}
         </div>
       </div>)}
     </div>}

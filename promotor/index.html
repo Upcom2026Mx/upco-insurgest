@@ -325,6 +325,60 @@ function AvisosPromotoria(){
   </div>;
 }
 
+const PLANES_PROMOTORIA=[
+  {periodo:"mensual",label:"Mensual",monto:"$999 MXN/mes"},
+  {periodo:"trimestral",label:"Trimestral",monto:"$2,890 MXN cada 3 meses"},
+  {periodo:"semestral",label:"Semestral",monto:"$5,570 MXN cada 6 meses"},
+  {periodo:"anual",label:"Anual",monto:"$9,990 MXN/año"}
+];
+
+function PantallaSuscripcionPromotoria({cuenta,bloqueado}){
+  const[cargando,setCargando]=useState(null);
+  const[error,setError]=useState("");
+
+  const suscribirse=async(periodo)=>{
+    setError("");setCargando(periodo);
+    const{data,error:errFn}=await sb.functions.invoke("create-checkout-session",{body:{tipo:"promotoria_base",periodo}});
+    setCargando(null);
+    if(errFn||!data?.url){setError((data&&data.error)||"No se pudo iniciar el pago. Intenta de nuevo.");return;}
+    window.location.href=data.url;
+  };
+
+  const suscripcionActiva=cuenta.estatus_suscripcion==="active"||cuenta.estatus_suscripcion==="trialing";
+  const ahora=new Date();
+  const finPrueba=cuenta.aprobado_en?new Date(new Date(cuenta.aprobado_en).getTime()+30*86400000):null;
+  const accesoExtendido=cuenta.acceso_extendido_hasta?new Date(cuenta.acceso_extendido_hasta):null;
+  const diasPrueba=finPrueba?Math.ceil((finPrueba-ahora)/86400000):null;
+  const diasExtendido=accesoExtendido?Math.ceil((accesoExtendido-ahora)/86400000):null;
+
+  const contenido=<div style={{width:"100%",maxWidth:520}}>
+    {bloqueado&&<div style={{textAlign:"center",marginBottom:20}}>
+      <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:8}}>Tu prueba gratuita terminó</div>
+      <div style={{fontSize:14,color:"#374151"}}>Elige un plan para seguir usando tu portal de promotoría.</div>
+    </div>}
+    {!bloqueado&&<div style={{marginBottom:16}}>
+      <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>Mi suscripción</div>
+      {suscripcionActiva&&<div style={{fontSize:13,color:"#16a34a"}}>Plan activo: {cuenta.plan_periodo||"—"} · estatus {cuenta.estatus_suscripcion}</div>}
+      {!suscripcionActiva&&diasExtendido>0&&<div style={{fontSize:13,color:"#F59E0B"}}>Acceso extendido — quedan {diasExtendido} días</div>}
+      {!suscripcionActiva&&!(diasExtendido>0)&&diasPrueba!=null&&<div style={{fontSize:13,color:diasPrueba<=5?"#F59E0B":"#8FA0B4"}}>Prueba gratuita — quedan {Math.max(diasPrueba,0)} días</div>}
+    </div>}
+
+    <div style={{fontSize:12,color:"#8FA0B4",marginBottom:10}}>Cuota base — incluye 5 agentes en tu red.</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
+      {PLANES_PROMOTORIA.map(p=><div key={p.periodo} style={est.card}>
+        <div style={{fontSize:11,fontWeight:700,color:"#8FA0B4",marginBottom:4}}>{p.label.toUpperCase()}</div>
+        <div style={{fontSize:14,fontWeight:700,color:"#10284A",marginBottom:12}}>{p.monto}</div>
+        <Boton onClick={()=>suscribirse(p.periodo)} disabled={cargando!==null}>{cargando===p.periodo?"Redirigiendo...":"Elegir"}</Boton>
+      </div>)}
+    </div>
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginTop:14,textAlign:"center"}}>{error}</div>}
+    <div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Precios +IVA. Agentes adicionales a los 5 incluidos se facturan aparte por ahora — escríbenos. Se cobra por Stripe, cancela cuando quieras.</div>
+  </div>;
+
+  if(!bloqueado)return contenido;
+  return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>{contenido}</div>;
+}
+
 const tabStyle=(activo)=>({
   background:"none",border:"none",borderBottom:activo?"2px solid #10284A":"2px solid transparent",
   padding:"8px 4px",marginBottom:-1,fontSize:14,fontWeight:activo?700:500,
@@ -380,19 +434,30 @@ function PanelPromotoria({session,onSalir}){
     </div>
   </div>;
 
+  if(!accesoVigente(promotoria))return <div>
+    <div style={{maxWidth:760,margin:"0 auto",padding:"16px 16px 0",display:"flex",justifyContent:"flex-end"}}>
+      <button onClick={onSalir} style={{background:"none",border:"none",color:"#6B7280",fontSize:14,cursor:"pointer"}}>Salir ({promotoria.correo})</button>
+    </div>
+    <PantallaSuscripcionPromotoria cuenta={promotoria} bloqueado={true}/>
+  </div>;
+
   return <div style={{maxWidth:760,margin:"0 auto",padding:"24px 16px 60px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
       <div style={{fontSize:16,fontWeight:700,color:"#10284A"}}>Hola, {promotoria.nombre_negocio||promotoria.correo}</div>
       <button onClick={onSalir} style={{background:"none",border:"none",color:"#6B7280",fontSize:14,cursor:"pointer"}}>Salir ({promotoria.correo})</button>
     </div>
 
-    <div style={{display:"flex",gap:16,marginBottom:24,borderBottom:"1px solid #DDE4EE"}}>
+    <div style={{display:"flex",gap:16,marginBottom:24,borderBottom:"1px solid #DDE4EE",flexWrap:"wrap"}}>
       <button onClick={()=>setVista("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
       <button onClick={()=>setVista("agentes")} style={tabStyle(vista==="agentes")}>Agentes</button>
       <button onClick={()=>setVista("avisos")} style={tabStyle(vista==="avisos")}>Avisos</button>
+      <button onClick={()=>setVista("suscripcion")} style={tabStyle(vista==="suscripcion")}>Suscripción</button>
     </div>
 
-    {vista==="resumen"?<Resumen codigo={promotoria.codigo_invitacion}/>:vista==="avisos"?<AvisosPromotoria/>:<Agentes/>}
+    {vista==="resumen"?<Resumen codigo={promotoria.codigo_invitacion}/>
+      :vista==="avisos"?<AvisosPromotoria/>
+      :vista==="suscripcion"?<PantallaSuscripcionPromotoria cuenta={promotoria} bloqueado={false}/>
+      :<Agentes/>}
   </div>;
 }
 
