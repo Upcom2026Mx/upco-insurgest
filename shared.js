@@ -59,6 +59,47 @@ async function suscribirPushAgente(){
   }
 }
 
+// ============ BLOQUEO LOCAL (NIP + huella/rostro) ============
+// OJO con el alcance de esto: es un candado del DISPOSITIVO, igual que el de Homey. Sirve para
+// que quien agarre tu teléfono desbloqueado no vea tus datos. NO es seguridad de servidor: quien
+// borre el localStorage lo brinca. Por eso solo se usa ENCIMA de algo que ya autentica de verdad
+// (la sesión del agente, o el NIP de servidor del cliente) — nunca como único candado.
+const lockKey=(id)=>`upco_ig_lock_${id}`;
+const leerLock=(id)=>{try{return JSON.parse(localStorage.getItem(lockKey(id))||"null");}catch(e){return null;}};
+const guardarLock=(id,cfg)=>{try{localStorage.setItem(lockKey(id),JSON.stringify(cfg));}catch(e){}};
+const borrarLock=(id)=>{try{localStorage.removeItem(lockKey(id));}catch(e){}};
+
+async function hashNip(nip){
+  const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("upco_ig_salt_"+nip));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+const aB64=buf=>btoa(String.fromCharCode.apply(null,new Uint8Array(buf)));
+const deB64=str=>Uint8Array.from(atob(str),c=>c.charCodeAt(0));
+
+async function biometriaDisponible(){
+  try{return !!window.PublicKeyCredential&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();}
+  catch(e){return false;}
+}
+async function registrarBiometria(id,nombre){
+  const challenge=crypto.getRandomValues(new Uint8Array(32));
+  const cred=await navigator.credentials.create({publicKey:{
+    challenge, rp:{name:"Upco InsurGest"},
+    user:{id:new TextEncoder().encode(id), name:nombre||"usuario", displayName:nombre||"Usuario"},
+    pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+    authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required"},
+    timeout:60000, attestation:"none"
+  }});
+  return aB64(cred.rawId);
+}
+async function verificarBiometria(credId){
+  const challenge=crypto.getRandomValues(new Uint8Array(32));
+  await navigator.credentials.get({publicKey:{
+    challenge, allowCredentials:[{type:"public-key",id:deB64(credId)}],
+    userVerification:"required", timeout:60000
+  }});
+  return true;
+}
+
 // true si la cuenta (agente o promotoría) puede usar su panel: suscripción activa, acceso
 // extendido manualmente por el fundador, o todavía dentro de los 30 días de prueba desde su aprobación.
 function accesoVigente(cuenta){

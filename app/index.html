@@ -498,8 +498,21 @@ function VehiculosList({clienteId}){
 function LigaMagica({cliente,onClienteCambiado}){
   const[copiado,setCopiado]=useState(false);
   const[regenerando,setRegenerando]=useState(false);
+  const[reseteando,setReseteando]=useState(false);
   const[error,setError]=useState("");
   const url=`${location.origin}/p/${cliente.token_publico}`;
+
+  // "Olvidé mi NIP" del cliente: lo borramos y él crea uno nuevo la próxima vez que entre.
+  // También se le caen los dispositivos recordados, por si el olvido fue por perder el teléfono.
+  const resetearNip=async()=>{
+    if(!window.confirm(`¿Restablecer el NIP de ${cliente.nombre.split(" ")[0]}? Va a crear uno nuevo la próxima vez que entre, y los dispositivos donde estaba recordado van a pedirlo otra vez.`))return;
+    setReseteando(true);setError("");
+    const{error:err}=await sb.rpc("agente_resetear_nip",{p_cliente_id:cliente.id});
+    if(err){setReseteando(false);setError(err.message);return;}
+    const{data}=await sb.from("clientes").select("*").eq("id",cliente.id).single();
+    setReseteando(false);
+    if(data)onClienteCambiado(data);
+  };
 
   const copiar=async()=>{
     try{await navigator.clipboard.writeText(url);setCopiado(true);setTimeout(()=>setCopiado(false),2000);}
@@ -521,9 +534,17 @@ function LigaMagica({cliente,onClienteCambiado}){
       Compártele esta liga a {cliente.nombre.split(" ")[0]} — ahí ve sus pólizas, PDFs y vehículos sin necesidad de registrarse.
     </div>
     <div style={{background:"#fff",border:"1px solid #DDE4EE",borderRadius:10,padding:"10px 12px",fontSize:13,wordBreak:"break-all",marginBottom:10}}>{url}</div>
+
+    <div style={{fontSize:12.5,color:"#374151",marginBottom:10}}>
+      {cliente.nip_definido_en
+        ? <span>🔒 Protegida con el NIP que {cliente.nombre.split(" ")[0]} creó el {fecha(cliente.nip_definido_en.slice(0,10))}.</span>
+        : <span style={{color:"#B45309"}}>Todavía sin NIP — se lo vamos a pedir crear la primera vez que entre.</span>}
+    </div>
+
     {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
-    <div style={{display:"flex",gap:10}}>
+    <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
       <Boton color="#53647D" onClick={copiar}>{copiado?"¡Copiada!":"Copiar liga"}</Boton>
+      {cliente.nip_definido_en&&<button onClick={resetearNip} disabled={reseteando} style={est.linkBtn}>{reseteando?"Restableciendo...":"Olvidó su NIP"}</button>}
       <button onClick={regenerar} disabled={regenerando} style={est.linkBtn}>{regenerando?"Regenerando...":"Regenerar liga"}</button>
     </div>
   </div>;
@@ -1041,7 +1062,34 @@ function MiPerfil({agente,onAgenteCambiado}){
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
       <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":guardado?"¡Guardado!":"Guardar"}</Boton>
     </form>
+    <BloqueoDispositivo agente={agente}/>
     <MedidorAlmacenamiento/>
+  </div>;
+}
+
+function BloqueoDispositivo({agente}){
+  const[lock,setLock]=useState(()=>leerLock(agente.id));
+  const quitar=()=>{
+    if(!window.confirm("¿Quitar el bloqueo de este dispositivo? Cualquiera que lo tome desbloqueado va a poder ver tu cartera."))return;
+    borrarLock(agente.id);
+    localStorage.setItem(`upco_ig_lock_no_${agente.id}`,"1");
+    setLock(null);
+  };
+  const poner=()=>{
+    localStorage.removeItem(`upco_ig_lock_no_${agente.id}`);
+    location.reload(); // la pantalla de configurarlo vive en el arranque de la app
+  };
+
+  return <div style={{...est.card,maxWidth:420,marginTop:14}}>
+    <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>Bloqueo de este dispositivo</div>
+    <div style={{fontSize:12.5,color:"#6B7280",lineHeight:1.5,marginBottom:12}}>
+      {lock
+        ? `Tu panel se abre con NIP${lock.credId?" o con tu huella":""} en este equipo. Es un candado local: protege tu pantalla, no tu cuenta — para entrar desde otro lado siempre se necesita tu correo y contraseña.`
+        : "Sin bloqueo. Quien tome este equipo desbloqueado puede ver la cartera de tus clientes."}
+    </div>
+    {lock
+      ? <button onClick={quitar} style={est.linkBtn}>Quitar bloqueo</button>
+      : <Boton color="#53647D" onClick={poner}>Activar bloqueo</Boton>}
   </div>;
 }
 
@@ -1530,20 +1578,134 @@ function Panel({session,onSalir}){
   </div>;
 }
 
+// ============ BLOQUEO DEL DISPOSITIVO ============
+// Alcance honesto: esto NO protege tu cuenta — quien tenga tu correo y contraseña entra desde
+// cualquier otro dispositivo sin ver este NIP. Lo que protege es tu pantalla: que quien agarre
+// tu celular o tu laptop desbloqueada no se ponga a leer la cartera de tus clientes. Es el mismo
+// candado de Homey. Si lo olvidas, cierras sesión y vuelves a entrar: se borra y lo reconfiguras.
+
+function CajaBloqueo({children}){
+  return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:26,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>{children}</div>
+  </div>;
+}
+
+const campoNipAgente={width:"100%",padding:"14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:26,
+  letterSpacing:"12px",textAlign:"center",fontFamily:"inherit",marginBottom:10};
+
+function ConfigurarBloqueo({session,onListo,onOmitir}){
+  const[nip,setNip]=useState("");
+  const[nip2,setNip2]=useState("");
+  const[credId,setCredId]=useState(null);
+  const[bioDisp,setBioDisp]=useState(false);
+  const[error,setError]=useState("");
+
+  useEffect(()=>{biometriaDisponible().then(setBioDisp);},[]);
+
+  const activarBio=async()=>{
+    setError("");
+    try{setCredId(await registrarBiometria(session.user.id,session.user.email));}
+    catch(e){setError("No se pudo activar la huella. Puedes usar solo el NIP.");}
+  };
+
+  const guardar=async(e)=>{
+    e.preventDefault();setError("");
+    if(!/^[0-9]{6}$/.test(nip)){setError("El NIP debe ser de 6 dígitos.");return;}
+    if(nip!==nip2){setError("Los dos NIP no coinciden.");return;}
+    guardarLock(session.user.id,{nipHash:await hashNip(nip),credId:credId||null});
+    onListo();
+  };
+
+  return <CajaBloqueo>
+    <form onSubmit={guardar}>
+      <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>Protege tu panel</div>
+      <div style={{fontSize:13.5,color:"#374151",lineHeight:1.5,marginBottom:16}}>
+        Pon un NIP de 6 dígitos para que nadie que agarre este dispositivo pueda ver la cartera de tus clientes. Solo aplica aquí, en este equipo.
+      </div>
+      <input value={nip} onChange={e=>setNip(e.target.value.replace(/\D/g,"").slice(0,6))} type="tel" inputMode="numeric" placeholder="••••••" style={campoNipAgente} name="nip"/>
+      <input value={nip2} onChange={e=>setNip2(e.target.value.replace(/\D/g,"").slice(0,6))} type="tel" inputMode="numeric" placeholder="Repítelo" style={campoNipAgente} name="nip2"/>
+      {bioDisp&&<button type="button" onClick={activarBio}
+        style={{width:"100%",background:credId?"#f0fdf4":"#F4F7FB",border:`1.5px solid ${credId?"#86efac":"#DDE4EE"}`,borderRadius:10,padding:13,fontSize:14,fontWeight:700,color:credId?"#16a34a":"#10284A",cursor:"pointer",marginBottom:12}}>
+        {credId?"✅ Huella o rostro activado":"👆 Activar huella o rostro (opcional)"}
+      </button>}
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton type="submit">Activar bloqueo</Boton>
+      <button type="button" onClick={onOmitir} style={{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer",marginTop:12,padding:0}}>Ahora no</button>
+    </form>
+  </CajaBloqueo>;
+}
+
+function PedirBloqueo({session,lock,onOk,onSalir}){
+  const[nip,setNip]=useState("");
+  const[error,setError]=useState("");
+  const[intentando,setIntentando]=useState(false);
+
+  const probarBio=async()=>{
+    setError("");setIntentando(true);
+    try{await verificarBiometria(lock.credId);onOk();}
+    catch(e){setError("No se pudo leer tu huella. Escribe tu NIP.");}
+    setIntentando(false);
+  };
+
+  const probarNip=async(e)=>{
+    e.preventDefault();setError("");
+    if(await hashNip(nip)===lock.nipHash)onOk();
+    else setError("NIP incorrecto.");
+  };
+
+  return <CajaBloqueo>
+    <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:16}}>Desbloquea tu panel</div>
+    {lock.credId&&<button onClick={probarBio} disabled={intentando}
+      style={{width:"100%",background:"#10284A",color:"#fff",border:"none",borderRadius:10,padding:14,fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:14}}>
+      {intentando?"Verificando...":"👆 Entrar con huella o rostro"}
+    </button>}
+    <form onSubmit={probarNip}>
+      <input value={nip} onChange={e=>setNip(e.target.value.replace(/\D/g,"").slice(0,6))} type="tel" inputMode="numeric" placeholder="••••••" style={campoNipAgente} name="nip" autoFocus={!lock.credId}/>
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton type="submit">Entrar</Boton>
+    </form>
+    {/* La salida cuando olvidas el NIP: cerrar sesión borra el candado local y lo reconfiguras
+        al volver a entrar con tu correo y contraseña, que es lo que de verdad te identifica. */}
+    <button onClick={()=>{borrarLock(session.user.id);onSalir();}}
+      style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:14,padding:0}}>
+      Olvidé mi NIP — cerrar sesión
+    </button>
+  </CajaBloqueo>;
+}
+
 function App(){
   const[sesion,setSesion]=useState(undefined); // undefined=cargando, null=sin sesión
+  const[bloqueo,setBloqueo]=useState("revisando"); // revisando | ofrecer | pedir | abierto
   useEffect(()=>{
     sb.auth.getSession().then(({data})=>setSesion(data.session||null));
     const{data:sub}=sb.auth.onAuthStateChange((_e,s)=>setSesion(s));
     return ()=>sub.subscription.unsubscribe();
   },[]);
+
+  useEffect(()=>{
+    if(!sesion){setBloqueo("revisando");return;}
+    const lock=leerLock(sesion.user.id);
+    if(lock&&lock.nipHash)setBloqueo("pedir");
+    else if(localStorage.getItem(`upco_ig_lock_no_${sesion.user.id}`))setBloqueo("abierto");
+    else setBloqueo("ofrecer");
+  },[sesion]);
+
+  const salir=()=>sb.auth.signOut();
+
   return <>
     <HeaderBar/>
     {sesion===undefined
       ?<div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>
       :!sesion
         ?<Login/>
-        :<Panel session={sesion} onSalir={()=>sb.auth.signOut()}/>}
+        :bloqueo==="ofrecer"
+          ?<ConfigurarBloqueo session={sesion} onListo={()=>setBloqueo("abierto")}
+              onOmitir={()=>{localStorage.setItem(`upco_ig_lock_no_${sesion.user.id}`,"1");setBloqueo("abierto");}}/>
+          :bloqueo==="pedir"
+            ?<PedirBloqueo session={sesion} lock={leerLock(sesion.user.id)} onOk={()=>setBloqueo("abierto")} onSalir={salir}/>
+            :bloqueo==="abierto"
+              ?<Panel session={sesion} onSalir={salir}/>
+              :<div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>}
   </>;
 }
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);

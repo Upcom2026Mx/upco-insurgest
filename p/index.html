@@ -494,17 +494,162 @@ function FormularioVehiculoNuevo({token,onGuardado,onCancelar}){
   </form>;
 }
 
+// ============ NIP DEL PORTAL ============
+// El NIP se valida en el SERVIDOR (bcrypt): la liga por sí sola ya no abre nada. Lo que vive en
+// este dispositivo es solo un token de "recordarme", y la huella —si el cliente la activa— sirve
+// para proteger ESE token localmente. Sin liga + (NIP o dispositivo recordado), no hay datos.
+const dispKey=(t)=>`upco_ig_disp_${t}`;
+const leerDisp=(t)=>{try{return JSON.parse(localStorage.getItem(dispKey(t))||"null");}catch(e){return null;}};
+const guardarDisp=(t,cfg)=>{try{localStorage.setItem(dispKey(t),JSON.stringify(cfg));}catch(e){}};
+const borrarDisp=(t)=>{try{localStorage.removeItem(dispKey(t));}catch(e){}};
+
+const campoNip={width:"100%",padding:"14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:26,
+  letterSpacing:"12px",textAlign:"center",fontFamily:"inherit",marginBottom:10};
+
+function Caja({children}){
+  return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{...card,maxWidth:380,width:"100%"}}>{children}</div>
+  </div>;
+}
+
+function PantallaCrearNip({token,nombre,onListo}){
+  const[nip,setNip]=useState("");
+  const[nip2,setNip2]=useState("");
+  const[error,setError]=useState("");
+  const[guardando,setGuardando]=useState(false);
+
+  const crear=async(e)=>{
+    e.preventDefault();setError("");
+    if(!/^[0-9]{6}$/.test(nip)){setError("Tu NIP debe ser de 6 dígitos.");return;}
+    if(nip!==nip2){setError("Los dos NIP no coinciden.");return;}
+    setGuardando(true);
+    const{error:err}=await sb.rpc("portal_definir_nip",{p_token:token,p_nip:nip});
+    setGuardando(false);
+    if(err){setError(err.message);return;}
+    onListo(nip);
+  };
+
+  return <Caja>
+    <form onSubmit={crear}>
+      <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>Hola{nombre?`, ${nombre}`:""} 👋</div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.5,marginBottom:16}}>
+        Aquí vas a ver tus pólizas, así que primero crea un NIP de 6 dígitos. Te lo vamos a pedir cada vez que entres — así, si alguien más llega a tener tu liga, no puede ver tu información.
+      </div>
+      <input value={nip} onChange={e=>setNip(e.target.value.replace(/\D/g,"").slice(0,6))}
+        type="tel" inputMode="numeric" placeholder="••••••" style={campoNip} name="nip"/>
+      <input value={nip2} onChange={e=>setNip2(e.target.value.replace(/\D/g,"").slice(0,6))}
+        type="tel" inputMode="numeric" placeholder="Repítelo" style={campoNip} name="nip2"/>
+      <div style={{fontSize:12,color:"#8FA0B4",marginBottom:14}}>No uses tu fecha de nacimiento ni 123456. Si lo olvidas, tu agente puede restablecerlo.</div>
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":"Crear mi NIP"}</Boton>
+    </form>
+  </Caja>;
+}
+
+function PantallaPedirNip({token,nombre,onListo}){
+  const[nip,setNip]=useState("");
+  const[error,setError]=useState("");
+  const[cargando,setCargando]=useState(false);
+  const[recordar,setRecordar]=useState(true);
+  const[bioDisp,setBioDisp]=useState(false);
+  const disp=leerDisp(token);
+
+  useEffect(()=>{biometriaDisponible().then(setBioDisp);},[]);
+
+  const entrarConHuella=async()=>{
+    setError("");setCargando(true);
+    try{
+      await verificarBiometria(disp.credId);
+      onListo({dispositivo:disp.dispositivo});
+    }catch(e){
+      setError("No se pudo leer tu huella. Escribe tu NIP.");
+    }
+    setCargando(false);
+  };
+
+  const entrar=async(e)=>{
+    e.preventDefault();setError("");
+    if(!/^[0-9]{6}$/.test(nip)){setError("Escribe tu NIP de 6 dígitos.");return;}
+    setCargando(true);
+
+    let dispositivo=null;
+    if(recordar){
+      const{data,error:errD}=await sb.rpc("portal_recordar_dispositivo",{p_token:token,p_nip:nip});
+      if(errD){setCargando(false);setError(errD.message);return;}
+      dispositivo=data;
+    }
+    setCargando(false);
+    onListo({nip,dispositivo,ofrecerBio:!!dispositivo&&bioDisp});
+  };
+
+  // Dispositivo recordado y protegido con huella: no se muestra el teclado de NIP de entrada.
+  if(disp&&disp.credId)return <Caja>
+    <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>Hola{nombre?`, ${nombre}`:""}</div>
+    <div style={{fontSize:14,color:"#374151",marginBottom:16}}>Usa tu huella o tu rostro para entrar.</div>
+    <Boton onClick={entrarConHuella} disabled={cargando}>{cargando?"Verificando...":"👆 Entrar con huella o rostro"}</Boton>
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginTop:12}}>{error}</div>}
+    <button onClick={()=>{borrarDisp(token);location.reload();}}
+      style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:14,padding:0}}>
+      Mejor escribir mi NIP
+    </button>
+  </Caja>;
+
+  return <Caja>
+    <form onSubmit={entrar}>
+      <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>Hola{nombre?`, ${nombre}`:""}</div>
+      <div style={{fontSize:14,color:"#374151",marginBottom:16}}>Escribe tu NIP para ver tus pólizas.</div>
+      <input value={nip} onChange={e=>setNip(e.target.value.replace(/\D/g,"").slice(0,6))}
+        type="tel" inputMode="numeric" placeholder="••••••" style={campoNip} name="nip" autoFocus/>
+      <label style={{display:"flex",alignItems:"center",gap:7,fontSize:13,color:"#374151",marginBottom:14,cursor:"pointer"}}>
+        <input type="checkbox" checked={recordar} onChange={e=>setRecordar(e.target.checked)}/>
+        Recordar este dispositivo por 30 días
+      </label>
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton type="submit" disabled={cargando}>{cargando?"Entrando...":"Entrar"}</Boton>
+      <div style={{fontSize:12,color:"#8FA0B4",marginTop:14}}>¿Lo olvidaste? Pídele a tu agente que te lo restablezca.</div>
+    </form>
+  </Caja>;
+}
+
+function OfrecerHuella({token,dispositivo,nombre,onListo}){
+  const[error,setError]=useState("");
+  const activar=async()=>{
+    setError("");
+    try{
+      const credId=await registrarBiometria(token,nombre||"cliente");
+      guardarDisp(token,{dispositivo,credId});
+      onListo();
+    }catch(e){setError("No se pudo activar. Puedes seguir usando tu NIP.");}
+  };
+  return <Caja>
+    <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>¿Entrar con huella la próxima vez?</div>
+    <div style={{fontSize:14,color:"#374151",lineHeight:1.5,marginBottom:16}}>
+      En este dispositivo puedes usar tu huella o tu rostro en lugar de teclear tu NIP. Tu NIP sigue funcionando siempre.
+    </div>
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    <Boton onClick={activar}>👆 Sí, activar</Boton>
+    <button onClick={onListo} style={{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer",marginTop:12,padding:0}}>Ahora no</button>
+  </Caja>;
+}
+
 function Portal(){
-  const[estado,setEstado]=useState("cargando"); // cargando | invalido | listo
+  const[estado,setEstado]=useState("cargando"); // cargando | invalido | crear-nip | pedir-nip | ofrecer-bio | listo
   const[datos,setDatos]=useState(null);
   const[token,setToken]=useState(null);
+  const[nombre,setNombre]=useState(null);
+  const[llave,setLlave]=useState({});      // {nip} o {dispositivo} — con qué reabrir al refrescar
+  const[bioPend,setBioPend]=useState(null);
   const[formVehiculoAbierto,setFormVehiculoAbierto]=useState(false);
 
-  const cargar=(t)=>{
-    sb.rpc("portal_cliente",{p_token:t}).then(({data,error})=>{
-      if(error||!data){setEstado("invalido");return;}
-      setDatos(data);setEstado("listo");
-    });
+  // Toda recarga de datos vuelve a pasar por el servidor con la misma llave: no guardamos
+  // los datos "desbloqueados" en ningún lado.
+  const cargar=(t,l)=>{
+    const k=l||llave;
+    sb.rpc("portal_cliente",{p_token:t,p_nip:k.nip||null,p_dispositivo:k.dispositivo||null})
+      .then(({data,error})=>{
+        if(error||!data){setEstado("invalido");return;}
+        setDatos(data);setEstado("listo");
+      });
   };
 
   useEffect(()=>{
@@ -512,10 +657,45 @@ function Portal(){
     if(!t){setEstado("invalido");return;}
     history.replaceState(null,"","/p/"+t);
     setToken(t);
-    cargar(t);
+
+    sb.rpc("portal_estado",{p_token:t}).then(({data,error})=>{
+      if(error||!data||!data.existe){setEstado("invalido");return;}
+      setNombre(data.nombre);
+
+      if(!data.tiene_nip){setEstado("crear-nip");return;}
+
+      // Dispositivo recordado sin huella: entra solo. Con huella, se la pedimos primero.
+      const d=leerDisp(t);
+      if(d&&d.dispositivo&&!d.credId){
+        const k={dispositivo:d.dispositivo};
+        setLlave(k);
+        sb.rpc("portal_cliente",{p_token:t,p_nip:null,p_dispositivo:d.dispositivo}).then(({data:dd,error:ee})=>{
+          if(ee||!dd){borrarDisp(t);setEstado("pedir-nip");return;} // caducó
+          setDatos(dd);setEstado("listo");
+        });
+        return;
+      }
+      setEstado("pedir-nip");
+    });
   },[]);
 
-  if(estado==="cargando")return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando tus pólizas...</div>;
+  if(estado==="cargando")return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>;
+
+  if(estado==="crear-nip")return <PantallaCrearNip token={token} nombre={nombre} onListo={(nip)=>{
+    const k={nip};setLlave(k);setEstado("cargando");cargar(token,k);
+  }}/>;
+
+  if(estado==="pedir-nip")return <PantallaPedirNip token={token} nombre={nombre} onListo={({nip,dispositivo,ofrecerBio})=>{
+    const k=dispositivo?{dispositivo}:{nip};
+    setLlave(k);
+    if(dispositivo)guardarDisp(token,{dispositivo,credId:null});
+    if(ofrecerBio){setBioPend(dispositivo);setEstado("ofrecer-bio");}
+    else{setEstado("cargando");}
+    cargar(token,k);
+  }}/>;
+
+  if(estado==="ofrecer-bio")return <OfrecerHuella token={token} dispositivo={bioPend} nombre={nombre}
+    onListo={()=>{setEstado(datos?"listo":"cargando");}}/>;
 
   if(estado==="invalido")return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
     <div style={{...card,maxWidth:380,textAlign:"center"}}>
