@@ -1086,8 +1086,98 @@ function MiPerfil({agente,onAgenteCambiado}){
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
       <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":guardado?"¡Guardado!":"Guardar"}</Boton>
     </form>
+    <SegundoFactor/>
     <BloqueoDispositivo agente={agente}/>
     <MedidorAlmacenamiento/>
+  </div>;
+}
+
+// Alta/baja del TOTP. Ojo con el orden al desactivarlo: primero se quita el factor y luego se
+// avisa, nunca al revés — si no, la pantalla diría "desactivado" con el factor todavía vivo y el
+// agente se quedaría fuera en su siguiente entrada sin saber por qué.
+function SegundoFactor(){
+  const[factor,setFactor]=useState(undefined); // undefined=cargando, null=sin 2FA, {}=activo
+  const[alta,setAlta]=useState(null);          // {id,qr,secret} mientras lo está dando de alta
+  const[codigo,setCodigo]=useState("");
+  const[error,setError]=useState("");
+  const[ocupado,setOcupado]=useState(false);
+
+  const cargar=async()=>{
+    const{data}=await sb.auth.mfa.listFactors();
+    const t=(data&&data.totp&&data.totp[0])||null;
+    setFactor(t);
+  };
+  useEffect(()=>{cargar();},[]);
+
+  const empezar=async()=>{
+    setError("");setOcupado(true);
+    // Un intento anterior a medias deja un factor "unverified" que estorba al siguiente alta.
+    const{data:previos}=await sb.auth.mfa.listFactors();
+    const sinVerificar=((previos&&previos.all)||[]).filter(f=>f.status!=="verified");
+    for(const f of sinVerificar){await sb.auth.mfa.unenroll({factorId:f.id});}
+
+    const{data,error:err}=await sb.auth.mfa.enroll({factorType:"totp",friendlyName:"Upco InsurGest"});
+    setOcupado(false);
+    if(err){setError(err.message);return;}
+    setAlta({id:data.id,qr:data.totp.qr_code,secret:data.totp.secret});
+  };
+
+  const confirmar=async(e)=>{
+    e.preventDefault();setError("");
+    if(!/^[0-9]{6}$/.test(codigo)){setError("Escribe los 6 dígitos que muestra tu app.");return;}
+    setOcupado(true);
+    const{error:err}=await sb.auth.mfa.challengeAndVerify({factorId:alta.id,code:codigo});
+    setOcupado(false);
+    if(err){setError("Ese código no es válido. Revisa que tu reloj esté en hora.");return;}
+    setAlta(null);setCodigo("");
+    cargar();
+  };
+
+  const desactivar=async()=>{
+    if(!window.confirm("¿Quitar la verificación en dos pasos? Tu cuenta va a quedar protegida solo con tu contraseña."))return;
+    setOcupado(true);setError("");
+    const{error:err}=await sb.auth.mfa.unenroll({factorId:factor.id});
+    setOcupado(false);
+    if(err){setError(err.message);return;}
+    cargar();
+  };
+
+  if(factor===undefined)return null;
+
+  return <div style={{...est.card,maxWidth:420,marginTop:14}}>
+    <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>Verificación en dos pasos</div>
+
+    {alta
+      ? <form onSubmit={confirmar}>
+          <div style={{fontSize:12.5,color:"#6B7280",lineHeight:1.5,marginBottom:12}}>
+            Escanea este código con Google Authenticator, Authy o la app que uses, y escribe los 6 dígitos que te muestre.
+          </div>
+          <img src={alta.qr} alt="Código QR" style={{width:180,height:180,display:"block",margin:"0 auto 10px"}}/>
+          <div style={{fontSize:11,color:"#8FA0B4",textAlign:"center",marginBottom:12,wordBreak:"break-all"}}>
+            ¿No puedes escanear? Captura esta clave: <strong>{alta.secret}</strong>
+          </div>
+          <input value={codigo} onChange={e=>setCodigo(e.target.value.replace(/\D/g,"").slice(0,6))}
+            type="tel" inputMode="numeric" placeholder="••••••" style={campoNipAgente} name="codigo_2fa"/>
+          {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+          <Boton type="submit" disabled={ocupado}>{ocupado?"Verificando...":"Activar"}</Boton>
+          <button type="button" onClick={()=>{setAlta(null);setError("");}} style={{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer",marginTop:10,padding:0}}>Cancelar</button>
+        </form>
+      : factor
+        ? <div>
+            <div style={{fontSize:12.5,color:"#16a34a",fontWeight:700,marginBottom:6}}>✅ Activada</div>
+            <div style={{fontSize:12.5,color:"#6B7280",lineHeight:1.5,marginBottom:12}}>
+              Aunque alguien se robe tu contraseña, sin el código de tu app no entra — ni por aquí ni por ningún otro lado.
+            </div>
+            {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+            <button onClick={desactivar} disabled={ocupado} style={est.linkBtn}>Quitar verificación en dos pasos</button>
+          </div>
+        : <div>
+            <div style={{fontSize:12.5,color:"#6B7280",lineHeight:1.5,marginBottom:12}}>
+              Hoy tu cartera está protegida solo con tu contraseña. Con esto, entrar necesita además un código que cambia cada 30 segundos en tu teléfono.
+            </div>
+            {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+            <Boton color="#53647D" onClick={empezar} disabled={ocupado}>{ocupado?"Preparando...":"Activar"}</Boton>
+          </div>}
   </div>;
 }
 
@@ -1697,8 +1787,48 @@ function PedirBloqueo({session,lock,onOk,onSalir}){
   </CajaBloqueo>;
 }
 
+// ============ SEGUNDO FACTOR (TOTP) ============
+// A diferencia del bloqueo de arriba, esto SÍ protege la cuenta: la base rechaza cualquier
+// sesión que no haya pasado el código, aunque alguien la use por fuera de esta app.
+
+function PedirSegundoFactor({onOk,onSalir}){
+  const[codigo,setCodigo]=useState("");
+  const[error,setError]=useState("");
+  const[verificando,setVerificando]=useState(false);
+
+  const verificar=async(e)=>{
+    e.preventDefault();setError("");
+    if(!/^[0-9]{6}$/.test(codigo)){setError("Escribe los 6 dígitos de tu app.");return;}
+    setVerificando(true);
+    const{data:f}=await sb.auth.mfa.listFactors();
+    const factor=(f&&f.totp&&f.totp[0])||null;
+    if(!factor){setVerificando(false);setError("No encontramos tu método de verificación.");return;}
+    const{error:err}=await sb.auth.mfa.challengeAndVerify({factorId:factor.id,code:codigo});
+    setVerificando(false);
+    if(err){setError("Ese código no es válido. Revisa que tu reloj esté en hora e inténtalo otra vez.");return;}
+    onOk();
+  };
+
+  return <CajaBloqueo>
+    <form onSubmit={verificar}>
+      <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>Verificación en dos pasos</div>
+      <div style={{fontSize:13.5,color:"#374151",lineHeight:1.5,marginBottom:16}}>
+        Abre tu app de autenticación y escribe el código de 6 dígitos.
+      </div>
+      <input value={codigo} onChange={e=>setCodigo(e.target.value.replace(/\D/g,"").slice(0,6))}
+        type="tel" inputMode="numeric" placeholder="••••••" style={campoNipAgente} name="codigo" autoFocus/>
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton type="submit" disabled={verificando}>{verificando?"Verificando...":"Entrar"}</Boton>
+    </form>
+    <button onClick={onSalir} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:14,padding:0}}>
+      Cerrar sesión
+    </button>
+  </CajaBloqueo>;
+}
+
 function App(){
   const[sesion,setSesion]=useState(undefined); // undefined=cargando, null=sin sesión
+  const[mfa,setMfa]=useState("revisando");     // revisando | pedir | ok
   const[bloqueo,setBloqueo]=useState("revisando"); // revisando | ofrecer | pedir | abierto
   useEffect(()=>{
     sb.auth.getSession().then(({data})=>setSesion(data.session||null));
@@ -1706,8 +1836,17 @@ function App(){
     return ()=>sub.subscription.unsubscribe();
   },[]);
 
+  // Se pregunta a Supabase, no a la pantalla: nextLevel dice si esta cuenta tiene 2FA activado.
+  const revisarMfa=()=>{
+    sb.auth.mfa.getAuthenticatorAssuranceLevel().then(({data})=>{
+      if(data&&data.nextLevel==="aal2"&&data.currentLevel!=="aal2")setMfa("pedir");
+      else setMfa("ok");
+    }).catch(()=>setMfa("ok"));
+  };
+
   useEffect(()=>{
-    if(!sesion){setBloqueo("revisando");return;}
+    if(!sesion){setMfa("revisando");setBloqueo("revisando");return;}
+    revisarMfa();
     const lock=leerLock(sesion.user.id);
     if(lock&&lock.nipHash)setBloqueo("pedir");
     else if(localStorage.getItem(`upco_ig_lock_no_${sesion.user.id}`))setBloqueo("abierto");
@@ -1715,21 +1854,27 @@ function App(){
   },[sesion]);
 
   const salir=()=>sb.auth.signOut();
+  const cargando=<div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>;
 
   return <>
     <HeaderBar/>
     {sesion===undefined
-      ?<div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>
+      ?cargando
       :!sesion
         ?<Login/>
-        :bloqueo==="ofrecer"
-          ?<ConfigurarBloqueo session={sesion} onListo={()=>setBloqueo("abierto")}
-              onOmitir={()=>{localStorage.setItem(`upco_ig_lock_no_${sesion.user.id}`,"1");setBloqueo("abierto");}}/>
-          :bloqueo==="pedir"
-            ?<PedirBloqueo session={sesion} lock={leerLock(sesion.user.id)} onOk={()=>setBloqueo("abierto")} onSalir={salir}/>
-            :bloqueo==="abierto"
-              ?<Panel session={sesion} onSalir={salir}/>
-              :<div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>}
+        // El segundo factor va primero: es el que de verdad autentica. El NIP local viene después.
+        :mfa==="revisando"
+          ?cargando
+          :mfa==="pedir"
+            ?<PedirSegundoFactor onOk={()=>setMfa("ok")} onSalir={salir}/>
+            :bloqueo==="ofrecer"
+              ?<ConfigurarBloqueo session={sesion} onListo={()=>setBloqueo("abierto")}
+                  onOmitir={()=>{localStorage.setItem(`upco_ig_lock_no_${sesion.user.id}`,"1");setBloqueo("abierto");}}/>
+              :bloqueo==="pedir"
+                ?<PedirBloqueo session={sesion} lock={leerLock(sesion.user.id)} onOk={()=>setBloqueo("abierto")} onSalir={salir}/>
+                :bloqueo==="abierto"
+                  ?<Panel session={sesion} onSalir={salir}/>
+                  :cargando}
   </>;
 }
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);

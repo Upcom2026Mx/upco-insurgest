@@ -491,20 +491,74 @@ function PanelPromotoria({session,onSalir}){
   </div>;
 }
 
+// La sesión se comparte entre /app y /promotor (mismo dominio), así que quien active el segundo
+// factor desde su panel de agente también llega aquí en aal1. Sin esta pantalla, la política
+// restrictiva de la base le negaría su propia fila y el portal no cargaría nunca.
+function PedirSegundoFactor({onOk,onSalir}){
+  const[codigo,setCodigo]=useState("");
+  const[error,setError]=useState("");
+  const[verificando,setVerificando]=useState(false);
+
+  const verificar=async(e)=>{
+    e.preventDefault();setError("");
+    if(!/^[0-9]{6}$/.test(codigo)){setError("Escribe los 6 dígitos de tu app.");return;}
+    setVerificando(true);
+    const{data:f}=await sb.auth.mfa.listFactors();
+    const factor=(f&&f.totp&&f.totp[0])||null;
+    if(!factor){setVerificando(false);setError("No encontramos tu método de verificación.");return;}
+    const{error:err}=await sb.auth.mfa.challengeAndVerify({factorId:factor.id,code:codigo});
+    setVerificando(false);
+    if(err){setError("Ese código no es válido. Revisa que tu reloj esté en hora e inténtalo otra vez.");return;}
+    onOk();
+  };
+
+  return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:26,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>
+      <form onSubmit={verificar}>
+        <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>Verificación en dos pasos</div>
+        <div style={{fontSize:13.5,color:"#374151",lineHeight:1.5,marginBottom:16}}>Abre tu app de autenticación y escribe el código de 6 dígitos.</div>
+        <input value={codigo} onChange={e=>setCodigo(e.target.value.replace(/\D/g,"").slice(0,6))}
+          type="tel" inputMode="numeric" placeholder="••••••" name="codigo" autoFocus
+          style={{width:"100%",padding:"14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:26,letterSpacing:"12px",textAlign:"center",fontFamily:"inherit",marginBottom:10}}/>
+        {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+        <Boton type="submit" disabled={verificando}>{verificando?"Verificando...":"Entrar"}</Boton>
+      </form>
+      <button onClick={onSalir} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:14,padding:0}}>Cerrar sesión</button>
+    </div>
+  </div>;
+}
+
 function App(){
   const[sesion,setSesion]=useState(undefined);
+  const[mfa,setMfa]=useState("revisando");
   useEffect(()=>{
     sb.auth.getSession().then(({data})=>setSesion(data.session||null));
     const{data:sub}=sb.auth.onAuthStateChange((_e,s)=>setSesion(s));
     return ()=>sub.subscription.unsubscribe();
   },[]);
+
+  useEffect(()=>{
+    if(!sesion){setMfa("revisando");return;}
+    sb.auth.mfa.getAuthenticatorAssuranceLevel().then(({data})=>{
+      if(data&&data.nextLevel==="aal2"&&data.currentLevel!=="aal2")setMfa("pedir");
+      else setMfa("ok");
+    }).catch(()=>setMfa("ok"));
+  },[sesion]);
+
+  const salir=()=>sb.auth.signOut();
+  const cargando=<div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>;
+
   return <>
     <HeaderBar/>
     {sesion===undefined
-      ?<div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>
+      ?cargando
       :!sesion
         ?<Login/>
-        :<PanelPromotoria session={sesion} onSalir={()=>sb.auth.signOut()}/>}
+        :mfa==="revisando"
+          ?cargando
+          :mfa==="pedir"
+            ?<PedirSegundoFactor onOk={()=>setMfa("ok")} onSalir={salir}/>
+            :<PanelPromotoria session={sesion} onSalir={salir}/>}
   </>;
 }
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
