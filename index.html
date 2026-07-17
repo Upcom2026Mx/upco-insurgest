@@ -9,8 +9,28 @@
 <link rel="icon" href="icon-192.png"/>
 <style>
   *{box-sizing:border-box}
-  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35;overflow-x:hidden}
   a{text-decoration:none}
+
+  /* Aparición al hacer scroll. El estado inicial solo se aplica si hay JS (clase .js en <html>),
+     si no, alguien con JS bloqueado vería la página entera en blanco. */
+  .js .reveal{opacity:0;transform:translateY(20px)}
+  .reveal{transition:opacity .55s ease,transform .55s cubic-bezier(.2,.7,.3,1)}
+  .reveal.visible{opacity:1;transform:none}
+  /* Respeta a quien pidió menos movimiento en su sistema (mareos, vestibular). */
+  @media(prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .js .reveal{opacity:1;transform:none}
+    .reveal{transition:none}
+    .blob{display:none}
+  }
+
+  /* Manchas de color que se mueven más lento que el scroll (parallax). Puramente decorativas. */
+  .heroWrap{position:relative;overflow:hidden}
+  .blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;pointer-events:none;will-change:transform}
+  .blob-a{width:340px;height:340px;background:#F59E0B33;top:-120px;left:-90px}
+  .blob-b{width:300px;height:300px;background:#10284A26;top:40px;right:-110px}
   .header{background:#10284A;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;max-width:1040px;margin:0 auto}
   .brand{color:#fff;font-weight:800;font-size:18px}
   .brand span{color:#F59E0B}
@@ -34,16 +54,25 @@
   .secheader p{font-size:14px;color:#6B7280;max-width:600px;margin:0 auto}
   .ejenum{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#F59E0B;color:#10284A;font-weight:800;font-size:15px;margin-bottom:10px}
   .ejes{max-width:1040px;margin:0 auto;padding:36px 20px 8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
-  .eje{background:#10284A;border-radius:14px;padding:22px}
+  .eje{display:block;background:#10284A;border-radius:14px;padding:22px;transition:transform .25s ease,box-shadow .25s ease}
+  .eje:hover{transform:translateY(-5px);box-shadow:0 14px 34px rgba(16,40,74,.28)}
   .eje .ejenum{background:#F59E0B}
   .eje h3{color:#fff;font-size:16px;margin:0 0 8px}
   .eje p{color:#C7D3E3;font-size:13.5px;line-height:1.55;margin:0}
+  .eje-mas{display:inline-block;margin-top:12px;color:#F59E0B;font-size:12.5px;font-weight:700}
+  .eje:hover .eje-mas{text-decoration:underline}
+  /* El ancla no debe dejar el título pegado al borde de la pantalla. */
+  .secheader{scroll-margin-top:18px}
+  .fcard{transition:transform .25s ease,box-shadow .25s ease}
+  .fcard:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(10,28,53,.10)}
+  @media(prefers-reduced-motion:reduce){.eje,.fcard{transition:none}.eje:hover,.fcard:hover{transform:none}}
   .cta-final{background:#10284A;padding:56px 20px;text-align:center}
   .cta-final h2{color:#fff;font-size:24px;font-weight:800;margin:0 0 10px}
   .cta-final p{color:#DDE4EE;font-size:14px;margin:0 0 24px}
   .cta-final .boton{background:#F59E0B;color:#10284A}
   footer{max-width:1040px;margin:0 auto;padding:24px 20px;text-align:center;font-size:12.5px;color:#8FA0B4}
   footer a{color:#53647D;font-weight:600}
+  .version{margin-top:8px;font-size:11.5px;color:#B6C2D2}
   @media(min-width:640px){.hero h1{font-size:40px}}
 
   .showcase{max-width:1040px;margin:0 auto;padding:20px 20px 60px}
@@ -85,98 +114,105 @@
   </div>
 </div>
 
-<div class="hero">
-  <h1>Ordena tu cartera. Y consigue clientes nuevos.</h1>
-  <p>Upco InsurGest es la herramienta para agentes de seguros independientes en México. Controla tus clientes, sus vehículos y sus pólizas sin hojas de cálculo — y comparte tu tarjeta digital para que los prospectos te encuentren y te dejen sus datos solos.</p>
-  <div class="cta-row">
-    <a class="boton" href="./app/?registro=1">Crear mi cuenta gratis</a>
-    <a class="boton-sec" href="./app/">Ya tengo cuenta</a>
+<div class="heroWrap">
+  <div class="blob blob-a" data-parallax="0.25"></div>
+  <div class="blob blob-b" data-parallax="0.14"></div>
+  <div class="hero">
+    <h1>Ordena tu cartera. Y consigue clientes nuevos.</h1>
+    <p>Upco InsurGest es la herramienta para agentes de seguros independientes en México. Lleva a tus clientes, sus autos y sus pólizas sin hojas de cálculo, dales un portal que van a usar todo el año, y comparte tu tarjeta digital para que los prospectos te dejen sus datos solos.</p>
+    <div class="cta-row">
+      <a class="boton" href="./app/?registro=1">Crear mi cuenta gratis</a>
+      <a class="boton-sec" href="./app/">Ya tengo cuenta</a>
+    </div>
+    <div class="subnota">30 días gratis · Registro sujeto a validación — tu cuenta queda activa en cuanto la revisamos.</div>
   </div>
-  <div class="subnota">Registro sujeto a validación — tu cuenta queda activa en cuanto la revisamos.</div>
 </div>
 
 <div class="ejes">
-  <div class="eje">
+  <a class="eje reveal" href="#controla">
     <div class="ejenum">1</div>
     <h3>Controla tu cartera</h3>
-    <p>Todo en un lugar, y un solo módulo de notificaciones que trabaja por ti.</p>
-  </div>
-  <div class="eje">
+    <p>Tus clientes, sus pólizas y sus vencimientos en un solo lugar, con un centro de avisos que te escribe a ti y a ellos.</p>
+    <span class="eje-mas">Ver cómo ↓</span>
+  </a>
+  <a class="eje reveal" href="#consiente">
     <div class="ejenum">2</div>
     <h3>Consiente a tus clientes</h3>
-    <p>Dales herramientas que ningún otro agente les da, con tu nombre encima.</p>
-  </div>
-  <div class="eje">
+    <p>Un portal con tu nombre donde tu cliente administra sus 5 autos y el presupuesto de su familia todo el año.</p>
+    <span class="eje-mas">Ver cómo ↓</span>
+  </a>
+  <a class="eje reveal" href="#consigue">
     <div class="ejenum">3</div>
     <h3>Consigue clientes nuevos</h3>
-    <p>Tu tarjeta digital trabajando aunque tú estés dormido.</p>
-  </div>
+    <p>Tu tarjeta digital capta prospectos y te los manda a tu bandeja mientras tú atiendes a otro cliente.</p>
+    <span class="eje-mas">Ver cómo ↓</span>
+  </a>
 </div>
 
-<div class="secheader">
+<div class="secheader reveal" id="controla">
   <div class="ejenum">1</div>
   <h2>Controla tu cartera</h2>
   <p>Deja de cargar tu negocio en la cabeza y en hojas de cálculo. Y deja de perseguir vencimientos: el sistema te persigue a ti.</p>
 </div>
 
 <div class="features">
-  <div class="fcard">
+  <div class="fcard reveal">
     <div class="ficon">☰</div>
-    <h3>Todo tu negocio en un solo lugar</h3>
-    <p>Clientes, vehículos y pólizas organizados por cada cliente, con vigencias calculadas automáticamente y el PDF de cada póliza a un clic.</p>
+    <h3>Cada cliente con todo lo suyo</h3>
+    <p>Das de alta a tu cliente y le cuelgas sus autos y sus pólizas. La vigencia se calcula sola: ves cuáles están vigentes, cuáles vencen en menos de 15 días y cuáles ya se te pasaron, sin abrir una hoja de cálculo. El PDF de cada póliza queda guardado ahí y lo descargas cuando te lo pidan.</p>
   </div>
-  <div class="fcard destacada">
+  <div class="fcard destacada reveal">
     <div class="ficon">✉</div>
     <h3>Un solo centro de avisos <span class="nuevo">NUEVO</span></h3>
-    <p>Correo y notificación al celular, desde el mismo lugar. Automáticos: pólizas por vencer, verificación, servicio del auto. Manuales: escríbele a los clientes que elijas para una promoción o un recordatorio. No necesitas otra herramienta para esto.</p>
+    <p><b>Tú les escribes:</b> manda correos y notificaciones al celular a los clientes que elijas, desde tu portal — para una promoción, un recordatorio de pago o avisar que cambiaste de número.<br/><br/><b>Y el sistema avisa solo:</b> a ti, de las pólizas que están por vencer; a tu cliente, de la verificación de su auto y de cuándo le toca servicio. No necesitas otra herramienta para esto.</p>
   </div>
-  <div class="fcard">
+  <div class="fcard reveal">
     <div class="ficon">▤</div>
-    <h3>Tu cartera en números</h3>
-    <p>Pólizas vigentes, por vencer y vencidas, prima total gestionada, y desglose por aseguradora y ramo. Sabes cuánto vale tu cartera sin sacar la calculadora.</p>
+    <h3>Cuánto vale tu cartera hoy</h3>
+    <p>La prima total de todo lo que tienes vigente, cuántas pólizas están vigentes, por vencer, vencidas y renovadas, y cuánto le colocas a cada aseguradora y de qué ramo. Se recalcula solo cada vez que cargas una póliza — nunca sacas la calculadora.</p>
   </div>
 </div>
 
-<div class="secheader">
+<div class="secheader reveal" id="consiente">
   <div class="ejenum">2</div>
   <h2>Consiente a tus clientes</h2>
-  <p>Aquí es donde te separas del agente que solo manda la póliza por WhatsApp y desaparece hasta la renovación. Le das a tu cliente un portal con su nombre y el tuyo — y herramientas que va a usar todo el año.</p>
+  <p>Aquí te separas del agente que manda la póliza por WhatsApp y desaparece hasta la renovación. Le das a tu cliente herramientas que va a usar todo el año — y cada vez que las usa, se acuerda de ti.</p>
 </div>
 
 <div class="features">
-  <div class="fcard destacada">
+  <div class="fcard destacada reveal">
     <div class="ficon">🔗</div>
     <h3>Su portal, sin registro ni app</h3>
-    <p>Le compartes una liga y ya. Ahí ve sus pólizas, baja sus PDFs cuando el banco se los pida, y te solicita cambios o cotizaciones sin tener que buscarte en el chat.</p>
+    <p>Le mandas una liga por WhatsApp y ya está adentro: sin crear cuenta, sin contraseña, sin instalar nada. Ahí tu cliente ve sus pólizas con sus vigencias, se descarga el PDF cuando el banco se lo pide, y te solicita un cambio o una cotización desde la póliza misma — sin buscarte entre mil chats. Arriba ve tu nombre y tu teléfono.</p>
   </div>
-  <div class="fcard destacada">
+  <div class="fcard destacada reveal">
     <div class="ficon">🚗</div>
     <h3>Administrador de flotilla, hasta 5 autos <span class="nuevo">NUEVO</span></h3>
-    <p>Tu cliente lleva el control de sus autos en un lugar: kilometraje, cuándo toca el servicio de los 10 o 15 mil, y si su estado le exige verificación. Le avisamos antes de cada uno. Y si tiene un auto sin asegurar, te lo manda a cotizar con un botón.</p>
+    <p>Tu cliente registra sus autos y lleva su control ahí: anota su kilometraje, escoge si le da servicio cada 10 o cada 15 mil km, y <b>le avisamos a él</b> antes de que le toque. Si su estado exige verificación vehicular, también se lo recordamos. Y cuando tiene un auto sin asegurar, <b>te lo manda a cotizar con un botón</b> — sin que tú tengas que preguntar.</p>
   </div>
-  <div class="fcard destacada">
+  <div class="fcard destacada reveal">
     <div class="ficon">◈</div>
     <h3>Gestor de presupuesto familiar <span class="nuevo">NUEVO</span></h3>
-    <p>Para tus clientes de Vida: una herramienta para ordenar el gasto de su familia con la regla 50/30/20. Ellos cuidan su dinero, tú quedas como el asesor que se los enseñó. Sus números viven en su teléfono, nadie más los ve.</p>
+    <p>Para tus clientes con póliza de Vida: ordenan el gasto de su familia con la regla 50/30/20 — cuánto va a necesidades, cuánto a gustos y cuánto al ahorro — y ven cuánto llevan gastado de cada cosa. <b>Sus números se quedan en su teléfono:</b> ni tú ni nosotros los vemos. Tú quedas como el asesor que le enseñó a ordenar su dinero.</p>
   </div>
 </div>
 
-<div class="secheader">
+<div class="secheader reveal" id="consigue">
   <div class="ejenum">3</div>
   <h2>Consigue clientes nuevos</h2>
-  <p>Lo demás te ayuda a conservar lo que ya tienes. Esto te ayuda a crecer, sin pagar publicidad.</p>
+  <p>Lo de arriba te ayuda a conservar lo que ya tienes. Esto te ayuda a crecer, sin pagar publicidad.</p>
 </div>
 
 <div class="features">
-  <div class="fcard destacada">
+  <div class="fcard destacada reveal">
     <div class="ficon">◉</div>
     <h3>Tu tarjeta digital <span class="nuevo">NUEVO</span></h3>
-    <p>Tu propia página con tu foto, tu cédula, los ramos que manejas y las aseguradoras con las que trabajas. Una liga corta para tu WhatsApp, tu Instagram o tu firma de correo: <b>insurgest.upco.app/a/tu-nombre</b></p>
+    <p>Tu propia página con tu foto, tu nombre, tu cédula, los ramos que manejas y las aseguradoras con las que trabajas. Trae botón de WhatsApp, de llamada y de correo, así que el prospecto te contacta con un toque. Es una liga corta —<b>insurgest.upco.app/a/tu-nombre</b>— que pegas en tu WhatsApp, tu Instagram o tu firma de correo. La prendes y la apagas cuando quieras.</p>
   </div>
-  <div class="fcard destacada">
+  <div class="fcard destacada reveal">
     <div class="ficon">✚</div>
     <h3>Prospectos que llegan solos <span class="nuevo">NUEVO</span></h3>
-    <p>Tu tarjeta trae un formulario. Quien lo llena cae directo en tu bandeja con su teléfono y qué quiere cotizar, y te avisamos al instante. Queda registrado — no se pierde entre mil chats.</p>
+    <p>Tu tarjeta trae un formulario. Quien lo llena te deja su nombre, su teléfono, su correo y qué quiere cotizar. <b>A ti te llega un correo al instante</b> y el prospecto se guarda en tu bandeja marcado como prospecto, junto a las solicitudes de tus clientes. No se te pierde entre los chats ni depende de que te acuerdes de contestarle.</p>
   </div>
 </div>
 
@@ -185,7 +221,7 @@
   <p class="showcase-sub">Tu tarjeta digital, tu lista de clientes, tu cartera en números, y lo que ve tu cliente cuando le compartes su liga — con datos de ejemplo reales del sistema.</p>
   <div class="mock-grid">
 
-    <div class="mock">
+    <div class="mock reveal">
       <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/a/tu-nombre</div></div>
       <div class="mock-body">
         <div style="text-align:center;margin-bottom:10px">
@@ -213,7 +249,7 @@
       <div class="mock-cap">Tu tarjeta digital — compártela y deja que los prospectos te busquen</div>
     </div>
 
-    <div class="mock">
+    <div class="mock reveal">
       <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/app</div></div>
       <div class="mock-body">
         <div class="mk-h"><span class="mk-h-title">Mis clientes (3)</span><span class="mk-btn">+ Nuevo cliente</span></div>
@@ -226,7 +262,7 @@
       <div class="mock-cap">Todos tus clientes, vehículos y pólizas en un solo lugar</div>
     </div>
 
-    <div class="mock">
+    <div class="mock reveal">
       <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/app</div></div>
       <div class="mock-body">
         <div class="mk-h-title" style="margin-bottom:10px">Resumen (4 pólizas)</div>
@@ -244,7 +280,7 @@
       <div class="mock-cap">Tu cartera vigente, por vencer y por aseguradora, de un vistazo</div>
     </div>
 
-    <div class="mock">
+    <div class="mock reveal">
       <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/p/24ed67a8…</div></div>
       <div class="mock-body">
         <div style="font-size:12px;color:#8FA0B4;margin-bottom:2px">Tu agente: Agente Prueba B</div>
@@ -259,7 +295,7 @@
       <div class="mock-cap">Lo que ve tu cliente — sin registrarse, sin instalar nada</div>
     </div>
 
-    <div class="mock">
+    <div class="mock reveal">
       <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/p/24ed67a8…</div></div>
       <div class="mock-body">
         <div class="mk-h"><span class="mk-h-title" style="color:#8FA0B4;font-size:11px">TUS VEHÍCULOS (2/5)</span><span style="font-size:11px;font-weight:700;color:#10284A">+ Agregar vehículo</span></div>
@@ -288,7 +324,7 @@
       <div class="mock-cap">Tu cliente cuida sus autos — y te pide cotizar el que no trae contigo</div>
     </div>
 
-    <div class="mock">
+    <div class="mock reveal">
       <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/p/24ed67a8…</div></div>
       <div class="mock-body">
         <div style="font-size:9.5px;font-weight:700;color:#8FA0B4;margin-bottom:2px">INGRESO MENSUAL</div>
@@ -321,8 +357,68 @@
 </div>
 
 <footer>
-  © 2026 Upco InsurGest · <a href="./terminos/">Términos y Aviso de Privacidad</a>
+  © 2026 Upco InsurGest · <a href="./terminos/">Términos y Aviso de Privacidad</a> · <a href="./precios/">Precios</a>
+  <div class="version">Portal versión 1.0</div>
 </footer>
+
+<script>
+// Marca que hay JS: sin esto, .reveal deja los bloques invisibles y quien tenga JS bloqueado
+// no vería nada de la página.
+document.documentElement.classList.add("js");
+
+(function(){
+  var menosMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Aparición al entrar en pantalla, escalonada por bloque para que no salten todas juntas.
+  var aparecer = document.querySelectorAll(".reveal");
+  if (menosMovimiento || !("IntersectionObserver" in window)) {
+    aparecer.forEach(function(el){ el.classList.add("visible"); });
+  } else {
+    var obs = new IntersectionObserver(function(entradas){
+      entradas.forEach(function(e){
+        if (!e.isIntersecting) return;
+        var hermanos = Array.prototype.slice.call(e.target.parentNode.children).filter(function(n){
+          return n.classList.contains("reveal");
+        });
+        e.target.style.transitionDelay = (Math.min(hermanos.indexOf(e.target), 3) * 90) + "ms";
+        e.target.classList.add("visible");
+        obs.unobserve(e.target); // que aparezca una vez, no cada vez que pasas por ahí
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+    aparecer.forEach(function(el){ obs.observe(el); });
+
+    // Red de seguridad. El costo de que este efecto falle no es "se ve sin animación": es una
+    // página EN BLANCO, porque el estado inicial de .reveal es invisible. Si al segundo y medio
+    // no se reveló ni un solo bloque, damos por hecho que el observador no está corriendo en
+    // este navegador y mostramos todo de golpe. Perder la animación es aceptable; perder la
+    // página, no.
+    setTimeout(function(){
+      if (document.querySelector(".reveal.visible")) return;
+      aparecer.forEach(function(el){ el.classList.add("visible"); });
+    }, 1500);
+  }
+
+  // Parallax de las manchas del hero. Se apaga solo cuando el hero ya no se ve, para no
+  // estar recalculando durante todo el scroll de la página.
+  var manchas = document.querySelectorAll("[data-parallax]");
+  if (!menosMovimiento && manchas.length) {
+    var pendiente = false;
+    window.addEventListener("scroll", function(){
+      if (pendiente) return;
+      pendiente = true;
+      requestAnimationFrame(function(){
+        var y = window.pageYOffset;
+        if (y < 700) {
+          manchas.forEach(function(m){
+            m.style.transform = "translate3d(0," + (y * parseFloat(m.dataset.parallax)) + "px,0)";
+          });
+        }
+        pendiente = false;
+      });
+    }, { passive: true });
+  }
+})();
+</script>
 
 </body>
 </html>
