@@ -553,10 +553,15 @@ function PedirSegundoFactor({onOk,onSalir}){
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
       <Boton type="submit" disabled={verificando}>{verificando?"Verificando...":"Entrar"}</Boton>
     </form>
-    <button onClick={()=>{setModo("respaldo");setError("");}} style={{background:"none",border:"none",color:"#10284A",fontSize:12.5,fontWeight:700,cursor:"pointer",marginTop:14,padding:0}}>
-      Perdí mi teléfono — usar un código de respaldo
-    </button>
-    <div><button onClick={onSalir} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:10,padding:0}}>Cerrar sesión</button></div>
+    <div style={{fontSize:12.5,color:"#374151",lineHeight:1.5,marginTop:16,paddingTop:14,borderTop:"1px solid #DDE4EE"}}>
+      <strong>¿Perdiste o cambiaste de teléfono?</strong> Escríbenos a <a href="mailto:hola@upco.app?subject=Perdí mi teléfono — verificación en dos pasos" style={{color:"#10284A",fontWeight:700}}>hola@upco.app</a> y te lo quitamos para que puedas entrar.
+      <div style={{marginTop:8}}>
+        <button onClick={()=>{setModo("respaldo");setError("");}} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",padding:0,textDecoration:"underline"}}>
+          Tengo un código de respaldo
+        </button>
+      </div>
+    </div>
+    <div><button onClick={onSalir} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:14,padding:0}}>Cerrar sesión</button></div>
   </>);
 }
 

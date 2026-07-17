@@ -163,6 +163,13 @@ function Promotorias(){
     cargar();
   };
 
+  const resetear2fa=async(p)=>{
+    if(!window.confirm(`¿Quitarle la verificación en dos pasos a ${p.nombre_negocio||p.correo}?\n\nVa a poder entrar solo con su contraseña. Dile que la vuelva a activar desde su panel con su teléfono nuevo.`))return;
+    const{error}=await sb.rpc("admin_resetear_2fa",{p_user_id:p.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
   if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
   if(!promotorias)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
 
@@ -189,13 +196,14 @@ function Promotorias(){
             {p.correo}{p.nombre?` · ${p.nombre}`:""}{p.rfc?` · RFC ${p.rfc}`:""}
           </div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>Código {p.codigo_invitacion} · {p.agentes} agentes en su red</div>
-          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{textoEstatusPago(p)}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{textoEstatusPago(p)}{p.tiene_2fa?" · 🔒 2FA activado":""}</div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span style={est.badge(colorEstatusAgente[p.estatus_aprobacion]||"#6b7280")}>{p.estatus_aprobacion}</span>
           {p.estatus_aprobacion!=="aprobado"&&<button onClick={()=>aprobar(p)} style={{...est.linkBtn,color:"#16a34a"}}>Aprobar</button>}
           {p.estatus_aprobacion!=="rechazado"&&<button onClick={()=>rechazar(p)} style={{...est.linkBtn,color:"#dc2626"}}>Rechazar</button>}
           {p.estatus_aprobacion==="aprobado"&&<button onClick={()=>extender(p)} style={est.linkBtn}>+30 días</button>}
+          {p.tiene_2fa&&<button onClick={()=>resetear2fa(p)} style={est.linkBtn}>Perdió su teléfono</button>}
         </div>
       </div>)}
     </div>}
@@ -231,6 +239,13 @@ function Agentes(){
     cargar();
   };
 
+  const resetear2fa=async(a)=>{
+    if(!window.confirm(`¿Quitarle la verificación en dos pasos a ${a.nombre||a.correo}?\n\nVa a poder entrar solo con su contraseña. Dile que la vuelva a activar desde Mi perfil con su teléfono nuevo.`))return;
+    const{error}=await sb.rpc("admin_resetear_2fa",{p_user_id:a.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
   if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
   if(!agentes)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
 
@@ -262,13 +277,14 @@ function Agentes(){
             {a.tiene_cedula?`Cédula ${(a.tipos_cedula||[]).join(", ")||"—"}${a.numero_cedula?` (No. ${a.numero_cedula})`:""}`:"Sin cédula registrada"}
           </div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{a.clientes} clientes · {a.polizas} pólizas{a.acepto_terminos?" · Aceptó términos":" · No ha aceptado términos"}</div>
-          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{textoEstatusPago(a)}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{textoEstatusPago(a)}{a.tiene_2fa?" · 🔒 2FA activado":""}</div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span style={est.badge(colorEstatusAgente[a.estatus_aprobacion]||"#6b7280")}>{a.estatus_aprobacion}</span>
           {a.estatus_aprobacion!=="aprobado"&&<button onClick={()=>aprobar(a)} style={{...est.linkBtn,color:"#16a34a"}}>Aprobar</button>}
           {a.estatus_aprobacion!=="rechazado"&&<button onClick={()=>rechazar(a)} style={{...est.linkBtn,color:"#dc2626"}}>Rechazar</button>}
           {a.estatus_aprobacion==="aprobado"&&<button onClick={()=>extender(a)} style={est.linkBtn}>+30 días</button>}
+          {a.tiene_2fa&&<button onClick={()=>resetear2fa(a)} style={est.linkBtn}>Perdió su teléfono</button>}
         </div>
       </div>)}
     </div>}

@@ -1142,14 +1142,12 @@ function SegundoFactor(){
     if(!/^[0-9]{6}$/.test(codigo)){setError("Escribe los 6 dígitos que muestra tu app.");return;}
     setOcupado(true);
     const{error:err}=await sb.auth.mfa.challengeAndVerify({factorId:alta.id,code:codigo});
-    if(err){setOcupado(false);setError("Ese código no es válido. Revisa que tu reloj esté en hora.");return;}
-    // Los códigos se generan de una vez, aquí mismo: es el único momento en que sabemos que el
-    // agente está frente a la pantalla recién activándolo. Si lo dejamos para "después", nadie
-    // los saca, y el primero que pierda su teléfono se queda fuera de su cartera.
-    const{data:cods}=await sb.rpc("generar_codigos_respaldo");
     setOcupado(false);
+    if(err){setError("Ese código no es válido. Revisa que tu reloj esté en hora.");return;}
+    // Se activa y ya. Los códigos de respaldo quedan como opción para quien los quiera: si un
+    // agente pierde su teléfono, la salida real es que nos escriba y se lo restablecemos en un
+    // clic. Obligarlo aquí a guardar ocho códigos solo espantaría a quien queremos que active esto.
     setAlta(null);setCodigo("");
-    if(cods)setRespaldo(cods);
     cargar();
   };
 
@@ -1194,10 +1192,10 @@ function SegundoFactor(){
         </form>
       : respaldo
         ? <div>
-            <div style={{fontSize:13,fontWeight:800,color:"#B45309",marginBottom:6}}>Guarda estos códigos ahora</div>
+            <div style={{fontSize:13,fontWeight:800,color:"#10284A",marginBottom:6}}>Tus códigos de respaldo</div>
             <div style={{fontSize:12.5,color:"#374151",lineHeight:1.5,marginBottom:12}}>
-              Son tu <strong>única forma de entrar si pierdes o cambias de teléfono</strong>. Anótalos en papel o guárdalos en tu gestor de contraseñas — no en el mismo celular donde está tu app de códigos.
-              <br/><br/>No los vas a volver a ver: si los pierdes, tendrás que generar unos nuevos desde aquí.
+              Cada uno sirve una sola vez para entrar si te quedas sin tu teléfono. Guárdalos donde no sea el mismo celular donde está tu app de códigos.
+              <br/><br/>No los vas a volver a ver — pero no te preocupes: si los pierdes, escríbenos y te reactivamos el acceso.
             </div>
             <div style={{background:"#F4F7FB",border:"1px solid #DDE4EE",borderRadius:10,padding:14,marginBottom:12,
               display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,fontFamily:"ui-monospace,Consolas,monospace",fontSize:14,fontWeight:700,color:"#10284A",textAlign:"center"}}>
@@ -1221,14 +1219,13 @@ function SegundoFactor(){
             <div style={{fontSize:12.5,color:"#6B7280",lineHeight:1.5,marginBottom:12}}>
               Aunque alguien se robe tu contraseña, sin el código de tu app no entra — ni por aquí ni por ningún otro lado.
             </div>
-            <div style={{background:restantes===0?"#FEF2F2":"#F4F7FB",border:`1px solid ${restantes===0?"#FCA5A5":"#DDE4EE"}`,borderRadius:10,padding:12,marginBottom:12}}>
-              <div style={{fontSize:12.5,color:restantes===0?"#991B1B":"#374151",lineHeight:1.5,marginBottom:8}}>
-                {restantes===0
-                  ? <span><strong>No te quedan códigos de respaldo.</strong> Si pierdes tu teléfono ahora, te quedas fuera de tu cartera. Genera unos nuevos.</span>
-                  : <span>Te quedan <strong>{restantes} códigos de respaldo</strong> para entrar si pierdes tu teléfono.</span>}
+            <div style={{background:"#F4F7FB",border:"1px solid #DDE4EE",borderRadius:10,padding:12,marginBottom:12}}>
+              <div style={{fontSize:12.5,color:"#374151",lineHeight:1.5,marginBottom:8}}>
+                <strong>¿Y si pierdo o cambio de teléfono?</strong> Escríbenos y te lo quitamos en un momento para que puedas entrar. No te quedas fuera de tu cartera.
+                {restantes>0&&<><br/><br/>También tienes <strong>{restantes} códigos de respaldo</strong> guardados por si prefieres resolverlo tú sin esperarnos.</>}
               </div>
               <button onClick={generarRespaldo} disabled={ocupado} style={est.linkBtn}>
-                {ocupado?"Generando...":"Generar códigos nuevos"}
+                {ocupado?"Generando...":restantes>0?"Generar códigos nuevos":"Generar códigos de respaldo (opcional)"}
               </button>
               {restantes>0&&<div style={{fontSize:11.5,color:"#8FA0B4",marginTop:4}}>Los que tengas anotados dejan de servir.</div>}
             </div>
@@ -1917,10 +1914,17 @@ function PedirSegundoFactor({onOk,onSalir}){
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
       <Boton type="submit" disabled={verificando}>{verificando?"Verificando...":"Entrar"}</Boton>
     </form>
-    <button onClick={()=>{setModo("respaldo");setError("");}} style={{background:"none",border:"none",color:"#10284A",fontSize:12.5,fontWeight:700,cursor:"pointer",marginTop:14,padding:0}}>
-      Perdí mi teléfono — usar un código de respaldo
-    </button>
-    <div><button onClick={onSalir} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:10,padding:0}}>
+    {/* La salida que de verdad va a usar la gente es escribirle al fundador, que lo resuelve con
+        un clic desde /admin. El código de respaldo es para quien lo guardó, que serán pocos. */}
+    <div style={{fontSize:12.5,color:"#374151",lineHeight:1.5,marginTop:16,paddingTop:14,borderTop:"1px solid #DDE4EE"}}>
+      <strong>¿Perdiste o cambiaste de teléfono?</strong> Escríbenos a <a href="mailto:hola@upco.app?subject=Perdí mi teléfono — verificación en dos pasos" style={{color:"#10284A",fontWeight:700}}>hola@upco.app</a> y te lo quitamos para que puedas entrar.
+      <div style={{marginTop:8}}>
+        <button onClick={()=>{setModo("respaldo");setError("");}} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",padding:0,textDecoration:"underline"}}>
+          Tengo un código de respaldo
+        </button>
+      </div>
+    </div>
+    <div><button onClick={onSalir} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:14,padding:0}}>
       Cerrar sesión
     </button></div>
   </CajaBloqueo>;
