@@ -499,8 +499,18 @@ function LigaMagica({cliente,onClienteCambiado}){
   const[copiado,setCopiado]=useState(false);
   const[regenerando,setRegenerando]=useState(false);
   const[reseteando,setReseteando]=useState(false);
+  const[codigo,setCodigo]=useState(null);
+  const[pidiendo,setPidiendo]=useState(false);
   const[error,setError]=useState("");
   const url=`${location.origin}/p/${cliente.token_publico}`;
+
+  const verCodigo=async()=>{
+    setPidiendo(true);setError("");
+    const{data,error:err}=await sb.rpc("agente_codigo_activacion",{p_cliente_id:cliente.id});
+    setPidiendo(false);
+    if(err){setError(err.message);return;}
+    setCodigo(data.codigo);
+  };
 
   // "Olvidé mi NIP" del cliente: lo borramos y él crea uno nuevo la próxima vez que entre.
   // También se le caen los dispositivos recordados, por si el olvido fue por perder el teléfono.
@@ -538,8 +548,22 @@ function LigaMagica({cliente,onClienteCambiado}){
     <div style={{fontSize:12.5,color:"#374151",marginBottom:10}}>
       {cliente.nip_definido_en
         ? <span>🔒 Protegida con el NIP que {cliente.nombre.split(" ")[0]} creó el {fecha(cliente.nip_definido_en.slice(0,10))}.</span>
-        : <span style={{color:"#B45309"}}>Todavía sin NIP — se lo vamos a pedir crear la primera vez que entre.</span>}
+        : cliente.correo
+          ? <span style={{color:"#B45309"}}>Todavía sin NIP. Al abrir la liga le mandamos un código a {cliente.correo} para que cree el suyo.</span>
+          : <span style={{color:"#B45309"}}>Todavía sin NIP. Como no tiene correo cargado, vas a tener que dictarle tú el código.</span>}
     </div>
+
+    {/* Solo para los clientes sin correo: el código les llega por el agente. Si tiene correo,
+        el código va directo a su bandeja y el agente no necesita —ni debe— andarlo viendo. */}
+    {!cliente.nip_definido_en&&!cliente.correo&&<div style={{marginBottom:10}}>
+      {codigo
+        ? <div style={{background:"#fff",border:"1.5px solid #F59E0B",borderRadius:10,padding:"10px 12px"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8FA0B4"}}>CÓDIGO PARA {cliente.nombre.split(" ")[0].toUpperCase()}</div>
+            <div style={{fontSize:26,fontWeight:800,letterSpacing:6,color:"#10284A"}}>{codigo}</div>
+            <div style={{fontSize:11.5,color:"#6B7280"}}>Dícteselo por teléfono. Vence en 24 horas y solo sirve una vez.</div>
+          </div>
+        : <button onClick={verCodigo} disabled={pidiendo} style={est.linkBtn}>{pidiendo?"Generando...":"Ver código de activación"}</button>}
+    </div>}
 
     {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
     <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>

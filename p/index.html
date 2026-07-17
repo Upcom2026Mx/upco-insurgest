@@ -512,29 +512,67 @@ function Caja({children}){
   </div>;
 }
 
+// Crear el NIP exige un código que llega al correo del cliente. Así, tener la liga ya no basta
+// ni siquiera la primera vez: quien se la tope no puede adelantarse a ponerle NIP.
 function PantallaCrearNip({token,nombre,onListo}){
+  const[via,setVia]=useState(null);        // null=pidiendo | "correo" | "agente"
+  const[correoMostrado,setCorreoMostrado]=useState("");
+  const[codigo,setCodigo]=useState("");
   const[nip,setNip]=useState("");
   const[nip2,setNip2]=useState("");
   const[error,setError]=useState("");
   const[guardando,setGuardando]=useState(false);
+  const[reenviando,setReenviando]=useState(false);
+
+  const pedirCodigo=async()=>{
+    const{data,error:err}=await sb.rpc("portal_solicitar_codigo",{p_token:token});
+    if(err){setError(err.message);setVia("agente");return;}
+    setVia(data.via);
+    if(data.correo)setCorreoMostrado(data.correo);
+  };
+  useEffect(()=>{pedirCodigo();},[]);
+
+  const reenviar=async()=>{
+    setReenviando(true);setError("");
+    await pedirCodigo();
+    setReenviando(false);
+  };
 
   const crear=async(e)=>{
     e.preventDefault();setError("");
+    if(!/^[0-9]{6}$/.test(codigo)){setError("Escribe el código de 6 dígitos que te mandamos.");return;}
     if(!/^[0-9]{6}$/.test(nip)){setError("Tu NIP debe ser de 6 dígitos.");return;}
     if(nip!==nip2){setError("Los dos NIP no coinciden.");return;}
     setGuardando(true);
-    const{error:err}=await sb.rpc("portal_definir_nip",{p_token:token,p_nip:nip});
+    const{error:err}=await sb.rpc("portal_definir_nip",{p_token:token,p_nip:nip,p_codigo:codigo});
     setGuardando(false);
     if(err){setError(err.message);return;}
     onListo(nip);
   };
 
+  if(!via)return <Caja><div style={{textAlign:"center",color:"#6B7280",fontSize:14}}>Un momento...</div></Caja>;
+
   return <Caja>
     <form onSubmit={crear}>
       <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>Hola{nombre?`, ${nombre}`:""} 👋</div>
       <div style={{fontSize:14,color:"#374151",lineHeight:1.5,marginBottom:16}}>
-        Aquí vas a ver tus pólizas, así que primero crea un NIP de 6 dígitos. Te lo vamos a pedir cada vez que entres — así, si alguien más llega a tener tu liga, no puede ver tu información.
+        Aquí vas a ver tus pólizas, así que vamos a protegerlas con un NIP tuyo de 6 dígitos. Te lo pediremos cada vez que entres.
       </div>
+
+      <div style={{background:"#F4F7FB",borderRadius:10,padding:12,fontSize:13,color:"#374151",lineHeight:1.5,marginBottom:14}}>
+        {via==="correo"
+          ? <span>Te mandamos un código a <strong>{correoMostrado}</strong>. Escríbelo aquí para confirmar que la liga es tuya.</span>
+          : <span>Pídele el código a tu agente — él lo tiene a la mano.</span>}
+      </div>
+
+      <input value={codigo} onChange={e=>setCodigo(e.target.value.replace(/\D/g,"").slice(0,6))}
+        type="tel" inputMode="numeric" placeholder="Código" style={campoNip} name="codigo"/>
+      {via==="correo"&&<button type="button" onClick={reenviar} disabled={reenviando}
+        style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",padding:0,marginBottom:14}}>
+        {reenviando?"Reenviando...":"No me llegó — reenviar"}
+      </button>}
+
+      <div style={{fontSize:12,fontWeight:700,color:"#8FA0B4",margin:"6px 0 8px"}}>AHORA TU NIP</div>
       <input value={nip} onChange={e=>setNip(e.target.value.replace(/\D/g,"").slice(0,6))}
         type="tel" inputMode="numeric" placeholder="••••••" style={campoNip} name="nip"/>
       <input value={nip2} onChange={e=>setNip2(e.target.value.replace(/\D/g,"").slice(0,6))}
