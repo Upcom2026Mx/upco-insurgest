@@ -1099,6 +1099,8 @@ function SegundoFactor(){
   const[factor,setFactor]=useState(undefined); // undefined=cargando, null=sin 2FA, {}=activo
   const[alta,setAlta]=useState(null);          // {id,qr,secret} mientras lo está dando de alta
   const[codigo,setCodigo]=useState("");
+  const[respaldo,setRespaldo]=useState(null);  // códigos en claro, solo se ven una vez
+  const[restantes,setRestantes]=useState(null);
   const[error,setError]=useState("");
   const[ocupado,setOcupado]=useState(false);
 
@@ -1106,8 +1108,21 @@ function SegundoFactor(){
     const{data}=await sb.auth.mfa.listFactors();
     const t=(data&&data.totp&&data.totp[0])||null;
     setFactor(t);
+    if(t){
+      const{data:n}=await sb.rpc("codigos_respaldo_restantes");
+      setRestantes(n);
+    }
   };
   useEffect(()=>{cargar();},[]);
+
+  const generarRespaldo=async()=>{
+    setOcupado(true);setError("");
+    const{data,error:err}=await sb.rpc("generar_codigos_respaldo");
+    setOcupado(false);
+    if(err){setError(err.message);return;}
+    setRespaldo(data);
+    setRestantes(data.length);
+  };
 
   const empezar=async()=>{
     setError("");setOcupado(true);
@@ -1127,9 +1142,14 @@ function SegundoFactor(){
     if(!/^[0-9]{6}$/.test(codigo)){setError("Escribe los 6 dígitos que muestra tu app.");return;}
     setOcupado(true);
     const{error:err}=await sb.auth.mfa.challengeAndVerify({factorId:alta.id,code:codigo});
+    if(err){setOcupado(false);setError("Ese código no es válido. Revisa que tu reloj esté en hora.");return;}
+    // Los códigos se generan de una vez, aquí mismo: es el único momento en que sabemos que el
+    // agente está frente a la pantalla recién activándolo. Si lo dejamos para "después", nadie
+    // los saca, y el primero que pierda su teléfono se queda fuera de su cartera.
+    const{data:cods}=await sb.rpc("generar_codigos_respaldo");
     setOcupado(false);
-    if(err){setError("Ese código no es válido. Revisa que tu reloj esté en hora.");return;}
     setAlta(null);setCodigo("");
+    if(cods)setRespaldo(cods);
     cargar();
   };
 
@@ -1149,12 +1169,22 @@ function SegundoFactor(){
 
     {alta
       ? <form onSubmit={confirmar}>
-          <div style={{fontSize:12.5,color:"#6B7280",lineHeight:1.5,marginBottom:12}}>
-            Escanea este código con Google Authenticator, Authy o la app que uses, y escribe los 6 dígitos que te muestre.
-          </div>
+          {/* Estas instrucciones son el producto: nadie va a poder asistir a cada agente por
+              teléfono. Si un agente no puede seguir estos pasos solo, el 2FA no se activa. */}
+          <ol style={{fontSize:12.5,color:"#374151",lineHeight:1.6,paddingLeft:18,margin:"0 0 14px"}}>
+            <li style={{marginBottom:8}}>
+              <strong>Instala una app de autenticación</strong> en tu celular, si no tienes una. Cualquiera de estas sirve y son gratis:{" "}
+              <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2" target="_blank" rel="noopener" style={{color:"#10284A",fontWeight:700}}>Google Authenticator</a>{" "}
+              (<a href="https://apps.apple.com/app/google-authenticator/id388497605" target="_blank" rel="noopener" style={{color:"#10284A",fontWeight:700}}>iPhone</a>),{" "}
+              <a href="https://www.microsoft.com/security/mobile-authenticator-app" target="_blank" rel="noopener" style={{color:"#10284A",fontWeight:700}}>Microsoft Authenticator</a>.
+            </li>
+            <li style={{marginBottom:8}}><strong>Ábrela</strong> y busca el botón <strong>+</strong> → <strong>Escanear código QR</strong>.</li>
+            <li style={{marginBottom:8}}><strong>Apunta la cámara</strong> al cuadro de abajo.</li>
+            <li><strong>Escribe aquí</strong> los 6 dígitos que te muestre. Cambian cada 30 segundos: si se te va, espera al siguiente.</li>
+          </ol>
           <img src={alta.qr} alt="Código QR" style={{width:180,height:180,display:"block",margin:"0 auto 10px"}}/>
           <div style={{fontSize:11,color:"#8FA0B4",textAlign:"center",marginBottom:12,wordBreak:"break-all"}}>
-            ¿No puedes escanear? Captura esta clave: <strong>{alta.secret}</strong>
+            ¿Estás en el celular y no puedes escanearte a ti mismo? En tu app elige <strong>“Escribir clave manualmente”</strong> y captura: <strong>{alta.secret}</strong>
           </div>
           <input value={codigo} onChange={e=>setCodigo(e.target.value.replace(/\D/g,"").slice(0,6))}
             type="tel" inputMode="numeric" placeholder="••••••" style={campoNipAgente} name="codigo_2fa"/>
@@ -1162,18 +1192,53 @@ function SegundoFactor(){
           <Boton type="submit" disabled={ocupado}>{ocupado?"Verificando...":"Activar"}</Boton>
           <button type="button" onClick={()=>{setAlta(null);setError("");}} style={{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer",marginTop:10,padding:0}}>Cancelar</button>
         </form>
+      : respaldo
+        ? <div>
+            <div style={{fontSize:13,fontWeight:800,color:"#B45309",marginBottom:6}}>Guarda estos códigos ahora</div>
+            <div style={{fontSize:12.5,color:"#374151",lineHeight:1.5,marginBottom:12}}>
+              Son tu <strong>única forma de entrar si pierdes o cambias de teléfono</strong>. Anótalos en papel o guárdalos en tu gestor de contraseñas — no en el mismo celular donde está tu app de códigos.
+              <br/><br/>No los vas a volver a ver: si los pierdes, tendrás que generar unos nuevos desde aquí.
+            </div>
+            <div style={{background:"#F4F7FB",border:"1px solid #DDE4EE",borderRadius:10,padding:14,marginBottom:12,
+              display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,fontFamily:"ui-monospace,Consolas,monospace",fontSize:14,fontWeight:700,color:"#10284A",textAlign:"center"}}>
+              {respaldo.map(c=><div key={c}>{c}</div>)}
+            </div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
+              <Boton color="#53647D" onClick={()=>navigator.clipboard.writeText(respaldo.join("\n"))}>Copiarlos</Boton>
+              <Boton color="#53647D" onClick={()=>{
+                // Descarga sin servidor: el archivo se arma en el navegador, los códigos no
+                // viajan a ningún lado.
+                const a=document.createElement("a");
+                a.href=URL.createObjectURL(new Blob([`Códigos de respaldo — Upco InsurGest\n\nCada uno sirve una sola vez.\n\n${respaldo.join("\n")}\n`],{type:"text/plain"}));
+                a.download="codigos-respaldo-upco-insurgest.txt";a.click();URL.revokeObjectURL(a.href);
+              }}>Descargarlos</Boton>
+            </div>
+            <Boton onClick={()=>setRespaldo(null)}>Ya los guardé</Boton>
+          </div>
       : factor
         ? <div>
             <div style={{fontSize:12.5,color:"#16a34a",fontWeight:700,marginBottom:6}}>✅ Activada</div>
             <div style={{fontSize:12.5,color:"#6B7280",lineHeight:1.5,marginBottom:12}}>
               Aunque alguien se robe tu contraseña, sin el código de tu app no entra — ni por aquí ni por ningún otro lado.
             </div>
+            <div style={{background:restantes===0?"#FEF2F2":"#F4F7FB",border:`1px solid ${restantes===0?"#FCA5A5":"#DDE4EE"}`,borderRadius:10,padding:12,marginBottom:12}}>
+              <div style={{fontSize:12.5,color:restantes===0?"#991B1B":"#374151",lineHeight:1.5,marginBottom:8}}>
+                {restantes===0
+                  ? <span><strong>No te quedan códigos de respaldo.</strong> Si pierdes tu teléfono ahora, te quedas fuera de tu cartera. Genera unos nuevos.</span>
+                  : <span>Te quedan <strong>{restantes} códigos de respaldo</strong> para entrar si pierdes tu teléfono.</span>}
+              </div>
+              <button onClick={generarRespaldo} disabled={ocupado} style={est.linkBtn}>
+                {ocupado?"Generando...":"Generar códigos nuevos"}
+              </button>
+              {restantes>0&&<div style={{fontSize:11.5,color:"#8FA0B4",marginTop:4}}>Los que tengas anotados dejan de servir.</div>}
+            </div>
             {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
             <button onClick={desactivar} disabled={ocupado} style={est.linkBtn}>Quitar verificación en dos pasos</button>
           </div>
         : <div>
             <div style={{fontSize:12.5,color:"#6B7280",lineHeight:1.5,marginBottom:12}}>
-              Hoy tu cartera está protegida solo con tu contraseña. Con esto, entrar necesita además un código que cambia cada 30 segundos en tu teléfono.
+              Hoy, quien tenga tu contraseña tiene la cartera de todos tus clientes. Con la verificación en dos pasos, entrar necesita además un código que solo aparece en tu teléfono y cambia cada 30 segundos.
+              <br/><br/>Toma dos minutos y necesitas tu celular a la mano.
             </div>
             {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
             <Boton color="#53647D" onClick={empezar} disabled={ocupado}>{ocupado?"Preparando...":"Activar"}</Boton>
@@ -1793,6 +1858,8 @@ function PedirBloqueo({session,lock,onOk,onSalir}){
 
 function PedirSegundoFactor({onOk,onSalir}){
   const[codigo,setCodigo]=useState("");
+  const[respaldo,setRespaldo]=useState("");
+  const[modo,setModo]=useState("totp"); // totp | respaldo
   const[error,setError]=useState("");
   const[verificando,setVerificando]=useState(false);
 
@@ -1809,6 +1876,36 @@ function PedirSegundoFactor({onOk,onSalir}){
     onOk();
   };
 
+  // El código de respaldo APAGA el segundo factor — no "entra con él". La marca de aal2 solo la
+  // emite Supabase al verificar un TOTP real, así que esto es lo único honesto que puede hacer.
+  const usarRespaldo=async(e)=>{
+    e.preventDefault();setError("");
+    if(respaldo.trim().length<8){setError("Escribe uno de tus códigos de respaldo completo.");return;}
+    setVerificando(true);
+    const{error:err}=await sb.rpc("usar_codigo_respaldo",{p_codigo:respaldo});
+    setVerificando(false);
+    if(err){setError(err.message);return;}
+    alert("Listo. Te desactivamos la verificación en dos pasos para que puedas entrar. Vuelve a activarla desde Mi perfil con tu teléfono nuevo.");
+    location.reload();
+  };
+
+  if(modo==="respaldo")return <CajaBloqueo>
+    <form onSubmit={usarRespaldo}>
+      <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>¿Perdiste tu teléfono?</div>
+      <div style={{fontSize:13.5,color:"#374151",lineHeight:1.5,marginBottom:16}}>
+        Escribe uno de los códigos de respaldo que guardaste cuando activaste la verificación. Vamos a <strong>desactivarte la verificación en dos pasos</strong> para que puedas entrar, y la vuelves a activar con tu teléfono nuevo.
+      </div>
+      <input value={respaldo} onChange={e=>setRespaldo(e.target.value.toUpperCase())}
+        placeholder="XXXXX-XXXXX" name="respaldo" autoFocus
+        style={{width:"100%",padding:"14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:18,letterSpacing:2,textAlign:"center",fontFamily:"ui-monospace,Consolas,monospace",marginBottom:10}}/>
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton type="submit" disabled={verificando}>{verificando?"Verificando...":"Usar este código"}</Boton>
+    </form>
+    <button onClick={()=>{setModo("totp");setError("");}} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:14,padding:0}}>
+      Sí tengo mi teléfono
+    </button>
+  </CajaBloqueo>;
+
   return <CajaBloqueo>
     <form onSubmit={verificar}>
       <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>Verificación en dos pasos</div>
@@ -1820,9 +1917,12 @@ function PedirSegundoFactor({onOk,onSalir}){
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
       <Boton type="submit" disabled={verificando}>{verificando?"Verificando...":"Entrar"}</Boton>
     </form>
-    <button onClick={onSalir} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:14,padding:0}}>
-      Cerrar sesión
+    <button onClick={()=>{setModo("respaldo");setError("");}} style={{background:"none",border:"none",color:"#10284A",fontSize:12.5,fontWeight:700,cursor:"pointer",marginTop:14,padding:0}}>
+      Perdí mi teléfono — usar un código de respaldo
     </button>
+    <div><button onClick={onSalir} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:10,padding:0}}>
+      Cerrar sesión
+    </button></div>
   </CajaBloqueo>;
 }
 

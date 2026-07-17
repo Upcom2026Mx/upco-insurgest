@@ -496,6 +496,8 @@ function PanelPromotoria({session,onSalir}){
 // restrictiva de la base le negaría su propia fila y el portal no cargaría nunca.
 function PedirSegundoFactor({onOk,onSalir}){
   const[codigo,setCodigo]=useState("");
+  const[respaldo,setRespaldo]=useState("");
+  const[modo,setModo]=useState("totp");
   const[error,setError]=useState("");
   const[verificando,setVerificando]=useState(false);
 
@@ -512,20 +514,50 @@ function PedirSegundoFactor({onOk,onSalir}){
     onOk();
   };
 
-  return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-    <div style={{background:"#fff",borderRadius:16,padding:26,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>
-      <form onSubmit={verificar}>
-        <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>Verificación en dos pasos</div>
-        <div style={{fontSize:13.5,color:"#374151",lineHeight:1.5,marginBottom:16}}>Abre tu app de autenticación y escribe el código de 6 dígitos.</div>
-        <input value={codigo} onChange={e=>setCodigo(e.target.value.replace(/\D/g,"").slice(0,6))}
-          type="tel" inputMode="numeric" placeholder="••••••" name="codigo" autoFocus
-          style={{width:"100%",padding:"14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:26,letterSpacing:"12px",textAlign:"center",fontFamily:"inherit",marginBottom:10}}/>
-        {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
-        <Boton type="submit" disabled={verificando}>{verificando?"Verificando...":"Entrar"}</Boton>
-      </form>
-      <button onClick={onSalir} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:14,padding:0}}>Cerrar sesión</button>
-    </div>
+  const usarRespaldo=async(e)=>{
+    e.preventDefault();setError("");
+    if(respaldo.trim().length<8){setError("Escribe uno de tus códigos de respaldo completo.");return;}
+    setVerificando(true);
+    const{error:err}=await sb.rpc("usar_codigo_respaldo",{p_codigo:respaldo});
+    setVerificando(false);
+    if(err){setError(err.message);return;}
+    alert("Listo. Te desactivamos la verificación en dos pasos para que puedas entrar. Vuelve a activarla desde tu panel de agente con tu teléfono nuevo.");
+    location.reload();
+  };
+
+  const caja=(contenido)=><div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:26,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>{contenido}</div>
   </div>;
+
+  if(modo==="respaldo")return caja(<>
+    <form onSubmit={usarRespaldo}>
+      <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>¿Perdiste tu teléfono?</div>
+      <div style={{fontSize:13.5,color:"#374151",lineHeight:1.5,marginBottom:16}}>
+        Escribe uno de tus códigos de respaldo. Vamos a <strong>desactivarte la verificación en dos pasos</strong> para que puedas entrar, y la vuelves a activar con tu teléfono nuevo.
+      </div>
+      <input value={respaldo} onChange={e=>setRespaldo(e.target.value.toUpperCase())} placeholder="XXXXX-XXXXX" name="respaldo" autoFocus
+        style={{width:"100%",padding:"14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:18,letterSpacing:2,textAlign:"center",fontFamily:"ui-monospace,Consolas,monospace",marginBottom:10}}/>
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton type="submit" disabled={verificando}>{verificando?"Verificando...":"Usar este código"}</Boton>
+    </form>
+    <button onClick={()=>{setModo("totp");setError("");}} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:14,padding:0}}>Sí tengo mi teléfono</button>
+  </>);
+
+  return caja(<>
+    <form onSubmit={verificar}>
+      <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>Verificación en dos pasos</div>
+      <div style={{fontSize:13.5,color:"#374151",lineHeight:1.5,marginBottom:16}}>Abre tu app de autenticación y escribe el código de 6 dígitos.</div>
+      <input value={codigo} onChange={e=>setCodigo(e.target.value.replace(/\D/g,"").slice(0,6))}
+        type="tel" inputMode="numeric" placeholder="••••••" name="codigo" autoFocus
+        style={{width:"100%",padding:"14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:26,letterSpacing:"12px",textAlign:"center",fontFamily:"inherit",marginBottom:10}}/>
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton type="submit" disabled={verificando}>{verificando?"Verificando...":"Entrar"}</Boton>
+    </form>
+    <button onClick={()=>{setModo("respaldo");setError("");}} style={{background:"none",border:"none",color:"#10284A",fontSize:12.5,fontWeight:700,cursor:"pointer",marginTop:14,padding:0}}>
+      Perdí mi teléfono — usar un código de respaldo
+    </button>
+    <div><button onClick={onSalir} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:10,padding:0}}>Cerrar sesión</button></div>
+  </>);
 }
 
 function App(){
