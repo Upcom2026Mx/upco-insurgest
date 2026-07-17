@@ -9,6 +9,29 @@
 <style>
   *{box-sizing:border-box}
   body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35}
+
+  /* ── Pantalla de bienvenida ──
+     "Insurance" y "Gestión" caen desde arriba y se les colapsa la terminación hasta formar
+     "InsurGest". Mismo mecanismo que el splash de Homey ("Home"+"money" → "Homey"), en vertical. */
+  #splash{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#10284A,#0a1c35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:opacity .6s ease;padding:24px}
+  #splash.oculto{opacity:0;pointer-events:none}
+  #splash .mono{border-radius:24px;box-shadow:0 16px 44px rgba(0,0,0,.45);line-height:0;opacity:0;transform:scale(.82) translateY(8px);animation:sLogo .9s cubic-bezier(.2,.7,.3,1) .1s forwards}
+  #splash .marca{font-size:28px;font-weight:800;color:#fff;margin-top:8px;display:flex;align-items:baseline;gap:8px;white-space:nowrap}
+  #splash .upco{opacity:0;animation:sFade .5s ease .4s forwards}
+  #splash .ig{display:inline-flex;color:#F59E0B;animation:sGrow .5s ease 2.5s forwards}
+  #splash .insur{display:inline-flex;opacity:0;transform:translateY(-28px);animation:sBaja .6s cubic-bezier(.2,.7,.3,1) 1s forwards}
+  #splash .gest{display:inline-flex;opacity:0;transform:translateY(-28px);animation:sBaja .6s cubic-bezier(.2,.7,.3,1) 1.7s forwards}
+  #splash .cae{display:inline-block;overflow:hidden;max-width:110px;animation:sColapsa .5s ease 2.5s forwards}
+  #splash .esp{max-width:9px}
+  #splash .sub{font-size:15px;font-weight:500;color:#8FA0B4;opacity:0;animation:sFade .5s ease 3.1s forwards;text-align:center}
+  #splash .barra{width:120px;height:4px;border-radius:99px;background:rgba(255,255,255,.18);overflow:hidden;opacity:0;animation:sFade .4s ease .3s forwards}
+  #splash .barra i{display:block;height:100%;width:40%;border-radius:99px;background:#F59E0B;animation:sCarga 1.1s ease-in-out .3s infinite}
+  @keyframes sLogo{to{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes sFade{to{opacity:1}}
+  @keyframes sCarga{0%{margin-left:-40%}100%{margin-left:120%}}
+  @keyframes sBaja{to{opacity:1;transform:translateY(0)}}
+  @keyframes sColapsa{to{max-width:0;opacity:0}}
+  @keyframes sGrow{0%{transform:scale(1)}60%{transform:scale(1.15)}100%{transform:scale(1.05)}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -17,6 +40,30 @@
 <script src="../shared.js"></script>
 </head>
 <body>
+<div id="splash">
+  <div class="mono"><svg width="84" height="84" viewBox="0 0 38 38"><rect width="38" height="38" rx="11" fill="#10284A"/><text x="19" y="25" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-weight="800" font-size="14" fill="#F59E0B">IG</text></svg></div>
+  <div class="marca">
+    <span class="upco">Upco</span>
+    <span class="ig"><span class="insur">Insur<span class="cae">ance</span></span><span class="cae esp">&nbsp;</span><span class="gest">Gest<span class="cae">ión</span></span></span>
+  </div>
+  <div class="sub">Portal de promotoría</div>
+  <div class="barra"><i></i></div>
+</div>
+<script>
+// Va aquí, junto al splash y no al final del archivo, para que corra mientras el navegador
+// todavía está armando la página: si esperara al final, quien ya lo vio alcanzaría a ver un
+// parpadeo antes de que lo quitemos.
+(function(){
+  var s=document.getElementById("splash");
+  if(!s)return;
+  var quieto=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Una sola vez por sesión: quien entra a trabajar varias veces al día no necesita esperar
+  // la animación cada vez.
+  if(quieto||sessionStorage.getItem("upco_ig_splash")){s.remove();return;}
+  try{sessionStorage.setItem("upco_ig_splash","1");}catch(e){}
+  setTimeout(function(){s.classList.add("oculto");setTimeout(function(){s.remove();},700);},3800);
+})();
+</script>
 <div id="root"></div>
 <script type="text/babel">
 const{useState,useEffect}=React;
