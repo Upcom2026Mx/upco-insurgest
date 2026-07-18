@@ -1134,10 +1134,48 @@ function MiPerfil({agente,onAgenteCambiado}){
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
       <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":guardado?"¡Guardado!":"Guardar"}</Boton>
     </form>
+    <AfiliarRed agente={agente} onAgenteCambiado={onAgenteCambiado}/>
     <SegundoFactor/>
     <BloqueoDispositivo agente={agente}/>
     <MedidorAlmacenamiento/>
   </div>;
+}
+
+// Para un agente que ya tenía cuenta antes de que existiera su promotoría, o que no metió el
+// código al registrarse. Una vez afiliado no se puede cambiar solo — evita que un agente ande
+// saltando de red para acomodarse en el mejor lugar de la fila de "primeros 5".
+function AfiliarRed({agente,onAgenteCambiado}){
+  const[codigo,setCodigo]=useState("");
+  const[guardando,setGuardando]=useState(false);
+  const[error,setError]=useState("");
+  const[ok,setOk]=useState(false);
+
+  if(agente.promotoria_id)return null; // ya afiliado, nada que mostrar aquí
+
+  const afiliar=async(e)=>{
+    e.preventDefault();
+    setError("");
+    if(!codigo.trim()){setError("Escribe el código que te dio tu promotoría.");return;}
+    setGuardando(true);
+    const{error:err}=await sb.rpc("agente_afiliar_promotoria",{p_codigo:codigo.trim()});
+    setGuardando(false);
+    if(err){setError(err.message);return;}
+    setOk(true);
+    const{data:fresco}=await sb.from("agentes").select("*").eq("id",agente.id).single();
+    if(fresco)onAgenteCambiado(fresco);
+  };
+
+  return <form onSubmit={afiliar} style={{...est.card,maxWidth:420,marginTop:14}}>
+    <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>¿Perteneces a una promotoría?</div>
+    <div style={{fontSize:12.5,color:"#6B7280",lineHeight:1.5,marginBottom:12}}>
+      Si tu promotoría te dio un código de invitación, ponlo aquí para unirte a su red — si eres de los primeros 5 agentes, tu acceso queda cubierto por su cuota, sin costo para ti.
+    </div>
+    <input name="codigo" value={codigo} onChange={e=>setCodigo(e.target.value.toUpperCase())}
+      placeholder="Código de la promotoría" style={{...est.input,marginBottom:10}}/>
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    {ok&&<div style={{color:"#16a34a",fontSize:13,marginBottom:10}}>¡Listo! Ya perteneces a esa red.</div>}
+    <Boton type="submit" disabled={guardando}>{guardando?"Uniéndote...":"Unirme a la red"}</Boton>
+  </form>;
 }
 
 // Alta/baja del TOTP. Ojo con el orden al desactivarlo: primero se quita el factor y luego se
@@ -1521,7 +1559,7 @@ const PLANES_AGENTE=[
   {periodo:"anual",label:"Anual",monto:"$2,990 MXN/año"}
 ];
 
-function PantallaSuscripcion({cuenta,bloqueado}){
+function PantallaSuscripcion({cuenta,bloqueado,estadoRed}){
   const[cargando,setCargando]=useState(null);
   const[error,setError]=useState("");
 
@@ -1558,6 +1596,8 @@ function PantallaSuscripcion({cuenta,bloqueado}){
   };
 
   const suscripcionActiva=cuenta.estatus_suscripcion==="active"||cuenta.estatus_suscripcion==="trialing";
+  const accesoGratisPorRed=!suscripcionActiva&&estadoRed&&estadoRed.acceso_gratis;
+  const enRedSinGratis=!suscripcionActiva&&!accesoGratisPorRed&&estadoRed&&estadoRed.en_red;
   const ahora=new Date();
   const finPrueba=cuenta.aprobado_en?new Date(new Date(cuenta.aprobado_en).getTime()+30*86400000):null;
   const accesoExtendido=cuenta.acceso_extendido_hasta?new Date(cuenta.acceso_extendido_hasta):null;
@@ -1576,7 +1616,20 @@ function PantallaSuscripcion({cuenta,bloqueado}){
       {!suscripcionActiva&&!(diasExtendido>0)&&diasPrueba!=null&&<div style={{fontSize:13,color:diasPrueba<=5?"#F59E0B":"#8FA0B4"}}>Prueba gratuita — quedan {Math.max(diasPrueba,0)} días</div>}
     </div>}
 
-    {!suscripcionActiva&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
+    {accesoGratisPorRed&&<div style={{...est.card,background:"#f0fdf4",border:"1px solid #86efac"}}>
+      <div style={{fontSize:14,fontWeight:700,color:"#16a34a",marginBottom:6}}>✅ Tu acceso está cubierto</div>
+      <div style={{fontSize:13,color:"#374151"}}>Eres parte de la red de <strong>{estadoRed.promotoria_nombre||"tu promotoría"}</strong> — no tienes que pagar nada por separado mientras ella tenga su suscripción vigente.</div>
+    </div>}
+
+    {enRedSinGratis&&<div style={{...est.card,background:"#FFFBEB",border:"1px solid #FDE68A"}}>
+      <div style={{fontSize:14,fontWeight:700,color:"#B45309",marginBottom:6}}>Tarifa de red — $249/mes</div>
+      <div style={{fontSize:13,color:"#374151",marginBottom:12}}>Eres parte de la red de <strong>{estadoRed.promotoria_nombre||"tu promotoría"}</strong>, pero ya se ocuparon los primeros 5 lugares incluidos. Te toca la tarifa de agente adicional: $249/mes en vez de $299 — la activamos manual, todavía no está automatizada.</div>
+      <a href="mailto:hola@upco.app?subject=Activar%20mi%20tarifa%20de%20red%20(%24249%2Fmes)" style={{textDecoration:"none"}}>
+        <Boton color="#F59E0B">Escribir para activarla</Boton>
+      </a>
+    </div>}
+
+    {!suscripcionActiva&&!accesoGratisPorRed&&!enRedSinGratis&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
       {PLANES_AGENTE.map(p=><div key={p.periodo} style={est.card}>
         <div style={{fontSize:11,fontWeight:700,color:"#8FA0B4",marginBottom:4}}>{p.label.toUpperCase()}</div>
         <div style={{fontSize:14,fontWeight:700,color:"#10284A",marginBottom:12}}>{p.monto}</div>
@@ -1590,7 +1643,7 @@ function PantallaSuscripcion({cuenta,bloqueado}){
     </div>}
 
     {error&&<div style={{color:"#dc2626",fontSize:13,marginTop:14,textAlign:"center"}}>{error}</div>}
-    {!suscripcionActiva&&<div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Precios +IVA. Se cobra por Stripe, cancela cuando quieras.</div>}
+    {!suscripcionActiva&&!accesoGratisPorRed&&!enRedSinGratis&&<div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Precios +IVA. Se cobra por Stripe, cancela cuando quieras.</div>}
   </div>;
 
   if(!bloqueado)return contenido;
@@ -1695,10 +1748,17 @@ function AvisosAgente({agenteId}){
 
 function Panel({session,onSalir}){
   const[agente,setAgente]=useState(null);
+  const[estadoRed,setEstadoRed]=useState(null);
   const[clienteActivo,setClienteActivo]=useState(null);
   const[vista,setVista]=useState("clientes"); // clientes | solicitudes | resumen | perfil
   const[pendientes,setPendientes]=useState(0);
   const[error,setError]=useState("");
+
+  const cargarEstadoRed=()=>{sb.rpc("agente_estado_red").then(({data})=>setEstadoRed(data||null));};
+
+  // Cualquier cambio al agente (afiliarse a una red, actualizar su tarjeta, su perfil...) puede
+  // afectar su posición en la red, así que recarga los dos juntos en vez de dejar estadoRed viejo.
+  const actualizarAgente=(nuevo)=>{setAgente(nuevo);cargarEstadoRed();};
 
   useEffect(()=>{
     (async()=>{
@@ -1734,6 +1794,10 @@ function Panel({session,onSalir}){
   },[]);
 
   useEffect(()=>{
+    if(agente)cargarEstadoRed();
+  },[agente&&agente.id]);
+
+  useEffect(()=>{
     if(!agente)return;
     sb.from("solicitudes").select("id",{count:"exact",head:true}).eq("estatus","nueva")
       .then(({count})=>setPendientes(count||0));
@@ -1759,11 +1823,11 @@ function Panel({session,onSalir}){
     </div>
   </div>;
 
-  if(!accesoVigente(agente))return <div>
+  if(!accesoVigente(agente,estadoRed&&estadoRed.acceso_gratis))return <div>
     <div style={{maxWidth:760,margin:"0 auto",padding:"16px 16px 0",display:"flex",justifyContent:"flex-end"}}>
       <button onClick={onSalir} style={{background:"none",border:"none",color:"#6B7280",fontSize:14,cursor:"pointer"}}>Salir ({agente.correo})</button>
     </div>
-    <PantallaSuscripcion cuenta={agente} bloqueado={true}/>
+    <PantallaSuscripcion cuenta={agente} bloqueado={true} estadoRed={estadoRed}/>
   </div>;
 
   return <div style={{maxWidth:760,margin:"0 auto",padding:"24px 16px 60px"}}>
@@ -1791,13 +1855,13 @@ function Panel({session,onSalir}){
         :vista==="avisos"
           ?<AvisosAgente agenteId={agente.id}/>
           :vista==="tarjeta"
-            ?<MiTarjeta agente={agente} onAgenteCambiado={setAgente}/>
+            ?<MiTarjeta agente={agente} onAgenteCambiado={actualizarAgente}/>
           :vista==="resumen"
             ?<DashboardAgente/>
             :vista==="suscripcion"
-              ?<PantallaSuscripcion cuenta={agente} bloqueado={false}/>
+              ?<PantallaSuscripcion cuenta={agente} bloqueado={false} estadoRed={estadoRed}/>
               :vista==="perfil"
-                ?<MiPerfil agente={agente} onAgenteCambiado={setAgente}/>
+                ?<MiPerfil agente={agente} onAgenteCambiado={actualizarAgente}/>
                 :<ClientesList agenteId={agente.id} onAbrirCliente={setClienteActivo}/>}
   </div>;
 }

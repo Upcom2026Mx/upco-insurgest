@@ -278,6 +278,9 @@ function Agentes(){
           </div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{a.clientes} clientes · {a.polizas} pólizas{a.acepto_terminos?" · Aceptó términos":" · No ha aceptado términos"}</div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{textoEstatusPago(a)}{a.tiene_2fa?" · 🔒 2FA activado":""}</div>
+          {a.promotoria_nombre&&<div style={{fontSize:12,marginTop:2,color:a.posicion_red<=5?"#16a34a":"#B45309"}}>
+            Red: {a.promotoria_nombre} — {a.posicion_red<=5?`incluido (posición ${a.posicion_red})`:`agente adicional $249/mes (posición ${a.posicion_red})`}
+          </div>}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span style={est.badge(colorEstatusAgente[a.estatus_aprobacion]||"#6b7280")}>{a.estatus_aprobacion}</span>

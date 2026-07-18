@@ -102,7 +102,11 @@ async function verificarBiometria(credId){
 
 // true si la cuenta (agente o promotoría) puede usar su panel: suscripción activa, acceso
 // extendido manualmente por el fundador, o todavía dentro de los 30 días de prueba desde su aprobación.
-function accesoVigente(cuenta){
+// accesoRed=true cuando el agente es de los primeros 5 de una promotoría con suscripción vigente
+// (vía agente_estado_red().acceso_gratis) — no aplica a promotorías ni al agente 6+ en adelante,
+// cuya tarifa de $249 se sigue facturando manual.
+function accesoVigente(cuenta,accesoRed){
+  if(accesoRed)return true;
   if(cuenta.estatus_suscripcion==="active"||cuenta.estatus_suscripcion==="trialing")return true;
   const ahora=new Date();
   if(cuenta.acceso_extendido_hasta&&ahora<=new Date(cuenta.acceso_extendido_hasta))return true;
