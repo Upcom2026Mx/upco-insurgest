@@ -7,10 +7,14 @@
 <meta name="description" content="Administra tu cartera y consigue clientes nuevos: tarjeta digital con formulario de prospectos, liga mágica para tus clientes, avisos automáticos de vencimiento y dashboard de tu cartera."/>
 <link rel="manifest" href="manifest.webmanifest"/>
 <link rel="icon" href="icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="estilos.css"/>
 <style>
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35;overflow-x:hidden}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#EFF3F9 620px);color:#0a1c35;overflow-x:hidden}
   a{text-decoration:none}
 
   /* ── Pantalla de bienvenida ──
@@ -55,55 +59,61 @@
   .blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;pointer-events:none;will-change:transform}
   .blob-a{width:340px;height:340px;background:#F59E0B33;top:-120px;left:-90px}
   .blob-b{width:300px;height:300px;background:#10284A26;top:40px;right:-110px}
-  .header{background:#10284A;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;max-width:1040px;margin:0 auto}
-  .brand{color:#fff;font-weight:800;font-size:18px}
+  .header{background:linear-gradient(135deg,#173863,#0a1c35);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;max-width:1040px;margin:0 auto;border-radius:0 0 16px 16px;box-shadow:0 4px 20px rgba(10,28,53,.18)}
+  .brand{color:#fff;font-weight:700;font-size:19px;font-family:var(--font-display)}
   .brand span{color:#F59E0B}
-  .navlink{color:#DDE4EE;font-size:14px;font-weight:600;padding:8px 14px}
-  .hero{max-width:720px;margin:0 auto;padding:64px 20px 40px;text-align:center}
-  .hero h1{font-size:32px;font-weight:800;line-height:1.25;margin:0 0 16px}
-  .hero p{font-size:16px;color:#374151;line-height:1.6;margin:0 0 28px}
+  .navlink{color:#DDE4EE;font-size:14px;font-weight:600;padding:8px 14px;transition:color .15s ease}
+  .navlink:hover{color:#fff}
+  .hero{max-width:720px;margin:0 auto;padding:72px 20px 44px;text-align:center}
+  .hero h1{font-size:34px;font-weight:600;line-height:1.2;margin:0 0 18px}
+  .hero p{font-size:16.5px;color:#374151;line-height:1.65;margin:0 0 30px}
   .cta-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:8px}
-  .boton{display:inline-block;background:#10284A;color:#fff;border-radius:10px;padding:14px 26px;font-size:16px;font-weight:700}
-  .boton-sec{display:inline-block;background:#fff;color:#10284A;border:1.5px solid #DDE4EE;border-radius:10px;padding:14px 26px;font-size:16px;font-weight:700}
+  .boton{display:inline-block;background:linear-gradient(180deg,#173863,#0d2140);color:#fff;border-radius:11px;padding:15px 28px;font-size:16px;font-weight:700;box-shadow:0 10px 26px rgba(16,40,74,.24);transition:transform .15s ease,box-shadow .15s ease}
+  .boton:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(16,40,74,.3)}
+  .boton-sec{display:inline-block;background:#fff;color:#10284A;border:1.5px solid #DDE4EE;border-radius:11px;padding:15px 28px;font-size:16px;font-weight:700;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+  .boton-sec:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(16,28,53,.08);border-color:#c7d3e3}
+  @media(prefers-reduced-motion:reduce){.boton,.boton-sec,.navlink{transition:none}.boton:hover,.boton-sec:hover{transform:none}}
   .subnota{font-size:13px;color:#8FA0B4;margin-top:14px}
   .features{max-width:1040px;margin:0 auto;padding:20px 20px 60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
-  .fcard{background:#fff;border:1px solid #DDE4EE;border-radius:14px;padding:22px}
-  .ficon{width:40px;height:40px;border-radius:10px;background:#F59E0B1a;color:#F59E0B;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;margin-bottom:14px}
-  .fcard h3{font-size:15px;margin:0 0 8px;color:#10284A}
-  .fcard p{font-size:13.5px;color:#6B7280;line-height:1.55;margin:0}
-  .fcard.destacada{border:1.5px solid #F59E0B;box-shadow:0 8px 30px rgba(245,158,11,.12)}
+  .fcard{background:#fff;border:1px solid rgba(16,40,74,.08);border-radius:16px;padding:24px;box-shadow:0 3px 12px rgba(16,28,53,.06)}
+  .ficon{width:42px;height:42px;border-radius:11px;background:linear-gradient(160deg,#FBBF24,#F59E0B);color:#10284A;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;margin-bottom:16px;box-shadow:0 4px 12px rgba(245,158,11,.25)}
+  .fcard h3{font-size:15.5px;margin:0 0 8px;color:#10284A;font-weight:700}
+  .fcard p{font-size:13.5px;color:#6B7280;line-height:1.6;margin:0}
+  .fcard.destacada{border:1.5px solid #FBBF24;box-shadow:0 10px 32px rgba(245,158,11,.14)}
   .nuevo{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;color:#10284A;background:#F59E0B;border-radius:5px;padding:2px 7px;margin-left:7px;vertical-align:middle}
   .secheader{max-width:1040px;margin:0 auto;padding:44px 20px 0;text-align:center}
-  .secheader h2{font-size:24px;font-weight:800;color:#10284A;margin:0 0 6px}
-  .secheader p{font-size:14px;color:#6B7280;max-width:600px;margin:0 auto}
-  .ejenum{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#F59E0B;color:#10284A;font-weight:800;font-size:15px;margin-bottom:10px}
+  .secheader h2{font-size:26px;font-weight:600;color:#10284A;margin:0 0 8px}
+  .secheader p{font-size:14.5px;color:#6B7280;max-width:600px;margin:0 auto}
+  .ejenum{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:linear-gradient(160deg,#FBBF24,#F59E0B);color:#10284A;font-weight:800;font-size:15px;margin-bottom:10px;box-shadow:0 4px 10px rgba(245,158,11,.3)}
   .ejes{max-width:1040px;margin:0 auto;padding:36px 20px 8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
-  .eje{display:block;background:#10284A;border-radius:14px;padding:22px;transition:transform .25s ease,box-shadow .25s ease}
-  .eje:hover{transform:translateY(-5px);box-shadow:0 14px 34px rgba(16,40,74,.28)}
-  .eje .ejenum{background:#F59E0B}
-  .eje h3{color:#fff;font-size:16px;margin:0 0 8px}
-  .eje p{color:#C7D3E3;font-size:13.5px;line-height:1.55;margin:0}
+  .eje{display:block;background:linear-gradient(160deg,#173863,#0a1c35);border-radius:16px;padding:24px;box-shadow:0 6px 20px rgba(16,40,74,.16);transition:transform .25s ease,box-shadow .25s ease}
+  .eje:hover{transform:translateY(-5px);box-shadow:0 16px 36px rgba(16,40,74,.3)}
+  .eje h3{color:#fff;font-size:17px;margin:0 0 8px;font-weight:600}
+  .eje p{color:#C7D3E3;font-size:13.5px;line-height:1.6;margin:0}
   .eje-mas{display:inline-block;margin-top:12px;color:#F59E0B;font-size:12.5px;font-weight:700}
   .eje:hover .eje-mas{text-decoration:underline}
   /* El ancla no debe dejar el título pegado al borde de la pantalla. */
   .secheader{scroll-margin-top:18px}
   .fcard{transition:transform .25s ease,box-shadow .25s ease}
-  .fcard:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(10,28,53,.10)}
+  .fcard:hover{transform:translateY(-4px);box-shadow:0 14px 32px rgba(10,28,53,.11)}
   @media(prefers-reduced-motion:reduce){.eje,.fcard{transition:none}.eje:hover,.fcard:hover{transform:none}}
-  .cta-final{background:#10284A;padding:56px 20px;text-align:center}
-  .cta-final h2{color:#fff;font-size:24px;font-weight:800;margin:0 0 10px}
-  .cta-final p{color:#DDE4EE;font-size:14px;margin:0 0 24px}
-  .cta-final .boton{background:#F59E0B;color:#10284A}
+  .cta-final{background:linear-gradient(160deg,#173863,#0a1c35);padding:64px 20px;text-align:center;border-radius:24px;max-width:1040px;margin:0 auto 40px;box-shadow:0 20px 50px rgba(16,40,74,.2)}
+  .cta-final h2{color:#fff;font-size:26px;font-weight:600;margin:0 0 10px}
+  .cta-final p{color:#DDE4EE;font-size:14.5px;margin:0 0 26px}
+  .cta-final .boton{background:linear-gradient(180deg,#FBBF24,#F59E0B);color:#10284A;box-shadow:0 10px 26px rgba(245,158,11,.32)}
+  .cta-final .boton:hover{box-shadow:0 14px 32px rgba(245,158,11,.4)}
   footer{max-width:1040px;margin:0 auto;padding:24px 20px;text-align:center;font-size:12.5px;color:#8FA0B4}
   footer a{color:#53647D;font-weight:600}
   .version{margin-top:8px;font-size:11.5px;color:#B6C2D2}
   @media(min-width:640px){.hero h1{font-size:40px}}
 
   .showcase{max-width:1040px;margin:0 auto;padding:20px 20px 60px}
-  .showcase h2{font-size:24px;font-weight:800;color:#10284A;text-align:center;margin:0 0 6px}
-  .showcase-sub{font-size:14px;color:#6B7280;text-align:center;max-width:520px;margin:0 auto 32px}
-  .mock-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
-  .mock{background:#fff;border:1px solid #DDE4EE;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.05)}
+  .showcase h2{font-size:26px;font-weight:600;color:#10284A;text-align:center;margin:0 0 8px}
+  .showcase-sub{font-size:14.5px;color:#6B7280;text-align:center;max-width:520px;margin:0 auto 32px}
+  .mock-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}
+  .mock{background:#fff;border:1px solid rgba(16,40,74,.08);border-radius:16px;overflow:hidden;box-shadow:0 10px 34px rgba(16,28,53,.08);transition:transform .25s ease,box-shadow .25s ease}
+  .mock:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(16,28,53,.12)}
+  @media(prefers-reduced-motion:reduce){.mock{transition:none}.mock:hover{transform:none}}
   .mock-bar{background:#EEF2F8;padding:9px 12px;display:flex;align-items:center;gap:5px}
   .mock-dot{width:8px;height:8px;border-radius:50%;background:#DDE4EE;display:inline-block}
   .mock-url{margin-left:8px;background:#fff;border-radius:6px;padding:3px 10px;font-size:10.5px;color:#8FA0B4;flex:1;font-family:ui-monospace,Consolas,monospace}

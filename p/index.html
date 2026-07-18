@@ -7,9 +7,13 @@
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="../manifest.webmanifest"/>
 <link rel="icon" href="../icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../estilos.css"/>
 <style>
   *{box-sizing:border-box}
-  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#F0F4F9 380px);color:#0a1c35;min-height:100vh}
 
   /* ── Pantalla de bienvenida ──
      "Insurance" y "Gestión" caen desde arriba y se les colapsa la terminación hasta formar
@@ -76,14 +80,14 @@ function leerToken(){
   return m?decodeURIComponent(m[1]):null;
 }
 
-const card={background:"#fff",borderRadius:14,padding:18,border:"1px solid #DDE4EE"};
-const badge=(color)=>({display:"inline-block",fontSize:11,fontWeight:700,color,background:color+"1a",borderRadius:6,padding:"3px 8px"});
-const campo={width:"100%",padding:"12px 14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"};
+const card={background:"#fff",borderRadius:16,padding:22,border:"1px solid rgba(16,40,74,.08)",boxShadow:"0 3px 12px rgba(16,28,53,.07), 0 1px 3px rgba(16,28,53,.05)"};
+const badge=(color)=>({display:"inline-block",fontSize:11,fontWeight:700,color,background:color+"1a",borderRadius:7,padding:"3px 9px"});
+const campo={width:"100%",padding:"13px 15px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"};
 const TIPOS_CAMBIO=["Cambio de domicilio","Cambio de placas o vehículo","Agregar o quitar conductor","Cambio de beneficiario","Cambio de forma de pago","Otro"];
 
+const VARIANTE_BOTON={"#10284A":"btn-navy","#F59E0B":"btn-amber","#53647D":"btn-neutral","#16a34a":"btn-good"};
 function Boton({children,onClick,disabled,color="#10284A",type="button"}){
-  return <button type={type} onClick={onClick} disabled={disabled}
-    style={{background:disabled?"#DDE4EE":color,color:disabled?"#9ca3af":"#fff",border:"none",borderRadius:10,padding:"12px 18px",fontSize:15,fontWeight:700,cursor:disabled?"not-allowed":"pointer"}}>
+  return <button type={type} onClick={onClick} disabled={disabled} className={`btn ${VARIANTE_BOTON[color]||"btn-navy"}`}>
     {children}
   </button>;
 }

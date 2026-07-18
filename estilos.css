@@ -1,0 +1,87 @@
+/* Upco InsurGest — sistema de diseño compartido.
+   Cargado por todas las páginas (raíz: "estilos.css", subcarpetas: "../estilos.css"),
+   igual que shared.js. Un solo lugar para tipografía, sombras y botones — cambiar aquí
+   se refleja en /app, /promotor, /admin, /p, /a y la landing a la vez. */
+
+:root{
+  --navy-950:#0a1c35;
+  --navy-900:#10284A;
+  --navy-800:#173863;
+  --navy-700:#1f4a80;
+  --navy-100:#E8EEF7;
+  --amber-600:#B45309;
+  --amber-500:#F59E0B;
+  --amber-400:#FBBF24;
+  --line:#DDE4EE;
+  --line-soft:rgba(16,40,74,.08);
+  --good:#16a34a;
+  --danger:#dc2626;
+  --shadow-sm:0 1px 2px rgba(16,28,53,.05);
+  --shadow-md:0 3px 12px rgba(16,28,53,.07), 0 1px 3px rgba(16,28,53,.05);
+  --shadow-lg:0 16px 36px rgba(16,28,53,.13), 0 2px 8px rgba(16,28,53,.06);
+  --shadow-navy:0 10px 26px rgba(16,40,74,.24);
+  --shadow-amber:0 8px 20px rgba(245,158,11,.28);
+  --shadow-good:0 8px 20px rgba(22,163,74,.22);
+  --radius-sm:10px;
+  --radius-md:16px;
+  --radius-lg:22px;
+  --font-display:'Fraunces',ui-serif,Georgia,'Iowan Old Style',serif;
+}
+
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+h1,h2,h3,h4{font-family:var(--font-display);letter-spacing:-.01em;text-wrap:balance}
+
+/* ============ BOTONES ============
+   El componente Boton (repetido en app/promotor/admin/p) le pone className="btn btn-<variante>"
+   según el color que recibe — el fondo y la sombra viven aquí, no inline, para poder animar
+   hover/active. El estado disabled se maneja completo en CSS: si Boton siguiera fijando el
+   fondo inline cuando disabled, ganaría por especificidad y taparía esto sin avisar. */
+.btn{
+  border:none;border-radius:var(--radius-sm);padding:12px 20px;font-size:15px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.btn:disabled{
+  background:#DDE4EE !important;color:#9ca3af !important;box-shadow:none !important;
+  cursor:not-allowed;transform:none !important;filter:none !important;
+}
+.btn-navy{background:linear-gradient(180deg,var(--navy-800),#0d2140);color:#fff;box-shadow:var(--shadow-navy)}
+.btn-navy:hover:not(:disabled){transform:translateY(-1.5px);box-shadow:0 14px 30px rgba(16,40,74,.30)}
+.btn-navy:active:not(:disabled){transform:translateY(0);box-shadow:var(--shadow-sm)}
+
+.btn-amber{background:linear-gradient(180deg,var(--amber-400),var(--amber-500));color:var(--navy-900);box-shadow:var(--shadow-amber)}
+.btn-amber:hover:not(:disabled){transform:translateY(-1.5px);box-shadow:0 12px 26px rgba(245,158,11,.34)}
+.btn-amber:active:not(:disabled){transform:translateY(0);box-shadow:var(--shadow-sm)}
+
+.btn-neutral{background:#53647D;color:#fff;box-shadow:var(--shadow-sm)}
+.btn-neutral:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px)}
+.btn-neutral:active:not(:disabled){transform:translateY(0)}
+
+.btn-good{background:linear-gradient(180deg,#22c55e,var(--good));color:#fff;box-shadow:var(--shadow-good)}
+.btn-good:hover:not(:disabled){transform:translateY(-1.5px)}
+.btn-good:active:not(:disabled){transform:translateY(0)}
+
+/* ============ CAMPOS DE FORMULARIO ============
+   Mejora global sin tener que tocar cada input del código: el foco ya se ve intencional
+   en vez del contorno azul por default del navegador. !important porque el borde en reposo
+   se sigue fijando inline (color por default) y de otro modo ganaría sobre el de aquí. */
+input:not([type=checkbox]):not([type=radio]),select,textarea{
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{
+  outline:none;
+  border-color:var(--navy-700) !important;
+  box-shadow:0 0 0 3px rgba(16,40,74,.13);
+}
+
+/* ============ ACCIONES DE LA TARJETA DIGITAL (WhatsApp / llamar / correo) ============
+   Son <div> dentro de <a>, no <button>, así que no usan .btn — solo necesitan la misma
+   sensación de "esto es interactivo" al pasar el mouse. */
+.tarjeta-accion{transition:transform .15s ease, box-shadow .15s ease; box-shadow:0 2px 8px rgba(16,28,53,.06)}
+.tarjeta-accion:hover{transform:translateY(-2px); box-shadow:0 10px 24px rgba(16,28,53,.15)}
+.tarjeta-accion:active{transform:translateY(0)}
+
+@media(prefers-reduced-motion:reduce){
+  .btn{transition:none}
+  .btn:hover{transform:none !important}
+}

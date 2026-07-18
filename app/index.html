@@ -7,9 +7,13 @@
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="../manifest.webmanifest"/>
 <link rel="icon" href="../icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../estilos.css"/>
 <style>
   *{box-sizing:border-box}
-  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#F0F4F9 380px);color:#0a1c35;min-height:100vh}
 
   /* ── Pantalla de bienvenida ──
      "Insurance" y "Gestión" caen desde arriba y se les colapsa la terminación hasta formar
@@ -87,17 +91,19 @@ function sumarAnios(fechaISO,anios){
 }
 
 const est={
-  input:{width:"100%",padding:"12px 14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"},
+  input:{width:"100%",padding:"13px 15px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"},
   label:{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"},
-  card:{background:"#fff",borderRadius:14,padding:18,border:"1px solid #DDE4EE"},
+  card:{background:"#fff",borderRadius:16,padding:22,border:"1px solid rgba(16,40,74,.08)",boxShadow:"0 3px 12px rgba(16,28,53,.07), 0 1px 3px rgba(16,28,53,.05)"},
   fila:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:"1px solid #f1f5f9",cursor:"pointer"},
   linkBtn:{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer",padding:"4px 8px"},
-  badge:(color)=>({display:"inline-block",fontSize:11,fontWeight:700,color,background:color+"1a",borderRadius:6,padding:"3px 8px"})
+  badge:(color)=>({display:"inline-block",fontSize:11,fontWeight:700,color,background:color+"1a",borderRadius:7,padding:"3px 9px"})
 };
 
+// El color determina la variante visual (definida en estilos.css); "not-disabled" siempre lo
+// resuelve el propio CSS, así el disabled se ve igual sin importar qué color se pidió.
+const VARIANTE_BOTON={"#10284A":"btn-navy","#F59E0B":"btn-amber","#53647D":"btn-neutral","#16a34a":"btn-good"};
 function Boton({children,onClick,disabled,color="#10284A",type="button"}){
-  return <button type={type} onClick={onClick} disabled={disabled}
-    style={{background:disabled?"#DDE4EE":color,color:disabled?"#9ca3af":"#fff",border:"none",borderRadius:10,padding:"12px 18px",fontSize:15,fontWeight:700,cursor:disabled?"not-allowed":"pointer"}}>
+  return <button type={type} onClick={onClick} disabled={disabled} className={`btn ${VARIANTE_BOTON[color]||"btn-navy"}`}>
     {children}
   </button>;
 }
@@ -108,8 +114,8 @@ function Campo({label,children}){
 
 const ALTO_HEADER=54;
 function HeaderBar(){
-  return <div style={{background:"#10284A",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:10,height:ALTO_HEADER}}>
-    <span style={{color:"#fff",fontWeight:800,fontSize:16}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></span>
+  return <div style={{background:"linear-gradient(135deg,#173863,#0a1c35)",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:10,height:ALTO_HEADER,boxShadow:"0 2px 14px rgba(10,28,53,.25)"}}>
+    <span style={{color:"#fff",fontWeight:700,fontSize:18,fontFamily:"var(--font-display)"}}>Upco <span style={{color:"#F59E0B"}}>InsurGest</span></span>
     <span style={{color:"#fff",fontSize:12,fontWeight:600,background:"rgba(255,255,255,.15)",borderRadius:20,padding:"3px 10px"}}>Portal Agente</span>
   </div>;
 }

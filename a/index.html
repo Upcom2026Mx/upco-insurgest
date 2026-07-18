@@ -5,9 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Tarjeta digital — Upco InsurGest</title>
 <link rel="icon" href="../icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../estilos.css"/>
 <style>
   *{box-sizing:border-box}
-  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#0a1c35}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#F0F4F9 380px);color:#0a1c35;min-height:100vh}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -29,12 +33,12 @@ function leerAlias(){
   return m?decodeURIComponent(m[1]):null;
 }
 
-const card={background:"#fff",borderRadius:14,padding:18,border:"1px solid #DDE4EE"};
-const campo={width:"100%",padding:"12px 14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"};
+const card={background:"#fff",borderRadius:18,padding:22,border:"1px solid rgba(16,40,74,.08)",boxShadow:"0 4px 16px rgba(16,28,53,.08), 0 1px 3px rgba(16,28,53,.05)"};
+const campo={width:"100%",padding:"13px 15px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"};
 
+const VARIANTE_BOTON={"#10284A":"btn-navy","#F59E0B":"btn-amber","#53647D":"btn-neutral","#16a34a":"btn-good"};
 function Boton({children,onClick,disabled,color="#10284A",type="button"}){
-  return <button type={type} onClick={onClick} disabled={disabled}
-    style={{background:disabled?"#DDE4EE":color,color:disabled?"#9ca3af":"#fff",border:"none",borderRadius:10,padding:"12px 18px",fontSize:15,fontWeight:700,cursor:disabled?"not-allowed":"pointer",width:"100%"}}>
+  return <button type={type} onClick={onClick} disabled={disabled} style={{width:"100%"}} className={`btn ${VARIANTE_BOTON[color]||"btn-navy"}`}>
     {children}
   </button>;
 }
@@ -97,14 +101,14 @@ function Tarjeta({datos,alias}){
   const cedula=(datos.tipos_cedula&&datos.tipos_cedula.length)?datos.tipos_cedula.join(", "):null;
 
   return <div style={{maxWidth:520,margin:"0 auto",padding:16}}>
-    <div style={{...card,textAlign:"center",marginBottom:12}}>
+    <div style={{...card,textAlign:"center",marginBottom:12,background:"linear-gradient(180deg,#fff 0%,#fbfcfe 100%)"}}>
       {datos.foto_url
-        ? <img src={datos.foto_url} alt={datos.nombre||"Agente"} style={{width:110,height:110,borderRadius:"50%",objectFit:"cover",border:"3px solid #10284A"}}/>
-        : <div style={{width:110,height:110,borderRadius:"50%",background:"#10284A",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:38,fontWeight:800,margin:"0 auto"}}>
+        ? <img src={datos.foto_url} alt={datos.nombre||"Agente"} style={{width:114,height:114,borderRadius:"50%",objectFit:"cover",border:"3px solid #fff",boxShadow:"0 0 0 3px #10284A, 0 8px 20px rgba(16,40,74,.22)"}}/>
+        : <div style={{width:114,height:114,borderRadius:"50%",background:"linear-gradient(160deg,#173863,#0a1c35)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:38,fontWeight:700,fontFamily:"var(--font-display)",margin:"0 auto",boxShadow:"0 8px 20px rgba(16,40,74,.22)"}}>
             {(datos.nombre||"?").trim().charAt(0).toUpperCase()}
           </div>}
-      <div style={{fontSize:22,fontWeight:800,color:"#10284A",marginTop:12}}>{datos.nombre||"Agente de seguros"}</div>
-      {datos.titulo&&<div style={{fontSize:14,color:"#F59E0B",fontWeight:700,marginTop:2}}>{datos.titulo}</div>}
+      <div style={{fontSize:24,fontWeight:700,color:"#10284A",marginTop:14,fontFamily:"var(--font-display)"}}>{datos.nombre||"Agente de seguros"}</div>
+      {datos.titulo&&<div style={{fontSize:14,color:"#B45309",fontWeight:700,marginTop:3}}>{datos.titulo}</div>}
       {datos.nombre_negocio&&<div style={{fontSize:14,color:"#6B7280",marginTop:4}}>{datos.nombre_negocio}</div>}
       {(datos.numero_cedula||cedula)&&<div style={{fontSize:12,color:"#8FA0B4",marginTop:8}}>
         Cédula {cedula?`${cedula} `:""}{datos.numero_cedula||""}
@@ -125,13 +129,13 @@ function Tarjeta({datos,alias}){
 
     <div style={{display:"grid",gap:8,marginBottom:12}}>
       {wa&&<a href={`https://wa.me/${wa}`} target="_blank" rel="noopener" style={{textDecoration:"none"}}>
-        <div style={{background:"#25D366",color:"#fff",borderRadius:10,padding:"13px 18px",fontSize:15,fontWeight:700,textAlign:"center"}}>Escribirme por WhatsApp</div>
+        <div className="tarjeta-accion" style={{background:"linear-gradient(180deg,#2fdb75,#20bd5f)",color:"#fff",borderRadius:11,padding:"14px 18px",fontSize:15,fontWeight:700,textAlign:"center"}}>Escribirme por WhatsApp</div>
       </a>}
       {datos.telefono&&<a href={`tel:${datos.telefono.replace(/\s/g,"")}`} style={{textDecoration:"none"}}>
-        <div style={{background:"#10284A",color:"#fff",borderRadius:10,padding:"13px 18px",fontSize:15,fontWeight:700,textAlign:"center"}}>Llamarme</div>
+        <div className="tarjeta-accion" style={{background:"linear-gradient(180deg,#173863,#0d2140)",color:"#fff",borderRadius:11,padding:"14px 18px",fontSize:15,fontWeight:700,textAlign:"center"}}>Llamarme</div>
       </a>}
       {datos.correo&&<a href={`mailto:${datos.correo}`} style={{textDecoration:"none"}}>
-        <div style={{background:"#fff",color:"#10284A",border:"1.5px solid #10284A",borderRadius:10,padding:"13px 18px",fontSize:15,fontWeight:700,textAlign:"center"}}>Mandarme un correo</div>
+        <div className="tarjeta-accion" style={{background:"#fff",color:"#10284A",border:"1.5px solid #10284A",borderRadius:11,padding:"14px 18px",fontSize:15,fontWeight:700,textAlign:"center"}}>Mandarme un correo</div>
       </a>}
     </div>
 
