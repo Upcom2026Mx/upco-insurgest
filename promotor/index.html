@@ -83,8 +83,6 @@ const est={
   badge:(color)=>({display:"inline-block",fontSize:11,fontWeight:700,color,background:color+"1a",borderRadius:7,padding:"3px 9px"})
 };
 
-const colorEstatusAgente={pendiente:"#F59E0B",aprobado:"#16a34a",rechazado:"#dc2626"};
-
 const ALTO_HEADER=54;
 function HeaderBar(){
   return <div style={{background:"linear-gradient(135deg,#173863,#0a1c35)",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:10,height:ALTO_HEADER,boxShadow:"0 2px 14px rgba(10,28,53,.25)"}}>
@@ -223,8 +221,8 @@ function Resumen({codigo}){
     {!error&&!r&&<div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>}
     {r&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
       <TarjetaKPI label="Agentes en tu red" valor={r.agentes_totales} grande/>
-      <TarjetaKPI label="Agentes aprobados" valor={r.agentes_aprobados} color="#16a34a"/>
-      <TarjetaKPI label="Agentes pendientes" valor={r.agentes_pendientes} color="#F59E0B"/>
+      <TarjetaKPI label="Agentes confirmados" valor={r.agentes_aprobados} color="#16a34a"/>
+      <TarjetaKPI label="Por confirmar" valor={r.agentes_red_pendiente} color="#F59E0B"/>
       <TarjetaKPI label="Clientes gestionados" valor={r.clientes_totales}/>
       <TarjetaKPI label="Pólizas gestionadas" valor={r.polizas_totales} grande/>
     </div>}
@@ -249,7 +247,7 @@ function Agentes(){
     cargar();
   };
   const rechazar=async(a)=>{
-    if(!window.confirm(`¿Rechazar el registro de ${a.correo}?`))return;
+    if(!window.confirm(`¿Sacar a ${a.correo} de tu red? Deja de contar para tu cuota de 5 agentes.`))return;
     const{error}=await sb.rpc("promotoria_rechazar_agente",{p_agente_id:a.id});
     if(error){setError(error.message);return;}
     cargar();
@@ -258,19 +256,19 @@ function Agentes(){
   if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
   if(!agentes)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
 
-  const lista=filtro==="pendiente"?agentes.filter(a=>a.estatus_aprobacion==="pendiente"):agentes;
+  const lista=filtro==="pendiente"?agentes.filter(a=>!a.red_aprobada_en):agentes;
 
   return <div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
       <div style={{fontSize:16,fontWeight:700}}>Agentes de tu red {lista?`(${lista.length})`:""}</div>
       <div style={{display:"flex",gap:8}}>
-        <button onClick={()=>setFiltro("pendiente")} style={{...est.linkBtn,fontWeight:filtro==="pendiente"?700:500,color:filtro==="pendiente"?"#10284A":"#8FA0B4"}}>Pendientes</button>
+        <button onClick={()=>setFiltro("pendiente")} style={{...est.linkBtn,fontWeight:filtro==="pendiente"?700:500,color:filtro==="pendiente"?"#10284A":"#8FA0B4"}}>Por confirmar</button>
         <button onClick={()=>setFiltro("todos")} style={{...est.linkBtn,fontWeight:filtro==="todos"?700:500,color:filtro==="todos"?"#10284A":"#8FA0B4"}}>Todos</button>
       </div>
     </div>
 
     {lista.length===0&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
-      {filtro==="pendiente"?"No hay registros pendientes de aprobación.":"Todavía no tienes agentes en tu red — comparte tu código de invitación."}
+      {filtro==="pendiente"?"No hay agentes esperando confirmación.":"Todavía no tienes agentes en tu red — comparte tu código de invitación."}
     </div>}
 
     {lista.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
@@ -281,14 +279,13 @@ function Agentes(){
             {a.correo}{a.nombre_negocio?` · ${a.nombre_negocio}`:""}{a.telefono?` · ${a.telefono}`:""}
           </div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{a.clientes} clientes · {a.polizas} pólizas</div>
-          {a.estatus_aprobacion==="aprobado"&&<div style={{fontSize:12,marginTop:2,color:a.posicion<=5?"#16a34a":"#B45309"}}>
+          {a.red_aprobada_en?<div style={{fontSize:12,marginTop:2,color:a.posicion<=5?"#16a34a":"#B45309"}}>
             {a.posicion<=5?`Incluido en tu cuota base (agente ${a.posicion} de 5)`:`Tarifa de agente adicional — $249/mes (posición ${a.posicion})`}
-          </div>}
+          </div>:<div style={{fontSize:12,marginTop:2,color:"#B45309"}}>Sin confirmar — no cuenta todavía para tu cuota</div>}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <span style={est.badge(colorEstatusAgente[a.estatus_aprobacion]||"#6b7280")}>{a.estatus_aprobacion}</span>
-          {a.estatus_aprobacion!=="aprobado"&&<button onClick={()=>aprobar(a)} style={{...est.linkBtn,color:"#16a34a"}}>Aprobar</button>}
-          {a.estatus_aprobacion!=="rechazado"&&<button onClick={()=>rechazar(a)} style={{...est.linkBtn,color:"#dc2626"}}>Rechazar</button>}
+          {!a.red_aprobada_en&&<button onClick={()=>aprobar(a)} style={{...est.linkBtn,color:"#16a34a"}}>Confirmar</button>}
+          <button onClick={()=>rechazar(a)} style={{...est.linkBtn,color:"#dc2626"}}>Sacar de mi red</button>
         </div>
       </div>)}
     </div>}

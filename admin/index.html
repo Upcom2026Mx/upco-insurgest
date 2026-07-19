@@ -129,7 +129,7 @@ function Resumen(){
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:24}}>
     <TarjetaKPI label="Agentes totales" valor={r.agentes_totales} grande/>
     <TarjetaKPI label="Agentes aprobados" valor={r.agentes_aprobados} color="#16a34a"/>
-    <TarjetaKPI label="Agentes pendientes" valor={r.agentes_pendientes} color="#F59E0B"/>
+    <TarjetaKPI label="Afiliaciones de red sin confirmar" valor={r.agentes_red_pendiente} color="#F59E0B"/>
     <TarjetaKPI label="Promotorías" valor={r.promotorias_totales}/>
     <TarjetaKPI label="Promotorías pendientes" valor={r.promotorias_pendientes} color="#F59E0B"/>
     <TarjetaKPI label="Clientes gestionados" valor={r.clientes_totales}/>
@@ -217,7 +217,7 @@ function Promotorias(){
 function Agentes(){
   const[agentes,setAgentes]=useState(null);
   const[error,setError]=useState("");
-  const[filtro,setFiltro]=useState("pendiente"); // pendiente | todos
+  const[filtro,setFiltro]=useState("red_pendiente"); // red_pendiente | todos
 
   const cargar=async()=>{
     const{data,error}=await sb.rpc("admin_agentes");
@@ -226,7 +226,14 @@ function Agentes(){
   };
   useEffect(()=>{cargar()},[]);
 
-  const aprobar=async(a)=>{
+  const aprobarRed=async(a)=>{
+    const{error}=await sb.rpc("admin_aprobar_red",{p_agente_id:a.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+  // Ya casi nadie debería quedar "rechazado" — esto es para revertir esa decisión puntual, no
+  // para el flujo normal de alta (que ahora se aprueba solo, ver Sesión 17).
+  const reactivarCuenta=async(a)=>{
     const{error}=await sb.rpc("admin_aprobar_agente",{p_agente_id:a.id});
     if(error){setError(error.message);return;}
     cargar();
@@ -253,19 +260,19 @@ function Agentes(){
   if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
   if(!agentes)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
 
-  const lista=filtro==="pendiente"?agentes.filter(a=>a.estatus_aprobacion==="pendiente"):agentes;
+  const lista=filtro==="red_pendiente"?agentes.filter(a=>a.promotoria_nombre&&!a.red_aprobada_en):agentes;
 
   return <div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
       <div style={{fontSize:16,fontWeight:700}}>Agentes {lista?`(${lista.length})`:""}</div>
       <div style={{display:"flex",gap:8}}>
-        <button onClick={()=>setFiltro("pendiente")} style={{...est.linkBtn,fontWeight:filtro==="pendiente"?700:500,color:filtro==="pendiente"?"#10284A":"#8FA0B4"}}>Pendientes</button>
+        <button onClick={()=>setFiltro("red_pendiente")} style={{...est.linkBtn,fontWeight:filtro==="red_pendiente"?700:500,color:filtro==="red_pendiente"?"#10284A":"#8FA0B4"}}>Red por confirmar</button>
         <button onClick={()=>setFiltro("todos")} style={{...est.linkBtn,fontWeight:filtro==="todos"?700:500,color:filtro==="todos"?"#10284A":"#8FA0B4"}}>Todos</button>
       </div>
     </div>
 
     {lista.length===0&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
-      {filtro==="pendiente"?"No hay registros pendientes de aprobación.":"No hay agentes registrados."}
+      {filtro==="red_pendiente"?"No hay afiliaciones a una red esperando confirmación.":"No hay agentes registrados."}
     </div>}
 
     {lista.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
@@ -282,13 +289,17 @@ function Agentes(){
           </div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{a.clientes} clientes · {a.polizas} pólizas{a.acepto_terminos?" · Aceptó términos":" · No ha aceptado términos"}</div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{textoEstatusPago(a)}{a.tiene_2fa?" · 🔒 2FA activado":""}</div>
-          {a.promotoria_nombre&&<div style={{fontSize:12,marginTop:2,color:a.posicion_red<=5?"#16a34a":"#B45309"}}>
+          {a.promotoria_nombre&&!a.red_aprobada_en&&<div style={{fontSize:12,marginTop:2,color:"#B45309"}}>
+            Red: {a.promotoria_nombre} — afiliación sin confirmar
+          </div>}
+          {a.promotoria_nombre&&a.red_aprobada_en&&<div style={{fontSize:12,marginTop:2,color:a.posicion_red<=5?"#16a34a":"#B45309"}}>
             Red: {a.promotoria_nombre} — {a.posicion_red<=5?`incluido (posición ${a.posicion_red})`:`agente adicional $249/mes (posición ${a.posicion_red})`}
           </div>}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span style={est.badge(colorEstatusAgente[a.estatus_aprobacion]||"#6b7280")}>{a.estatus_aprobacion}</span>
-          {a.estatus_aprobacion!=="aprobado"&&<button onClick={()=>aprobar(a)} style={{...est.linkBtn,color:"#16a34a"}}>Aprobar</button>}
+          {a.promotoria_nombre&&!a.red_aprobada_en&&<button onClick={()=>aprobarRed(a)} style={{...est.linkBtn,color:"#16a34a"}}>Confirmar red</button>}
+          {a.estatus_aprobacion==="rechazado"&&<button onClick={()=>reactivarCuenta(a)} style={{...est.linkBtn,color:"#16a34a"}}>Reactivar cuenta</button>}
           {a.estatus_aprobacion!=="rechazado"&&<button onClick={()=>rechazar(a)} style={{...est.linkBtn,color:"#dc2626"}}>Rechazar</button>}
           {a.estatus_aprobacion==="aprobado"&&<button onClick={()=>extender(a)} style={est.linkBtn}>+30 días</button>}
           {a.tiene_2fa&&<button onClick={()=>resetear2fa(a)} style={est.linkBtn}>Perdió su teléfono</button>}

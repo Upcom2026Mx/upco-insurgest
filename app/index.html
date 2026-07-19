@@ -185,14 +185,14 @@ function Login(){
     setCargando(false);
     if(error){setError(error.message);return;}
     // sin confirmación de correo, signUp ya deja una sesión activa — App() la detecta sola
-    // (onAuthStateChange) y navega al panel, que muestra "pendiente de aprobación".
+    // (onAuthStateChange) y navega directo al panel: la cuenta se aprueba sola (Sesión 17).
     if(!data.session)setRegistroListo(true);
   };
 
   if(registroListo)return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
     <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
       <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>¡Cuenta creada!</div>
-      <div style={{fontSize:14,color:"#374151",lineHeight:1.6}}>Revisa tu correo para confirmar tu cuenta. Una vez confirmada, podrás iniciar sesión — tu acceso quedará pendiente de aprobación hasta que lo revisemos.</div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.6}}>Revisa tu correo para confirmar tu cuenta. Una vez confirmada, ya puedes iniciar sesión — arrancas con 30 días de prueba gratis.</div>
     </div>
   </div>;
 
@@ -1828,15 +1828,9 @@ function Panel({session,onSalir}){
   if(error)return <div style={{padding:40,textAlign:"center",color:"#dc2626"}}>Ocurrió un error: {error}</div>;
   if(!agente)return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando tu panel...</div>;
 
-  if(agente.estatus_aprobacion==="pendiente")return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-    <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
-      <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>Cuenta pendiente de aprobación</div>
-      <div style={{fontSize:14,color:"#374151",lineHeight:1.6,marginBottom:16}}>Te avisaremos por correo en cuanto puedas empezar a usar tu panel — arrancas con 30 días de prueba gratis.</div>
-      <div style={{fontSize:13,color:"#8FA0B4",marginBottom:16}}><a href="../precios/" style={{color:"#8FA0B4"}}>Ver precios para después de la prueba</a></div>
-      <button onClick={onSalir} style={est.linkBtn}>Salir</button>
-    </div>
-  </div>;
-
+  {/* Ya no hay pantalla de "cuenta pendiente": las cuentas se aprueban solas al registrarse
+      (Sesión 17) — la prueba de 30 días y el candado de Stripe son el filtro real. "rechazado"
+      sigue existiendo como herramienta manual del fundador para dar de baja una cuenta puntual. */}
   if(agente.estatus_aprobacion==="rechazado")return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
     <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
       <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>Solicitud no aprobada</div>
