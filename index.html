@@ -90,6 +90,12 @@
   .secheader{max-width:1040px;margin:0 auto;padding:44px 20px 0;text-align:center}
   .secheader h2{font-size:26px;font-weight:600;color:#10284A;margin:0 0 8px}
   .secheader p{font-size:14.5px;color:#6B7280;max-width:600px;margin:0 auto}
+  .foto-banner{max-width:1040px;margin:26px auto 0;padding:0 20px}
+  .fb-inner{position:relative;border-radius:18px;overflow:hidden;height:200px;box-shadow:0 10px 30px rgba(16,28,53,.14)}
+  .fb-inner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.9)}
+  .fb-overlay{position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,28,53,.82) 0%,rgba(10,28,53,.35) 55%,rgba(10,28,53,0) 100%)}
+  .fb-cap{position:absolute;left:30px;top:50%;transform:translateY(-50%);color:#fff;font-size:17px;font-weight:700;max-width:340px;line-height:1.4}
+  @media(max-width:640px){.fb-inner{height:240px}.fb-cap{left:20px;right:20px;max-width:none;font-size:15.5px}}
   .ejenum{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:linear-gradient(160deg,#FBBF24,#F59E0B);color:#10284A;font-weight:800;font-size:15px;margin-bottom:10px;box-shadow:0 4px 10px rgba(245,158,11,.3)}
   .ejes{max-width:1040px;margin:0 auto;padding:36px 20px 8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
   .eje{position:relative;overflow:hidden;isolation:isolate;display:block;background:linear-gradient(160deg,#173863,#0a1c35);border-radius:16px;padding:24px;box-shadow:0 6px 20px rgba(16,40,74,.16);transition:transform .25s ease,box-shadow .25s ease}
@@ -121,9 +127,7 @@
   .footer-slogan{font-size:11px;font-weight:700;color:#c8790a;letter-spacing:.5px}
   @media(min-width:640px){.hero h1{font-size:40px}}
 
-  .showcase{max-width:1040px;margin:0 auto;padding:20px 20px 60px}
-  .showcase h2{font-size:26px;font-weight:600;color:#10284A;text-align:center;margin:0 0 8px}
-  .showcase-sub{font-size:14.5px;color:#6B7280;text-align:center;max-width:520px;margin:0 auto 32px}
+  .mocks-seccion{max-width:1040px;margin:8px auto 0;padding:0 20px 44px}
   .mock-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}
   .mock{background:#fff;border:1px solid rgba(16,40,74,.08);border-radius:16px;overflow:hidden;box-shadow:0 10px 34px rgba(16,28,53,.08);transition:transform .25s ease,box-shadow .25s ease}
   .mock:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(16,28,53,.12)}
@@ -145,7 +149,8 @@
   .mk-kpi{background:#F4F7FB;border-radius:8px;padding:8px;text-align:center}
   .mk-kpi b{display:block;font-size:15px;color:#10284A}
   .mk-kpi span{font-size:9.5px;color:#8FA0B4}
-  .mk-foto{width:54px;height:54px;border-radius:50%;background:#10284A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;margin:0 auto 8px}
+  .mk-foto{width:54px;height:54px;border-radius:50%;background:#10284A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;margin:0 auto 8px;overflow:hidden}
+  .mk-foto img{width:100%;height:100%;object-fit:cover;display:block}
   .mk-chip{display:inline-block;font-size:9.5px;font-weight:700;color:#10284A;background:#E8EEF7;border-radius:6px;padding:3px 7px;margin:0 4px 4px 0}
   .mk-wa{background:#25D366;color:#fff;font-size:11px;font-weight:700;border-radius:7px;padding:7px;text-align:center;margin-bottom:6px}
   .mk-input{border:1px solid #DDE4EE;border-radius:6px;padding:6px 8px;font-size:10px;color:#8FA0B4;margin-bottom:5px}
@@ -195,8 +200,8 @@
   <div class="blob blob-b" data-parallax="0.14"></div>
   <div class="hero">
     <div class="hero-dolor">Los olvidos cuestan dinero</div>
-    <h1>Ordena tu cartera. Y consigue clientes nuevos.</h1>
-    <p>Upco InsurGest es la herramienta para agentes de seguros independientes en México. Lleva a tus clientes, sus autos y sus pólizas sin hojas de cálculo, dales un portal que van a usar todo el año, y comparte tu tarjeta digital para que los prospectos te dejen sus datos solos.</p>
+    <h1>Deja de perder clientes y comisiones por pólizas vencidas</h1>
+    <p>Upco InsurGest ordena tu cartera, envía y recibe avisos automáticos sobre los próximos vencimientos, y te ayuda a captar clientes nuevos con un servicio que los hace quedarse — sin hojas de cálculo.</p>
     <div class="cta-row">
       <a class="boton" href="./app/?registro=1">Crear mi cuenta gratis</a>
       <a class="boton-sec" href="./app/">Ya tengo cuenta</a>
@@ -209,19 +214,19 @@
   <a class="eje reveal" href="#controla">
     <div class="ejenum">1</div>
     <h3>Controla tu cartera</h3>
-    <p>Tus clientes, sus pólizas y sus vencimientos en un solo lugar, con un centro de avisos que te escribe a ti y a ellos.</p>
+    <p>Tus clientes, sus pólizas y sus vencimientos en un solo lugar, con avisos automáticos para que ni a ti ni a ellos se les olvide nada.</p>
     <span class="eje-mas">Ver cómo ↓</span>
   </a>
   <a class="eje reveal" href="#consiente">
     <div class="ejenum">2</div>
     <h3>Consiente a tus clientes</h3>
-    <p>Un portal con tu nombre donde tu cliente administra sus 5 autos y el presupuesto de su familia todo el año.</p>
+    <p>Un portal con tu nombre donde tu cliente puede llevar el control de hasta 5 autos para que nada se le olvide, además del presupuesto de su familia, todo el año.</p>
     <span class="eje-mas">Ver cómo ↓</span>
   </a>
   <a class="eje reveal" href="#consigue">
     <div class="ejenum">3</div>
     <h3>Consigue clientes nuevos</h3>
-    <p>Tu tarjeta digital capta prospectos y te los manda a tu bandeja mientras tú atiendes a otro cliente.</p>
+    <p>Tu tarjeta digital capta prospectos por ti y te los manda directo a tu bandeja, mientras sigues atendiendo a quien ya confía en ti.</p>
     <span class="eje-mas">Ver cómo ↓</span>
   </a>
 </div>
@@ -229,19 +234,27 @@
 <div class="secheader reveal" id="controla">
   <div class="ejenum">1</div>
   <h2>Controla tu cartera</h2>
-  <p>Deja de cargar tu negocio en la cabeza y en hojas de cálculo. Y deja de perseguir vencimientos: el sistema te persigue a ti.</p>
+  <p>Deja de cargar tu negocio en la cabeza y en hojas de cálculo. Un vencimiento que se te pasa no es solo un descuido: es un cliente que se te puede ir con otro agente. Aquí el sistema te persigue a ti, no al revés.</p>
+</div>
+
+<div class="foto-banner reveal">
+  <div class="fb-inner">
+    <img src="img/organizado-cartera.jpg" alt=""/>
+    <div class="fb-overlay"></div>
+    <div class="fb-cap">Nada se te pasa cuando todo está en un solo lugar</div>
+  </div>
 </div>
 
 <div class="features">
   <div class="fcard reveal">
     <div class="ficon"><i style="-webkit-mask-image:url(img/ic-checklist.png);mask-image:url(img/ic-checklist.png)"></i></div>
     <h3>Cada cliente con todo lo suyo</h3>
-    <p>Das de alta a tu cliente y le cuelgas sus autos y sus pólizas. La vigencia se calcula sola: ves cuáles están vigentes, cuáles vencen en menos de 15 días y cuáles ya se te pasaron, sin abrir una hoja de cálculo. El PDF de cada póliza queda guardado ahí y lo descargas cuando te lo pidan.</p>
+    <p>Das de alta a tu cliente y ahí mismo registras sus autos y sus pólizas. La vigencia se calcula sola: ves cuáles están vigentes, cuáles vencen en menos de 15 días y cuáles ya se te pasaron, sin abrir una hoja de cálculo. El PDF de cada póliza se queda guardado ahí, listo para cuando te lo pidan.</p>
   </div>
   <div class="fcard destacada reveal">
     <div class="ficon"><i style="-webkit-mask-image:url(img/ic-avisos.png);mask-image:url(img/ic-avisos.png)"></i></div>
     <h3>Un solo centro de avisos <span class="nuevo">NUEVO</span></h3>
-    <p><b>Tú les escribes:</b> manda correos y notificaciones al celular a los clientes que elijas, desde tu portal — para una promoción, un recordatorio de pago o avisar que cambiaste de número.<br/><br/><b>Y el sistema avisa solo:</b> a ti, de todas las pólizas de tu cartera que están por vencer; y a tu cliente, de su propia póliza por vencer, de la verificación de su auto y de cuándo le toca servicio. Los dos enterados, sin que tú muevas un dedo.</p>
+    <p><b>Tú les escribes:</b> manda correos y notificaciones al celular a los clientes que elijas, desde tu portal — para una promoción, un recordatorio de pago o avisar que cambiaste de número.<br/><br/><b>Y el sistema avisa solo:</b> a ti, de todas las pólizas de tu cartera que están por vencer; y a tu cliente, de su propia póliza por vencer, de la verificación de su auto y de cuándo le toca servicio. Los dos se enteran, sin que tú muevas un dedo.</p>
   </div>
   <div class="fcard reveal">
     <div class="ficon"><i style="-webkit-mask-image:url(img/ic-cartera.png);mask-image:url(img/ic-cartera.png)"></i></div>
@@ -250,10 +263,52 @@
   </div>
 </div>
 
+<div class="mocks-seccion">
+  <div class="mock-grid">
+    <div class="mock reveal">
+      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/app</div></div>
+      <div class="mock-body">
+        <div class="mk-h"><span class="mk-h-title">Mis clientes (3)</span><span class="mk-btn">+ Nuevo cliente</span></div>
+        <div class="mk-card" style="padding:0">
+          <div class="mk-row" style="padding:10px 12px"><div><div class="mk-name">Laura Fernández Ruiz</div><div class="mk-sub">Persona física · laura.fernandez@example.com</div></div><span>›</span></div>
+          <div class="mk-row" style="padding:10px 12px"><div><div class="mk-name">Comercializadora del Bajío SA de CV</div><div class="mk-sub">Persona moral · contacto@combajio.com.mx</div></div><span>›</span></div>
+          <div class="mk-row" style="padding:10px 12px"><div><div class="mk-name">Ricardo Torres Mendoza</div><div class="mk-sub">Persona física · ricardo.torres@example.com</div></div><span>›</span></div>
+        </div>
+      </div>
+      <div class="mock-cap">Todos tus clientes, vehículos y pólizas en un solo lugar</div>
+    </div>
+    <div class="mock reveal">
+      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/app</div></div>
+      <div class="mock-body">
+        <div class="mk-h-title" style="margin-bottom:10px">Resumen (4 pólizas)</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+          <div class="mk-kpi"><b>$45,600</b><span>PRIMA VIGENTE</span></div>
+          <div class="mk-kpi"><b style="color:#16a34a">2</b><span>VIGENTES</span></div>
+          <div class="mk-kpi"><b style="color:#F59E0B">1</b><span>POR VENCER</span></div>
+        </div>
+        <div class="mk-card">
+          <div style="font-size:10.5px;font-weight:700;color:#8FA0B4;margin-bottom:8px">PÓLIZAS POR ASEGURADORA</div>
+          <div style="font-size:11.5px;color:#374151;margin-bottom:4px">Quálitas</div><div style="height:8px;background:#F4F7FB;border-radius:4px;margin-bottom:8px"><div style="height:100%;width:25%;background:#10284A;border-radius:4px"></div></div>
+          <div style="font-size:11.5px;color:#374151;margin-bottom:4px">GNP</div><div style="height:8px;background:#F4F7FB;border-radius:4px"><div style="height:100%;width:25%;background:#10284A;border-radius:4px"></div></div>
+        </div>
+      </div>
+      <div class="mock-cap">Tu cartera vigente, por vencer y por aseguradora, de un vistazo</div>
+    </div>
+  </div>
+</div>
+
 <div class="secheader reveal" id="consiente">
   <div class="ejenum">2</div>
   <h2>Consiente a tus clientes</h2>
   <p>Aquí te separas del agente que manda la póliza por WhatsApp y desaparece hasta la renovación. Le das a tu cliente herramientas que va a usar todo el año — y cada vez que las usa, se acuerda de ti.</p>
+</div>
+
+<div class="foto-banner reveal">
+  <div class="fb-inner">
+    <img src="img/bienvenida-cliente.jpg" alt=""/>
+    <div class="fb-overlay"></div>
+    <div class="fb-cap">Un cliente bien recibido es un cliente que se queda</div>
+  </div>
 </div>
 
 <div class="features">
@@ -274,94 +329,8 @@
   </div>
 </div>
 
-<div class="secheader reveal" id="consigue">
-  <div class="ejenum">3</div>
-  <h2>Consigue clientes nuevos</h2>
-  <p>Lo de arriba te ayuda a conservar lo que ya tienes. Esto te ayuda a crecer, sin pagar publicidad.</p>
-</div>
-
-<div class="features">
-  <div class="fcard destacada reveal">
-    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-agente.png);mask-image:url(img/ic-agente.png)"></i></div>
-    <h3>Tu tarjeta digital <span class="nuevo">NUEVO</span></h3>
-    <p>Tu propia página con tu foto, tu nombre, tu cédula, los ramos que manejas y las aseguradoras con las que trabajas. Trae botón de WhatsApp, de llamada y de correo, así que el prospecto te contacta con un toque. Es una liga corta —<b>insurgest.upco.app/a/tu-nombre</b>— que pegas en tu WhatsApp, tu Instagram o tu firma de correo. La prendes y la apagas cuando quieras.</p>
-  </div>
-  <div class="fcard destacada reveal">
-    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-prospectos.png);mask-image:url(img/ic-prospectos.png)"></i></div>
-    <h3>Prospectos que llegan solos <span class="nuevo">NUEVO</span></h3>
-    <p>Tu tarjeta trae un formulario. Quien lo llena te deja su nombre, su teléfono, su correo y qué quiere cotizar. <b>A ti te llega un correo al instante</b> y el prospecto se guarda en tu bandeja marcado como prospecto, junto a las solicitudes de tus clientes. No se te pierde entre los chats ni depende de que te acuerdes de contestarle.</p>
-  </div>
-  <div class="fcard destacada reveal">
-    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-retiro.png);mask-image:url(img/ic-retiro.png)"></i></div>
-    <h3>Cotizador de retiro <span class="nuevo">NUEVO</span></h3>
-    <p>Una calculadora de brecha de retiro con tu nombre, lista para compartir por separado en anuncios o publicaciones — no solo desde tu tarjeta. El prospecto contesta unas preguntas, ve cuánto le falta para su retiro en pesos de hoy, y <b>te llega su resultado como una solicitud nueva</b>. Ideal para vender Vida y PPR sin empezar la conversación en frío.</p>
-  </div>
-</div>
-
-<div class="showcase">
-  <h2>Así se ve por dentro</h2>
-  <p class="showcase-sub">Tu tarjeta digital, tu lista de clientes, tu cartera en números, y lo que ve tu cliente cuando le compartes su liga — con datos de ejemplo reales del sistema.</p>
+<div class="mocks-seccion">
   <div class="mock-grid">
-
-    <div class="mock reveal">
-      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/a/tu-nombre</div></div>
-      <div class="mock-body">
-        <div style="text-align:center;margin-bottom:10px">
-          <div class="mk-foto">MC</div>
-          <div class="mk-name" style="font-size:14px">Mariana Cordero</div>
-          <div style="font-size:11px;color:#F59E0B;font-weight:700">Asesora de seguros</div>
-          <div style="font-size:9.5px;color:#8FA0B4;margin-top:3px">Cédula A 1234567</div>
-        </div>
-        <div class="mk-card">
-          <div style="font-size:9.5px;font-weight:700;color:#8FA0B4;margin-bottom:6px">QUÉ MANEJO</div>
-          <span class="mk-chip">Auto</span><span class="mk-chip">Vida</span><span class="mk-chip">Gastos Médicos</span><span class="mk-chip">Empresariales</span>
-        </div>
-        <div class="mk-card">
-          <div style="font-size:9.5px;font-weight:700;color:#8FA0B4;margin-bottom:6px">ASEGURADORAS</div>
-          <span class="mk-chip">GNP</span><span class="mk-chip">AXA</span><span class="mk-chip">Quálitas</span><span class="mk-chip">Mapfre</span>
-        </div>
-        <div class="mk-wa">Escribirme por WhatsApp</div>
-        <div class="mk-card">
-          <div style="font-size:11px;font-weight:700;color:#0a1c35;margin-bottom:6px">¿Quieres que te cotice?</div>
-          <div class="mk-input">Tu nombre</div>
-          <div class="mk-input">Tu teléfono</div>
-          <div style="background:#F59E0B;color:#10284A;font-size:10.5px;font-weight:700;border-radius:6px;padding:6px;text-align:center">Enviar mis datos</div>
-        </div>
-      </div>
-      <div class="mock-cap">Tu tarjeta digital — compártela y deja que los prospectos te busquen</div>
-    </div>
-
-    <div class="mock reveal">
-      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/app</div></div>
-      <div class="mock-body">
-        <div class="mk-h"><span class="mk-h-title">Mis clientes (3)</span><span class="mk-btn">+ Nuevo cliente</span></div>
-        <div class="mk-card" style="padding:0">
-          <div class="mk-row" style="padding:10px 12px"><div><div class="mk-name">Laura Fernández Ruiz</div><div class="mk-sub">Persona física · laura.fernandez@example.com</div></div><span>›</span></div>
-          <div class="mk-row" style="padding:10px 12px"><div><div class="mk-name">Comercializadora del Bajío SA de CV</div><div class="mk-sub">Persona moral · contacto@combajio.com.mx</div></div><span>›</span></div>
-          <div class="mk-row" style="padding:10px 12px"><div><div class="mk-name">Ricardo Torres Mendoza</div><div class="mk-sub">Persona física · ricardo.torres@example.com</div></div><span>›</span></div>
-        </div>
-      </div>
-      <div class="mock-cap">Todos tus clientes, vehículos y pólizas en un solo lugar</div>
-    </div>
-
-    <div class="mock reveal">
-      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/app</div></div>
-      <div class="mock-body">
-        <div class="mk-h-title" style="margin-bottom:10px">Resumen (4 pólizas)</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
-          <div class="mk-kpi"><b>$45,600</b><span>PRIMA VIGENTE</span></div>
-          <div class="mk-kpi"><b style="color:#16a34a">2</b><span>VIGENTES</span></div>
-          <div class="mk-kpi"><b style="color:#F59E0B">1</b><span>POR VENCER</span></div>
-        </div>
-        <div class="mk-card">
-          <div style="font-size:10.5px;font-weight:700;color:#8FA0B4;margin-bottom:8px">PÓLIZAS POR ASEGURADORA</div>
-          <div style="font-size:11.5px;color:#374151;margin-bottom:4px">Quálitas</div><div style="height:8px;background:#F4F7FB;border-radius:4px;margin-bottom:8px"><div style="height:100%;width:25%;background:#10284A;border-radius:4px"></div></div>
-          <div style="font-size:11.5px;color:#374151;margin-bottom:4px">GNP</div><div style="height:8px;background:#F4F7FB;border-radius:4px"><div style="height:100%;width:25%;background:#10284A;border-radius:4px"></div></div>
-        </div>
-      </div>
-      <div class="mock-cap">Tu cartera vigente, por vencer y por aseguradora, de un vistazo</div>
-    </div>
-
     <div class="mock reveal">
       <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/p/24ed67a8…</div></div>
       <div class="mock-body">
@@ -376,7 +345,6 @@
       </div>
       <div class="mock-cap">Lo que ve tu cliente — sin registrarse, sin instalar nada</div>
     </div>
-
     <div class="mock reveal">
       <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/p/24ed67a8…</div></div>
       <div class="mock-body">
@@ -405,7 +373,6 @@
       </div>
       <div class="mock-cap">Tu cliente cuida sus autos — y te pide cotizar el que no trae contigo</div>
     </div>
-
     <div class="mock reveal">
       <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/p/24ed67a8…</div></div>
       <div class="mock-body">
@@ -428,13 +395,76 @@
       </div>
       <div class="mock-cap">Para tus clientes de Vida — la regla 50/30/20, con tu nombre encima</div>
     </div>
+  </div>
+</div>
 
+<div class="secheader reveal" id="consigue">
+  <div class="ejenum">3</div>
+  <h2>Consigue clientes nuevos</h2>
+  <p>Lo de arriba te ayuda a cuidar lo que ya tienes. Esto te ayuda a crecer — sin gastar un peso en publicidad.</p>
+</div>
+
+<div class="foto-banner reveal">
+  <div class="fb-inner">
+    <img src="img/prospectos-nuevos.jpg" alt=""/>
+    <div class="fb-overlay"></div>
+    <div class="fb-cap">Cada prospecto que te escribe, directo a tu bandeja</div>
+  </div>
+</div>
+
+<div class="features">
+  <div class="fcard destacada reveal">
+    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-agente.png);mask-image:url(img/ic-agente.png)"></i></div>
+    <h3>Tu tarjeta digital <span class="nuevo">NUEVO</span></h3>
+    <p>Tu propia página con tu foto, tu nombre, tu cédula, los ramos que manejas y las aseguradoras con las que trabajas. Trae botón de WhatsApp, de llamada y de correo, así que el prospecto te contacta con un toque. Es una liga corta —<b>insurgest.upco.app/a/tu-nombre</b>— que pegas en tu WhatsApp, tu Instagram o tu firma de correo. La prendes y la apagas cuando quieras.</p>
+  </div>
+  <div class="fcard destacada reveal">
+    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-prospectos.png);mask-image:url(img/ic-prospectos.png)"></i></div>
+    <h3>Prospectos que llegan solos <span class="nuevo">NUEVO</span></h3>
+    <p>Tu tarjeta trae un formulario. Quien lo llena te deja su nombre, su teléfono, su correo y qué quiere cotizar. <b>A ti te llega un correo al instante</b> y el prospecto se guarda en tu bandeja marcado como prospecto, junto a las solicitudes de tus clientes. No se te pierde entre los chats ni depende de que te acuerdes de contestarle.</p>
+  </div>
+  <div class="fcard destacada reveal">
+    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-retiro.png);mask-image:url(img/ic-retiro.png)"></i></div>
+    <h3>Cotizador de retiro <span class="nuevo">NUEVO</span></h3>
+    <p>Una calculadora de brecha de retiro con tu nombre, lista para compartir por separado en anuncios o publicaciones — no solo desde tu tarjeta. El prospecto contesta unas preguntas, ve cuánto le falta para su retiro en pesos de hoy, y <b>te llega su resultado como una solicitud nueva</b>. Ideal para vender Vida y PPR sin empezar la conversación en frío.</p>
+  </div>
+</div>
+
+<div class="mocks-seccion">
+  <div class="mock-grid" style="max-width:420px;margin:0 auto">
+    <div class="mock reveal">
+      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><div class="mock-url">insurgest.upco.app/a/tu-nombre</div></div>
+      <div class="mock-body">
+        <div style="text-align:center;margin-bottom:10px">
+          <div class="mk-foto"><img src="img/retrato-agente.jpg" alt=""/></div>
+          <div class="mk-name" style="font-size:14px">Mariana Cordero</div>
+          <div style="font-size:11px;color:#F59E0B;font-weight:700">Asesora de seguros</div>
+          <div style="font-size:9.5px;color:#8FA0B4;margin-top:3px">Cédula A 1234567</div>
+        </div>
+        <div class="mk-card">
+          <div style="font-size:9.5px;font-weight:700;color:#8FA0B4;margin-bottom:6px">QUÉ MANEJO</div>
+          <span class="mk-chip">Auto</span><span class="mk-chip">Vida</span><span class="mk-chip">Gastos Médicos</span><span class="mk-chip">Empresariales</span>
+        </div>
+        <div class="mk-card">
+          <div style="font-size:9.5px;font-weight:700;color:#8FA0B4;margin-bottom:6px">ASEGURADORAS</div>
+          <span class="mk-chip">GNP</span><span class="mk-chip">AXA</span><span class="mk-chip">Quálitas</span><span class="mk-chip">Mapfre</span>
+        </div>
+        <div class="mk-wa">Escribirme por WhatsApp</div>
+        <div class="mk-card">
+          <div style="font-size:11px;font-weight:700;color:#0a1c35;margin-bottom:6px">¿Quieres que te cotice?</div>
+          <div class="mk-input">Tu nombre</div>
+          <div class="mk-input">Tu teléfono</div>
+          <div style="background:#F59E0B;color:#10284A;font-size:10.5px;font-weight:700;border-radius:6px;padding:6px;text-align:center">Enviar mis datos</div>
+        </div>
+      </div>
+      <div class="mock-cap">Tu tarjeta digital — compártela y deja que los prospectos te busquen</div>
+    </div>
   </div>
 </div>
 
 <div class="cta-final">
   <img class="cta-foto" src="img/cta-fondo.jpg" alt="" loading="lazy"/>
-  <h2>Ordena tu cartera y arma tu tarjeta hoy</h2>
+  <h2>No dejes que se te pase otro vencimiento</h2>
   <p>Crear tu cuenta toma dos minutos. Tu tarjeta digital, otros cinco.</p>
   <a class="boton" href="./app/?registro=1">Crear mi cuenta gratis</a>
 </div>
