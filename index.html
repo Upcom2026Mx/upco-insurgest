@@ -32,6 +32,10 @@
   #splash .cae{display:inline-block;overflow:hidden;max-width:110px;animation:sColapsa .5s ease 2.5s forwards}
   #splash .esp{max-width:9px}
   #splash .sub{font-size:15px;font-weight:500;color:#8FA0B4;opacity:0;animation:sFade .5s ease 3.1s forwards;text-align:center}
+  #splash .dolor{font-size:19px;font-weight:800;color:#F59E0B;text-align:center;margin-top:22px;opacity:0;animation:sFade .5s ease 3.7s forwards}
+  #splash .marcaSec{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:22px;opacity:0;animation:sFade .5s ease 4.1s forwards}
+  #splash .marcaSec img{width:92px;height:auto;background:#fff;border-radius:10px;padding:7px 11px}
+  #splash .sloganSec{font-size:12px;font-weight:600;color:#F59E0B;letter-spacing:.6px}
   #splash .barra{width:120px;height:4px;border-radius:99px;background:rgba(255,255,255,.18);overflow:hidden;opacity:0;animation:sFade .4s ease .3s forwards}
   #splash .barra i{display:block;height:100%;width:40%;border-radius:99px;background:#F59E0B;animation:sCarga 1.1s ease-in-out .3s infinite}
   @keyframes sLogo{to{opacity:1;transform:scale(1) translateY(0)}}
@@ -65,6 +69,7 @@
   .navlink{color:#DDE4EE;font-size:14px;font-weight:600;padding:8px 14px;transition:color .15s ease}
   .navlink:hover{color:#fff}
   .hero{max-width:720px;margin:0 auto;padding:72px 20px 44px;text-align:center}
+  .hero-dolor{font-size:13.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#c8790a;margin:0 0 12px}
   .hero h1{font-size:34px;font-weight:600;line-height:1.2;margin:0 0 18px}
   .hero p{font-size:16.5px;color:#374151;line-height:1.65;margin:0 0 30px}
   .cta-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:8px}
@@ -87,8 +92,10 @@
   .secheader p{font-size:14.5px;color:#6B7280;max-width:600px;margin:0 auto}
   .ejenum{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:linear-gradient(160deg,#FBBF24,#F59E0B);color:#10284A;font-weight:800;font-size:15px;margin-bottom:10px;box-shadow:0 4px 10px rgba(245,158,11,.3)}
   .ejes{max-width:1040px;margin:0 auto;padding:36px 20px 8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
-  .eje{display:block;background:linear-gradient(160deg,#173863,#0a1c35);border-radius:16px;padding:24px;box-shadow:0 6px 20px rgba(16,40,74,.16);transition:transform .25s ease,box-shadow .25s ease}
+  .eje{position:relative;overflow:hidden;isolation:isolate;display:block;background:linear-gradient(160deg,#173863,#0a1c35);border-radius:16px;padding:24px;box-shadow:0 6px 20px rgba(16,40,74,.16);transition:transform .25s ease,box-shadow .25s ease}
+  .eje::before{content:"";position:absolute;right:-28px;bottom:-30px;width:150px;height:180px;z-index:0;pointer-events:none;opacity:.10;background-repeat:no-repeat;background-size:contain;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 240'%3E%3Cpath d='M100,8 L184,42 V112 C184,176 140,220 100,232 C60,220 16,176 16,112 V42 Z' fill='none' stroke='%23EAF0F5' stroke-width='6'/%3E%3Cpath d='M74,116 L92,134 L128,90' fill='none' stroke='%23EAF0F5' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
   .eje:hover{transform:translateY(-5px);box-shadow:0 16px 36px rgba(16,40,74,.3)}
+  .eje>*{position:relative;z-index:1}
   .eje h3{color:#fff;font-size:17px;margin:0 0 8px;font-weight:600}
   .eje p{color:#C7D3E3;font-size:13.5px;line-height:1.6;margin:0}
   .eje-mas{display:inline-block;margin-top:12px;color:#F59E0B;font-size:12.5px;font-weight:700}
@@ -109,6 +116,9 @@
   footer{max-width:1040px;margin:0 auto;padding:24px 20px;text-align:center;font-size:12.5px;color:#8FA0B4}
   footer a{color:#53647D;font-weight:600}
   .version{margin-top:8px;font-size:11.5px;color:#B6C2D2}
+  .footer-marca{display:flex;flex-direction:column;align-items:center;gap:6px;margin:0 0 18px}
+  .footer-marca img{width:64px;height:auto}
+  .footer-slogan{font-size:11px;font-weight:700;color:#c8790a;letter-spacing:.5px}
   @media(min-width:640px){.hero h1{font-size:40px}}
 
   .showcase{max-width:1040px;margin:0 auto;padding:20px 20px 60px}
@@ -150,6 +160,8 @@
     <span class="ig"><span class="insur">Insur<span class="cae">ance</span></span><span class="cae esp">&nbsp;</span><span class="gest">Gest<span class="cae">ión</span></span></span>
   </div>
   <div class="sub">Para agentes de seguros independientes</div>
+  <div class="dolor">Los olvidos cuestan dinero</div>
+  <div class="marcaSec"><img src="logo-upco.png" alt="UPCO"/><div class="sloganSec">Subimos juntos</div></div>
   <div class="barra"><i></i></div>
 </div>
 <script>
@@ -165,7 +177,7 @@
   // esperar 4 segundos cada vez sería cobrarle la animación a la conversión.
   if(quieto||sessionStorage.getItem("upco_ig_splash")){s.remove();return;}
   try{sessionStorage.setItem("upco_ig_splash","1");}catch(e){}
-  setTimeout(function(){s.classList.add("oculto");setTimeout(function(){s.remove();},700);},3800);
+  setTimeout(function(){s.classList.add("oculto");setTimeout(function(){s.remove();},700);},4800);
 })();
 </script>
 
@@ -182,6 +194,7 @@
   <div class="blob blob-a" data-parallax="0.25"></div>
   <div class="blob blob-b" data-parallax="0.14"></div>
   <div class="hero">
+    <div class="hero-dolor">Los olvidos cuestan dinero</div>
     <h1>Ordena tu cartera. Y consigue clientes nuevos.</h1>
     <p>Upco InsurGest es la herramienta para agentes de seguros independientes en México. Lleva a tus clientes, sus autos y sus pólizas sin hojas de cálculo, dales un portal que van a usar todo el año, y comparte tu tarjeta digital para que los prospectos te dejen sus datos solos.</p>
     <div class="cta-row">
@@ -427,6 +440,7 @@
 </div>
 
 <footer>
+  <div class="footer-marca"><img src="logo-upco.png" alt="UPCO"/><div class="footer-slogan">Subimos juntos</div></div>
   © 2026 Upco InsurGest · <a href="./terminos/">Términos y Aviso de Privacidad</a> · <a href="./precios/">Precios</a>
   <div class="version">Portal versión 1.0</div>
 </footer>
