@@ -453,7 +453,7 @@ function PantallaSuscripcionPromotoria({cuenta,bloqueado}){
     </div>}
 
     {error&&<div style={{color:"#dc2626",fontSize:13,marginTop:14,textAlign:"center"}}>{error}</div>}
-    {!suscripcionActiva&&<div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Precios +IVA. Agentes adicionales a los 5 incluidos se facturan aparte por ahora — escríbenos. Se cobra por Stripe, cancela cuando quieras.</div>}
+    {!suscripcionActiva&&<div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Agentes adicionales a los 5 incluidos se facturan aparte por ahora — escríbenos. Se cobra por Stripe, cancela cuando quieras.</div>}
   </div>;
 
   if(!bloqueado)return contenido;

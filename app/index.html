@@ -1665,7 +1665,7 @@ function PantallaSuscripcion({cuenta,bloqueado,estadoRed}){
     </div>}
 
     {error&&<div style={{color:"#dc2626",fontSize:13,marginTop:14,textAlign:"center"}}>{error}</div>}
-    {!suscripcionActiva&&!accesoGratisPorRed&&!enRedSinGratis&&<div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Precios +IVA. Se cobra por Stripe, cancela cuando quieras.</div>}
+    {!suscripcionActiva&&!accesoGratisPorRed&&!enRedSinGratis&&<div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Se cobra por Stripe, cancela cuando quieras.</div>}
   </div>;
 
   if(!bloqueado)return contenido;

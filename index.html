@@ -106,6 +106,32 @@
   .eje p{color:#C7D3E3;font-size:13.5px;line-height:1.6;margin:0}
   .eje-mas{display:inline-block;margin-top:12px;color:#F59E0B;font-size:12.5px;font-weight:700}
   .eje:hover .eje-mas{text-decoration:underline}
+
+  .precio-banner{max-width:1040px;margin:34px auto 0;padding:0 20px}
+  .precio-banner-inner{background:linear-gradient(135deg,#173863,#0a1c35);border-radius:20px;padding:44px 32px;text-align:center;box-shadow:0 16px 40px rgba(16,40,74,.22)}
+  .precio-numero{font-family:var(--font-display);font-size:30px;font-weight:600;color:#fff;line-height:1.25}
+  .precio-numero b{font-size:42px;font-weight:700;color:#F59E0B}
+  .precio-desc{font-size:14.5px;color:#C7D3E3;max-width:520px;margin:12px auto 26px}
+  .precio-cta{display:inline-block;background:linear-gradient(180deg,#FBBF24,#F59E0B);color:#10284A;font-weight:800;font-size:17px;letter-spacing:.03em;text-transform:uppercase;border-radius:12px;padding:17px 36px;box-shadow:0 12px 30px rgba(245,158,11,.35);transition:transform .15s ease,box-shadow .15s ease}
+  .precio-cta:hover{transform:translateY(-2px);box-shadow:0 16px 36px rgba(245,158,11,.42)}
+  .precio-nota{font-size:12px;color:#8FA0B4;margin-top:16px}
+  @media(prefers-reduced-motion:reduce){.precio-cta{transition:none}.precio-cta:hover{transform:none}}
+
+  .promotorias{max-width:1040px;margin:0 auto;padding:44px 20px 0}
+  .promo-card{background:linear-gradient(160deg,#173863,#0a1c35);border-radius:24px;padding:48px 36px;box-shadow:0 20px 50px rgba(16,40,74,.2);display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center}
+  .promo-eyebrow{font-size:12.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#F59E0B;margin:0 0 10px}
+  .promo-card h2{color:#fff;font-size:25px;font-weight:600;margin:0 0 12px;line-height:1.25}
+  .promo-card>div>p{color:#C7D3E3;font-size:14.5px;line-height:1.65;margin:0 0 22px}
+  .promo-lista{list-style:none;margin:0 0 26px;padding:0;display:flex;flex-direction:column;gap:12px}
+  .promo-lista li{color:#fff;font-size:14px;display:flex;gap:10px;align-items:flex-start;line-height:1.5}
+  .promo-lista li b{color:#fff}
+  .promo-check{flex:none;width:20px;height:20px;border-radius:50%;background:#F59E0B;color:#10284A;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;margin-top:1px}
+  .promo-panel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:26px}
+  .promo-panel .precio-tag{font-size:13px;color:#9FB4CE;font-weight:600}
+  .promo-panel .precio-cifra{font-family:var(--font-display);font-size:36px;font-weight:700;color:#fff;margin:4px 0 2px}
+  .promo-panel .precio-cifra span{font-size:14px;color:#9FB4CE;font-weight:500}
+  .promo-panel .precio-extra{font-size:13px;color:#C7D3E3;margin-bottom:20px}
+  @media(max-width:760px){.promo-card{grid-template-columns:1fr}}
   /* El ancla no debe dejar el título pegado al borde de la pantalla. */
   .secheader{scroll-margin-top:18px}
   .fcard{transition:transform .25s ease,box-shadow .25s ease}
@@ -206,7 +232,7 @@
       <a class="boton" href="./app/?registro=1">Crear mi cuenta gratis</a>
       <a class="boton-sec" href="./app/">Ya tengo cuenta</a>
     </div>
-    <div class="subnota">30 días gratis · Registro sujeto a validación — tu cuenta queda activa en cuanto la revisamos.</div>
+    <div class="subnota">30 días gratis · Tu cuenta queda activa de inmediato, sin esperar aprobación.</div>
   </div>
 </div>
 
@@ -229,6 +255,15 @@
     <p>Tu tarjeta digital capta prospectos por ti y te los manda directo a tu bandeja, mientras sigues atendiendo a quien ya confía en ti.</p>
     <span class="eje-mas">Ver cómo ↓</span>
   </a>
+</div>
+
+<div class="precio-banner reveal">
+  <div class="precio-banner-inner">
+    <div class="precio-numero">Todo esto por solo <b>$299</b> al mes</div>
+    <div class="precio-desc">Cartera organizada, avisos automáticos, tarjeta digital y cotizador de retiro — todo incluido, sin costo de instalación.</div>
+    <a class="precio-cta" href="./app/?registro=1">Prueba ahora gratis</a>
+    <div class="precio-nota">30 días gratis, sin esperar aprobación. Cancela cuando quieras.</div>
+  </div>
 </div>
 
 <div class="secheader reveal" id="controla">
@@ -458,6 +493,34 @@
         </div>
       </div>
       <div class="mock-cap">Tu tarjeta digital — compártela y deja que los prospectos te busquen</div>
+    </div>
+  </div>
+</div>
+
+<div class="promotorias">
+  <div class="promo-card reveal">
+    <div>
+      <div class="promo-eyebrow">Para promotorías</div>
+      <h2>¿Administras una red de agentes? Multiplica lo mismo que ya funciona.</h2>
+      <p>Cada agente de tu red arma su cartera, su tarjeta digital y su cotizador de retiro — y tú ves el conjunto completo desde un solo panel, sin perseguir a nadie por un reporte.</p>
+      <ul class="promo-lista">
+        <li><span class="promo-check">✓</span> <span><b>5 agentes incluidos</b> en tu cuota base, cada uno con todo el plan Agente completo.</span></li>
+        <li><span class="promo-check">✓</span> <span><b>Un panel de red</b> para ver el desempeño, la cartera y la posición de cada agente.</span></li>
+        <li><span class="promo-check">✓</span> <span><b>Tarifa preferencial</b> de $249/mes por cada agente adicional al sexto.</span></li>
+        <li><span class="promo-check">✓</span> <span><b>Tú decides quién entra:</b> cada afiliación a tu red la confirmas antes de que cuente.</span></li>
+      </ul>
+      <div class="cta-row" style="justify-content:flex-start">
+        <a class="boton" href="./promotor/?registro=1" style="background:linear-gradient(180deg,#FBBF24,#F59E0B);color:#10284A;box-shadow:0 10px 26px rgba(245,158,11,.32)">Registrar mi promotoría</a>
+        <a class="boton-sec" href="./precios/">Ver precios completos</a>
+      </div>
+    </div>
+    <div class="promo-panel">
+      <div class="precio-tag">CUOTA BASE MENSUAL</div>
+      <div class="precio-cifra">$999 <span>/ mes</span></div>
+      <div class="precio-extra">Incluye a tus primeros 5 agentes. Descuentos si pagas trimestral, semestral o anual.</div>
+      <div class="precio-tag">AGENTE ADICIONAL</div>
+      <div class="precio-cifra">$249 <span>/ mes c/u</span></div>
+      <div class="precio-extra">A partir del sexto agente de tu red.</div>
     </div>
   </div>
 </div>
