@@ -818,6 +818,18 @@ function Portal(){
 
     <SeccionAcciones token={token} tieneVida={polizas.some(p=>p.ramo==="Vida")}/>
 
+    {/* Solo aparece si el agente tiene su tarjeta activa — es la misma herramienta pública que
+        usa para captar prospectos, aquí ofrecida también a quien ya es su cliente. */}
+    {agente.alias_retiro&&<a href={`/r/${agente.alias_retiro}`} style={{textDecoration:"none"}}>
+      <div className="tarjeta-accion" style={{...card,marginBottom:20,display:"flex",alignItems:"center",gap:12,background:"linear-gradient(160deg,#173863,#0a1c35)"}}>
+        <div style={{fontSize:26}}>🌅</div>
+        <div>
+          <div style={{fontSize:14.5,fontWeight:700,color:"#fff"}}>¿Ya sabes cuánto necesitas para tu retiro?</div>
+          <div style={{fontSize:12.5,color:"#C7D3E3",marginTop:2}}>Cotízalo gratis en 2 minutos →</div>
+        </div>
+      </div>
+    </a>}
+
     <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",marginBottom:10}}>TUS PÓLIZAS ({polizas.length})</div>
     {polizas.length===0&&<div style={{...card,textAlign:"center",color:"#6B7280",marginBottom:24}}>Todavía no tienes pólizas registradas.</div>}
     {polizas.map(p=><TarjetaPoliza key={p.id} p={p} vehiculo={p.vehiculo_id?vehiculosPorId[p.vehiculo_id]:null} token={token}/>)}
