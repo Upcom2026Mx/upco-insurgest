@@ -76,7 +76,8 @@
   .subnota{font-size:13px;color:#8FA0B4;margin-top:14px}
   .features{max-width:1040px;margin:0 auto;padding:20px 20px 60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
   .fcard{background:#fff;border:1px solid rgba(16,40,74,.08);border-radius:16px;padding:24px;box-shadow:0 3px 12px rgba(16,28,53,.06)}
-  .ficon{width:42px;height:42px;border-radius:11px;background:linear-gradient(160deg,#FBBF24,#F59E0B);color:#10284A;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;margin-bottom:16px;box-shadow:0 4px 12px rgba(245,158,11,.25)}
+  .ficon{width:46px;height:46px;border-radius:12px;background:rgba(16,40,74,.06);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+  .ficon i{width:26px;height:26px;display:block;background:#10284A;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
   .fcard h3{font-size:15.5px;margin:0 0 8px;color:#10284A;font-weight:700}
   .fcard p{font-size:13.5px;color:#6B7280;line-height:1.6;margin:0}
   .fcard.destacada{border:1.5px solid #FBBF24;box-shadow:0 10px 32px rgba(245,158,11,.14)}
@@ -97,7 +98,10 @@
   .fcard{transition:transform .25s ease,box-shadow .25s ease}
   .fcard:hover{transform:translateY(-4px);box-shadow:0 14px 32px rgba(10,28,53,.11)}
   @media(prefers-reduced-motion:reduce){.eje,.fcard{transition:none}.eje:hover,.fcard:hover{transform:none}}
-  .cta-final{background:linear-gradient(160deg,#173863,#0a1c35);padding:64px 20px;text-align:center;border-radius:24px;max-width:1040px;margin:0 auto 40px;box-shadow:0 20px 50px rgba(16,40,74,.2)}
+  .cta-final{position:relative;overflow:hidden;isolation:isolate;background:linear-gradient(160deg,#173863,#0a1c35);padding:64px 20px;text-align:center;border-radius:24px;max-width:1040px;margin:0 auto 40px;box-shadow:0 20px 50px rgba(16,40,74,.2)}
+  .cta-final .cta-foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;filter:saturate(.85)}
+  .cta-final::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,28,53,.45) 0%,rgba(8,20,38,.90) 100%);z-index:0}
+  .cta-final>*{position:relative;z-index:1}
   .cta-final h2{color:#fff;font-size:26px;font-weight:600;margin:0 0 10px}
   .cta-final p{color:#DDE4EE;font-size:14.5px;margin:0 0 26px}
   .cta-final .boton{background:linear-gradient(180deg,#FBBF24,#F59E0B);color:#10284A;box-shadow:0 10px 26px rgba(245,158,11,.32)}
@@ -217,17 +221,17 @@
 
 <div class="features">
   <div class="fcard reveal">
-    <div class="ficon">☰</div>
+    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-checklist.png);mask-image:url(img/ic-checklist.png)"></i></div>
     <h3>Cada cliente con todo lo suyo</h3>
     <p>Das de alta a tu cliente y le cuelgas sus autos y sus pólizas. La vigencia se calcula sola: ves cuáles están vigentes, cuáles vencen en menos de 15 días y cuáles ya se te pasaron, sin abrir una hoja de cálculo. El PDF de cada póliza queda guardado ahí y lo descargas cuando te lo pidan.</p>
   </div>
   <div class="fcard destacada reveal">
-    <div class="ficon">✉</div>
+    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-avisos.png);mask-image:url(img/ic-avisos.png)"></i></div>
     <h3>Un solo centro de avisos <span class="nuevo">NUEVO</span></h3>
     <p><b>Tú les escribes:</b> manda correos y notificaciones al celular a los clientes que elijas, desde tu portal — para una promoción, un recordatorio de pago o avisar que cambiaste de número.<br/><br/><b>Y el sistema avisa solo:</b> a ti, de todas las pólizas de tu cartera que están por vencer; y a tu cliente, de su propia póliza por vencer, de la verificación de su auto y de cuándo le toca servicio. Los dos enterados, sin que tú muevas un dedo.</p>
   </div>
   <div class="fcard reveal">
-    <div class="ficon">▤</div>
+    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-cartera.png);mask-image:url(img/ic-cartera.png)"></i></div>
     <h3>Cuánto vale tu cartera hoy</h3>
     <p>La prima total de todo lo que tienes vigente, cuántas pólizas están vigentes, por vencer, vencidas y renovadas, y cuánto le colocas a cada aseguradora y de qué ramo. Se recalcula solo cada vez que cargas una póliza — nunca sacas la calculadora.</p>
   </div>
@@ -241,17 +245,17 @@
 
 <div class="features">
   <div class="fcard destacada reveal">
-    <div class="ficon">🔗</div>
+    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-portal.png);mask-image:url(img/ic-portal.png)"></i></div>
     <h3>Su portal, sin registro ni app</h3>
     <p>Le mandas una liga por WhatsApp y ya está adentro: sin crear cuenta, sin contraseña, sin instalar nada. Ahí tu cliente ve sus pólizas con sus vigencias, se descarga el PDF cuando el banco se lo pide, y te solicita un cambio o una cotización desde la póliza misma — sin buscarte entre mil chats. Arriba ve tu nombre y tu teléfono.</p>
   </div>
   <div class="fcard destacada reveal">
-    <div class="ficon">🚗</div>
+    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-auto.png);mask-image:url(img/ic-auto.png)"></i></div>
     <h3>Administrador de flotilla, hasta 5 autos <span class="nuevo">NUEVO</span></h3>
     <p>Tu cliente registra sus autos y lleva su control ahí: anota su kilometraje, escoge si le da servicio cada 10 o cada 15 mil km, y <b>le avisamos a él</b> antes de que le toque. Si su estado exige verificación vehicular, también se lo recordamos. Y cuando tiene un auto sin asegurar, <b>te lo manda a cotizar con un botón</b> — sin que tú tengas que preguntar.</p>
   </div>
   <div class="fcard destacada reveal">
-    <div class="ficon">◈</div>
+    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-familia.png);mask-image:url(img/ic-familia.png)"></i></div>
     <h3>Gestor de presupuesto familiar <span class="nuevo">NUEVO</span></h3>
     <p>Para tus clientes con póliza de Vida: ordenan el gasto de su familia con la regla 50/30/20 — cuánto va a necesidades, cuánto a gustos y cuánto al ahorro — y ven cuánto llevan gastado de cada cosa. <b>Sus números se quedan en su teléfono:</b> ni tú ni nosotros los vemos. Tú quedas como el asesor que le enseñó a ordenar su dinero.</p>
   </div>
@@ -265,17 +269,17 @@
 
 <div class="features">
   <div class="fcard destacada reveal">
-    <div class="ficon">◉</div>
+    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-agente.png);mask-image:url(img/ic-agente.png)"></i></div>
     <h3>Tu tarjeta digital <span class="nuevo">NUEVO</span></h3>
     <p>Tu propia página con tu foto, tu nombre, tu cédula, los ramos que manejas y las aseguradoras con las que trabajas. Trae botón de WhatsApp, de llamada y de correo, así que el prospecto te contacta con un toque. Es una liga corta —<b>insurgest.upco.app/a/tu-nombre</b>— que pegas en tu WhatsApp, tu Instagram o tu firma de correo. La prendes y la apagas cuando quieras.</p>
   </div>
   <div class="fcard destacada reveal">
-    <div class="ficon">✚</div>
+    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-prospectos.png);mask-image:url(img/ic-prospectos.png)"></i></div>
     <h3>Prospectos que llegan solos <span class="nuevo">NUEVO</span></h3>
     <p>Tu tarjeta trae un formulario. Quien lo llena te deja su nombre, su teléfono, su correo y qué quiere cotizar. <b>A ti te llega un correo al instante</b> y el prospecto se guarda en tu bandeja marcado como prospecto, junto a las solicitudes de tus clientes. No se te pierde entre los chats ni depende de que te acuerdes de contestarle.</p>
   </div>
   <div class="fcard destacada reveal">
-    <div class="ficon">🌅</div>
+    <div class="ficon"><i style="-webkit-mask-image:url(img/ic-retiro.png);mask-image:url(img/ic-retiro.png)"></i></div>
     <h3>Cotizador de retiro <span class="nuevo">NUEVO</span></h3>
     <p>Una calculadora de brecha de retiro con tu nombre, lista para compartir por separado en anuncios o publicaciones — no solo desde tu tarjeta. El prospecto contesta unas preguntas, ve cuánto le falta para su retiro en pesos de hoy, y <b>te llega su resultado como una solicitud nueva</b>. Ideal para vender Vida y PPR sin empezar la conversación en frío.</p>
   </div>
@@ -416,6 +420,7 @@
 </div>
 
 <div class="cta-final">
+  <img class="cta-foto" src="img/cta-fondo.jpg" alt="" loading="lazy"/>
   <h2>Ordena tu cartera y arma tu tarjeta hoy</h2>
   <p>Crear tu cuenta toma dos minutos. Tu tarjeta digital, otros cinco.</p>
   <a class="boton" href="./app/?registro=1">Crear mi cuenta gratis</a>
