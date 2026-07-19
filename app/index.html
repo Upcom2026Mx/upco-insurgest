@@ -1383,8 +1383,12 @@ function MiTarjeta({agente,onAgenteCambiado}){
   const[guardado,setGuardado]=useState(false);
   const[error,setError]=useState("");
   const[copiado,setCopiado]=useState(false);
+  const[copiadoRetiro,setCopiadoRetiro]=useState(false);
 
   const url=agente.alias_publico?`https://insurgest.upco.app/a/${agente.alias_publico}`:null;
+  // Vive del mismo alias que la tarjeta — no hay nada que activar aparte, el gate es el mismo
+  // (tarjeta_activa) porque el cotizador usa las mismas funciones tarjeta_publica/tarjeta_contactar.
+  const urlRetiro=agente.alias_publico?`https://insurgest.upco.app/r/${agente.alias_publico}`:null;
 
   const toggleRamo=(r)=>setRamos(prev=>prev.includes(r)?prev.filter(x=>x!==r):[...prev,r]);
   const toggleAseg=(a)=>setAseguradoras(prev=>prev.includes(a)?prev.filter(x=>x!==a):[...prev,a]);
@@ -1506,6 +1510,18 @@ function MiTarjeta({agente,onAgenteCambiado}){
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
         <Boton onClick={copiar}>{copiado?"¡Copiada!":"Copiar liga"}</Boton>
         <a href={url} target="_blank" rel="noopener"><Boton color="#F59E0B">Verla</Boton></a>
+      </div>
+    </div>}
+
+    {urlRetiro&&agente.tarjeta_activa&&<div style={{...est.card,maxWidth:520,marginBottom:14,background:"#10284A"}}>
+      <div style={{fontSize:13,fontWeight:700,color:"#F59E0B",marginBottom:6}}>🌅 TU COTIZADOR DE RETIRO</div>
+      <div style={{fontSize:12.5,color:"#C7D3E3",lineHeight:1.5,marginBottom:10}}>
+        Ya está activo — tu tarjeta trae un botón hacia él, y también lo puedes compartir solo, por ejemplo en anuncios o publicaciones enfocadas en retiro/AFORE. Los prospectos calculan su brecha de retiro y te llega el resultado como una solicitud nueva.
+      </div>
+      <div style={{fontSize:13,wordBreak:"break-all",marginBottom:10,color:"#fff"}}>{urlRetiro}</div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <Boton color="#53647D" onClick={()=>{navigator.clipboard.writeText(urlRetiro);setCopiadoRetiro(true);setTimeout(()=>setCopiadoRetiro(false),1500);}}>{copiadoRetiro?"¡Copiada!":"Copiar liga"}</Boton>
+        <a href={urlRetiro} target="_blank" rel="noopener"><Boton color="#F59E0B">Verla</Boton></a>
       </div>
     </div>}
 

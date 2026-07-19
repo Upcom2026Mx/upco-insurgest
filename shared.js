@@ -122,7 +122,7 @@ const colorEstatus={vigente:"#16a34a",vencida:"#dc2626",renovada:"#2563eb",cance
 // con el texto viejo se detecten como "Otro" al editarlas.
 const RAMOS_SUGERIDOS=["Auto","Vida","PPR","Gastos Médicos","Hogar",
   "Accidentes Personales","Daños","Responsabilidad Civil","Empresariales",
-  "Ahorro / Inversión","Transporte","Fianzas","Viaje","Educativo"];
+  "Ahorro / Inversión","Transporte","Fianzas","Viaje","Educativo","Retiro / AFORE"];
 // Catálogo solo sugerido para la tarjeta del agente; en las pólizas la aseguradora sigue
 // siendo texto libre porque cada agente trabaja con quien sea.
 const ASEGURADORAS_MX=["GNP","AXA","Quálitas","HDI Seguros","Mapfre","Zurich","Chubb","Allianz",

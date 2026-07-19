@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cotizador de retiro — Upco InsurGest</title>
+<link rel="icon" href="../icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../estilos.css"/>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#F0F4F9 380px);color:#0a1c35;min-height:100vh}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../shared.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useMemo}=React;
+
+// Página pública igual que /a/{alias}: sin login, pensada para compartirse en WhatsApp o
+// redes. Vive bajo la identidad del mismo agente y usa las mismas funciones de la tarjeta
+// (tarjeta_publica para la identidad, tarjeta_contactar para el lead) — cero SQL nuevo.
+function leerAlias(){
+  const porQuery=new URLSearchParams(location.search).get("u");
+  if(porQuery)return porQuery;
+  const m=location.pathname.match(/^\/r\/([^\/]+)\/?$/);
+  return m?decodeURIComponent(m[1]):null;
+}
+
+const card={background:"#fff",borderRadius:16,padding:22,border:"1px solid rgba(16,40,74,.08)",boxShadow:"0 3px 12px rgba(16,28,53,.07), 0 1px 3px rgba(16,28,53,.05)"};
+const campo={width:"100%",padding:"13px 15px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"};
+const ayuda={fontSize:12,color:"#8FA0B4",marginTop:-6,marginBottom:12,lineHeight:1.4};
+
+const VARIANTE_BOTON={"#10284A":"btn-navy","#F59E0B":"btn-amber","#53647D":"btn-neutral","#16a34a":"btn-good"};
+function Boton({children,onClick,disabled,color="#10284A",type="button"}){
+  return <button type={type} onClick={onClick} disabled={disabled} className={`btn ${VARIANTE_BOTON[color]||"btn-navy"}`} style={{width:"100%"}}>
+    {children}
+  </button>;
+}
+
+function Campo({label,children,ayudaTexto}){
+  return <div style={{marginBottom:4}}>
+    <div style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:5}}>{label}</div>
+    {children}
+    {ayudaTexto&&<div style={ayuda}>{ayudaTexto}</div>}
+  </div>;
+}
+
+// ⚠️ Estimados, no cifras oficiales confirmadas — igual que en Homey. La tasa de Modalidad 40
+// es progresiva (14.438% en 2023 → 18.800% en 2030). Corrige estos 3 números cuando tengas el
+// dato oficial vigente del IMSS; se usan en toda esta herramienta.
+const MOD40_TASA=0.163;
+const MOD40_UMA_DIARIA=117.66;
+const MOD40_UMBRAL_ANIOS=10;
+
+// ============ EL SIMULADOR ============
+// Análisis de brecha: cuánto necesitas para tu retiro, cuánto ya cubre tu régimen de pensión,
+// y qué te falta. La proyección del Afore usa TASA REAL (rendimiento ya descontado de la
+// inflación) para que todos los montos se queden en pesos de hoy — el prospecto nunca tiene
+// que imaginarse "pesos del futuro", que es donde estas herramientas suelen perder a la gente.
+function Simulador({datos,alias}){
+  const[edadActual,setEdadActual]=useState("35");
+  const[edadRetiro,setEdadRetiro]=useState("65");
+  const[expectativa,setExpectativa]=useState("85");
+  const[gastoMensual,setGastoMensual]=useState("20000");
+  const[situacion,setSituacion]=useState("");
+  const[regimenImss,setRegimenImss]=useState("");
+  const[regimenIssste,setRegimenIssste]=useState("");
+  const[saldoAfore,setSaldoAfore]=useState("");
+  const[aportacionMensual,setAportacionMensual]=useState("");
+  const[tasaRendimiento,setTasaRendimiento]=useState("5");
+  const[inflacion,setInflacion]=useState("4");
+  const[pensionManual,setPensionManual]=useState("");
+
+  const[nombre,setNombre]=useState("");
+  const[correo,setCorreo]=useState("");
+  const[telefono,setTelefono]=useState("");
+  const[enviando,setEnviando]=useState(false);
+  const[enviado,setEnviado]=useState(false);
+  const[error,setError]=useState("");
+
+  const[mod40Abierto,setMod40Abierto]=useState(false);
+  const[salarioMod40,setSalarioMod40]=useState("");
+  const[mod40Enviando,setMod40Enviando]=useState(false);
+  const[mod40Enviado,setMod40Enviado]=useState(false);
+
+  const esCuentaIndividual=situacion==="imss"&&regimenImss==="97" || situacion==="issste"&&regimenIssste==="individual";
+  const esBeneficioDefinido=situacion==="imss"&&regimenImss==="73" || situacion==="issste"&&regimenIssste==="decimo";
+  const esLey73=situacion==="imss"&&regimenImss==="73";
+
+  const r=useMemo(()=>{
+    const eAct=parseFloat(edadActual)||0, eRet=parseFloat(edadRetiro)||0, eVida=parseFloat(expectativa)||0;
+    const gasto=parseFloat(gastoMensual)||0;
+    const saldo=parseFloat(saldoAfore)||0, aporte=parseFloat(aportacionMensual)||0;
+    const tasaNominal=parseFloat(tasaRendimiento)||0, infl=parseFloat(inflacion)||0;
+    const pensionDefinidaMensual=parseFloat(pensionManual)||0;
+
+    const mesesReserva=Math.max(0,Math.round((eVida-eRet)*12));
+    const montoNecesario=mesesReserva*gasto;
+    const aniosParaAhorrar=Math.max(0,eRet-eAct);
+    const mesesParaRetiro=aniosParaAhorrar*12;
+
+    // Tasa REAL (Fisher): el rendimiento ya descontado de la inflación. Con esto, "aportación
+    // mensual" y "gasto mensual" se quedan en pesos de hoy durante todo el cálculo.
+    const tasaRealAnual=((1+tasaNominal/100)/(1+infl/100)-1)*100;
+    const tasaMensual=tasaRealAnual/100/12;
+
+    let saldoProyectado=saldo;
+    if(esCuentaIndividual&&mesesParaRetiro>0){
+      if(tasaMensual!==0){
+        saldoProyectado=saldo*Math.pow(1+tasaMensual,mesesParaRetiro)+aporte*((Math.pow(1+tasaMensual,mesesParaRetiro)-1)/tasaMensual);
+      }else{
+        saldoProyectado=saldo+aporte*mesesParaRetiro;
+      }
+    }
+
+    const cubiertoDefinido=pensionDefinidaMensual*mesesReserva;
+    const montoCubierto=esCuentaIndividual?saldoProyectado:(esBeneficioDefinido?cubiertoDefinido:0);
+    const montoFaltante=Math.max(0,montoNecesario-montoCubierto);
+    const ahorroMensualSugerido=mesesParaRetiro>0?montoFaltante/mesesParaRetiro:montoFaltante;
+
+    return{mesesReserva,montoNecesario,aniosParaAhorrar,mesesParaRetiro,saldoProyectado,montoCubierto,montoFaltante,ahorroMensualSugerido,tasaRealAnual};
+  },[edadActual,edadRetiro,expectativa,gastoMensual,saldoAfore,aportacionMensual,tasaRendimiento,inflacion,pensionManual,esCuentaIndividual,esBeneficioDefinido]);
+
+  const listo=situacion&&(situacion==="propio"||situacion==="no_seguro"||
+    (situacion==="imss"&&regimenImss)||(situacion==="issste"&&regimenIssste));
+
+  const candidatoMod40=esLey73&&r.aniosParaAhorrar>0&&r.aniosParaAhorrar<=MOD40_UMBRAL_ANIOS;
+
+  const enviarLead=async(e)=>{
+    e.preventDefault();setError("");
+    if(!nombre.trim()){setError("Necesitamos tu nombre.");return;}
+    if(!correo.trim()&&!telefono.trim()){setError("Déjanos un correo o un teléfono para poder contactarte.");return;}
+    setEnviando(true);
+    const resumen=`Simulador de retiro — Edad actual ${edadActual}, retiro deseado ${edadRetiro}. `+
+      `Gasto mensual deseado: ${pesos(parseFloat(gastoMensual)||0)}. `+
+      (r.montoFaltante>0
+        ? `Le faltan ${pesos(r.montoFaltante)} para cubrir su retiro. Ahorro mensual sugerido: ${pesos(r.ahorroMensualSugerido)}/mes durante ${r.aniosParaAhorrar} años.`
+        : `Según sus números, su retiro ya está cubierto — vale la pena revisarlo con detalle.`);
+    const{error:err}=await sb.rpc("tarjeta_contactar",{
+      p_alias:alias,p_nombre:nombre,p_correo:correo||null,p_telefono:telefono||null,
+      p_ramo_interes:"Retiro / AFORE",p_descripcion:resumen
+    });
+    setEnviando(false);
+    if(err){setError(err.message||"No se pudo enviar. Intenta de nuevo.");return;}
+    setEnviado(true);
+  };
+
+  const enviarMod40=async(e)=>{
+    e.preventDefault();
+    setMod40Enviando(true);
+    const salario=parseFloat(salarioMod40)||0;
+    const cuotaMensualEstimada=salario*MOD40_TASA;
+    const resumen=`Interés en Modalidad 40 — Edad actual ${edadActual}, ${r.aniosParaAhorrar} años para su retiro. `+
+      `Salario mensual con el que quiere cotizar: ${pesos(salario)}. Cuota mensual estimada: ${pesos(cuotaMensualEstimada)} `+
+      `(estimado, tasa no oficial confirmada — UMA diaria de referencia $${MOD40_UMA_DIARIA}).`;
+    await sb.rpc("tarjeta_contactar",{
+      p_alias:alias,p_nombre:nombre||"Prospecto de Modalidad 40",p_correo:correo||null,p_telefono:telefono||null,
+      p_ramo_interes:"Modalidad 40 IMSS",p_descripcion:resumen
+    });
+    setMod40Enviando(false);
+    setMod40Enviado(true);
+  };
+
+  return <div style={{maxWidth:560,margin:"0 auto",padding:16}}>
+
+    <div style={{...card,textAlign:"center",marginBottom:14}}>
+      {datos.foto_url
+        ? <img src={datos.foto_url} alt={datos.nombre||"Agente"} style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",border:"3px solid #fff",boxShadow:"0 0 0 3px #10284A"}}/>
+        : <div style={{width:64,height:64,borderRadius:"50%",background:"linear-gradient(160deg,#173863,#0a1c35)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:700,fontFamily:"var(--font-display)",margin:"0 auto"}}>
+            {(datos.nombre||"?").trim().charAt(0).toUpperCase()}
+          </div>}
+      <div style={{fontSize:12,color:"#8FA0B4",marginTop:10}}>Cotizador de retiro de</div>
+      <div style={{fontSize:18,fontWeight:700,color:"#10284A",fontFamily:"var(--font-display)"}}>{datos.nombre||"tu agente"}</div>
+    </div>
+
+    <div style={{...card,marginBottom:14}}>
+      <div style={{fontSize:20,fontWeight:700,color:"#10284A",fontFamily:"var(--font-display)",marginBottom:4}}>¿Tienes cubierto tu retiro?</div>
+      <div style={{fontSize:13.5,color:"#6B7280",lineHeight:1.5,marginBottom:16}}>Contesta estas preguntas y te decimos, en pesos de hoy, cuánto te falta reunir — gratis y sin compromiso.</div>
+
+      <Campo label="Tu edad actual">
+        <input type="number" value={edadActual} onChange={e=>setEdadActual(e.target.value)} style={campo} name="edad_actual"/>
+      </Campo>
+      <Campo label="¿A qué edad te quieres retirar?">
+        <input type="number" value={edadRetiro} onChange={e=>setEdadRetiro(e.target.value)} style={campo} name="edad_retiro"/>
+      </Campo>
+      <Campo label="¿Hasta qué edad quieres tener cubierto tu retiro?" ayudaTexto="La expectativa de vida en México ronda los 85 años.">
+        <input type="number" value={expectativa} onChange={e=>setExpectativa(e.target.value)} style={campo} name="expectativa"/>
+      </Campo>
+      <Campo label="¿Con cuánto dinero podrías vivir cada mes ya retirado? (en pesos de hoy)">
+        <input type="number" value={gastoMensual} onChange={e=>setGastoMensual(e.target.value)} placeholder="20000" style={campo} name="gasto_mensual"/>
+      </Campo>
+
+      <Campo label="¿En qué régimen de pensión estás?">
+        <select value={situacion} onChange={e=>{setSituacion(e.target.value);setRegimenImss("");setRegimenIssste("");}} style={campo} name="situacion">
+          <option value="">Elige una opción</option>
+          <option value="imss">Trabajo para una empresa (IMSS)</option>
+          <option value="issste">Trabajo para el gobierno (ISSSTE)</option>
+          <option value="propio">Tengo mi negocio o trabajo por mi cuenta</option>
+          <option value="no_seguro">No estoy seguro / otro caso</option>
+        </select>
+      </Campo>
+
+      {situacion==="imss"&&<Campo label="¿Empezaste a cotizar al IMSS antes de julio de 1997?">
+        <select value={regimenImss} onChange={e=>setRegimenImss(e.target.value)} style={campo} name="regimen_imss">
+          <option value="">Elige una opción</option>
+          <option value="73">Sí, antes de julio 1997 (Ley 73)</option>
+          <option value="97">No, empecé después (Ley 97)</option>
+        </select>
+      </Campo>}
+
+      {situacion==="issste"&&<Campo label="¿Sabes en qué régimen estás?">
+        <select value={regimenIssste} onChange={e=>setRegimenIssste(e.target.value)} style={campo} name="regimen_issste">
+          <option value="">Elige una opción</option>
+          <option value="decimo">Décimo Transitorio</option>
+          <option value="individual">Cuentas Individuales</option>
+          <option value="no_se">No lo sé</option>
+        </select>
+      </Campo>}
+
+      {esCuentaIndividual&&<>
+        <Campo label="¿Cuánto tienes acumulado hoy en tu Afore?">
+          <input type="number" value={saldoAfore} onChange={e=>setSaldoAfore(e.target.value)} style={campo} name="saldo_afore"/>
+        </Campo>
+        <Campo label="¿Cuánto se deposita mensualmente? (aprox., en pesos de hoy)" ayudaTexto="Está en tu estado de cuenta; si no lo sabes, usa ~6.5% de tu sueldo mensual.">
+          <input type="number" value={aportacionMensual} onChange={e=>setAportacionMensual(e.target.value)} style={campo} name="aportacion_mensual"/>
+        </Campo>
+        <Campo label="Rendimiento anual estimado de tu Afore (%)" ayudaTexto="Promedio histórico de las Afores en México ronda el 5%.">
+          <input type="number" value={tasaRendimiento} onChange={e=>setTasaRendimiento(e.target.value)} style={campo} name="tasa_rendimiento"/>
+        </Campo>
+        <Campo label="Inflación anual estimada (%)" ayudaTexto="La meta de Banxico ronda el 3-4% anual. La usamos para que todo el cálculo se quede en pesos de hoy.">
+          <input type="number" value={inflacion} onChange={e=>setInflacion(e.target.value)} style={campo} name="inflacion"/>
+        </Campo>
+      </>}
+
+      {esBeneficioDefinido&&<>
+        <div style={{background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:10,padding:12,fontSize:12.5,color:"#78350F",marginBottom:14}}>
+          Tu pensión se calcula con tablas oficiales del IMSS/ISSSTE según tus semanas o años cotizados y tu salario promedio — no es un cálculo genérico que podamos hacer aquí.
+        </div>
+        <Campo label="Tu pensión mensual estimada (si la conoces, en pesos de hoy)" ayudaTexto="La encuentras en imss.gob.mx o tu estado de cuenta. Si no la sabes, este cálculo asume que necesitas cubrir todo por tu cuenta.">
+          <input type="number" value={pensionManual} onChange={e=>setPensionManual(e.target.value)} style={campo} name="pension_manual"/>
+        </Campo>
+      </>}
+    </div>
+
+    {listo&&<div style={{...card,marginBottom:14,background:"linear-gradient(160deg,#173863,#0a1c35)",color:"#fff"}}>
+      <div style={{fontSize:11,fontWeight:700,color:"#C7D3E3",textTransform:"uppercase",letterSpacing:".04em",marginBottom:6}}>
+        {r.montoFaltante>0?"Te falta reunir (además de tu pensión)":"Según tus números"}
+      </div>
+      <div style={{fontSize:30,fontWeight:700,fontFamily:"var(--font-display)",marginBottom:10}}>
+        {r.montoFaltante>0?pesos(r.montoFaltante):"¡Tu retiro ya está cubierto!"}
+      </div>
+      {(esCuentaIndividual||esBeneficioDefinido)&&<div style={{fontSize:13,color:"#C7D3E3",marginBottom:12}}>
+        Tu {esCuentaIndividual?"Afore":"pensión"} ya cubriría aproximadamente {pesos(r.montoCubierto)} de los {pesos(r.montoNecesario)} que necesitas.
+      </div>}
+      {r.montoFaltante>0&&r.mesesParaRetiro>0&&<div style={{background:"rgba(255,255,255,.1)",borderRadius:10,padding:14}}>
+        <div style={{fontSize:11,color:"#F59E0B",fontWeight:700,textTransform:"uppercase",letterSpacing:".04em",marginBottom:4}}>Ahorro mensual sugerido</div>
+        <div style={{fontSize:22,fontWeight:700}}>{pesos(r.ahorroMensualSugerido)}<span style={{fontSize:13,fontWeight:400,color:"#C7D3E3"}}> /mes durante {r.aniosParaAhorrar} años</span></div>
+      </div>}
+      <div style={{fontSize:11,color:"#8FA0B4",marginTop:12,lineHeight:1.5}}>
+        Estimación con tu rendimiento ya descontado de la inflación — todos los montos están en pesos de hoy. No sustituye un plan personalizado con tu agente.
+      </div>
+    </div>}
+
+    {listo&&candidatoMod40&&!mod40Abierto&&<div style={{...card,marginBottom:14,background:"#FFFBEB",border:"1px solid #FDE68A"}}>
+      <div style={{fontSize:14,fontWeight:700,color:"#B45309",marginBottom:6}}>Podrías ser candidato a Modalidad 40</div>
+      <div style={{fontSize:13,color:"#374151",marginBottom:12}}>Por tu régimen (Ley 73) y los años que te faltan, pagar cuotas voluntarias antes de retirarte podría subir tu pensión. Es un trámite del IMSS, no un seguro — {datos.nombre||"tu agente"} te puede orientar si calificas.</div>
+      <Boton color="#F59E0B" onClick={()=>setMod40Abierto(true)}>Quiero saber si califico</Boton>
+    </div>}
+
+    {mod40Abierto&&<div style={{...card,marginBottom:14,background:"#FFFBEB",border:"1px solid #FDE68A"}}>
+      {mod40Enviado
+        ? <div style={{fontSize:14,color:"#16a34a",fontWeight:700}}>¡Listo! {datos.nombre||"Tu agente"} va a revisar tu caso y te contacta.</div>
+        : <form onSubmit={enviarMod40}>
+            <div style={{fontSize:14,fontWeight:700,color:"#B45309",marginBottom:10}}>Modalidad 40 — estimado de tu cuota</div>
+            <Campo label="¿Con qué salario mensual te gustaría cotizar?" ayudaTexto="Entre más alto, mayor la cuota — pero también mayor tu pensión futura.">
+              <input type="number" value={salarioMod40} onChange={e=>setSalarioMod40(e.target.value)} style={campo} name="salario_mod40"/>
+            </Campo>
+            {parseFloat(salarioMod40)>0&&<div style={{fontSize:13,color:"#78350F",marginBottom:12}}>
+              Cuota mensual estimada: <strong>{pesos(parseFloat(salarioMod40)*MOD40_TASA)}</strong>
+              <div style={{fontSize:11,color:"#92400E",marginTop:2}}>Estimado, no es la tasa oficial confirmada — {datos.nombre||"tu agente"} te da el cálculo exacto.</div>
+            </div>}
+            <Boton type="submit" color="#F59E0B" disabled={mod40Enviando}>{mod40Enviando?"Enviando...":"Quiero que me contacten"}</Boton>
+          </form>}
+    </div>}
+
+    {listo&&<div style={card}>
+      <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>¿Quieres ayuda para armar tu plan?</div>
+      {enviado
+        ? <div style={{fontSize:14,color:"#16a34a",marginTop:8}}>¡Listo! {datos.nombre||"Tu agente"} ya recibió tus datos y tu resultado, y te va a contactar pronto.</div>
+        : <form onSubmit={enviarLead}>
+            <div style={{fontSize:13,color:"#6B7280",marginBottom:12}}>Déjale tus datos a {datos.nombre||"tu agente"} y le llega tu resultado completo.</div>
+            <input style={campo} placeholder="Tu nombre *" value={nombre} onChange={e=>setNombre(e.target.value)} name="nombre"/>
+            <input style={campo} placeholder="Tu correo" type="email" value={correo} onChange={e=>setCorreo(e.target.value)} name="correo"/>
+            <input style={campo} placeholder="Tu teléfono" value={telefono} onChange={e=>setTelefono(e.target.value)} name="telefono"/>
+            {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+            <Boton type="submit" color="#F59E0B" disabled={enviando}>{enviando?"Enviando...":"Enviar mi resultado"}</Boton>
+          </form>}
+    </div>}
+
+    <div style={{textAlign:"center",fontSize:12,color:"#8FA0B4",padding:"18px 0 20px"}}>
+      Herramienta de estimación, no sustituye asesoría personalizada.<br/>
+      Hecho con <a href="/" style={{color:"#10284A",fontWeight:700,textDecoration:"none"}}>Upco InsurGest</a>
+    </div>
+  </div>;
+}
+
+function App(){
+  const[estado,setEstado]=useState("cargando");
+  const[datos,setDatos]=useState(null);
+  const alias=leerAlias();
+
+  useEffect(()=>{
+    if(!alias){setEstado("noexiste");return;}
+    if(location.search){history.replaceState(null,"","/r/"+encodeURIComponent(alias));}
+    sb.rpc("tarjeta_publica",{p_alias:alias}).then(({data,error})=>{
+      if(error||!data){setEstado("noexiste");return;}
+      setDatos(data);
+      document.title=`Cotizador de retiro de ${data.nombre||"tu agente"} — Upco InsurGest`;
+      setEstado("ok");
+    });
+  },[alias]);
+
+  if(estado==="cargando")return <div style={{padding:40,textAlign:"center",color:"#8FA0B4"}}>Cargando...</div>;
+  if(estado==="noexiste")return <div style={{maxWidth:420,margin:"60px auto",padding:20,textAlign:"center"}}>
+    <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:8}}>Este cotizador no está disponible</div>
+    <div style={{fontSize:14,color:"#6B7280"}}>Puede que la liga esté mal escrita o que el agente haya desactivado su tarjeta.</div>
+    <div style={{marginTop:20}}><a href="/" style={{color:"#10284A",fontWeight:700}}>Ir a Upco InsurGest</a></div>
+  </div>;
+  return <Simulador datos={datos} alias={alias}/>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

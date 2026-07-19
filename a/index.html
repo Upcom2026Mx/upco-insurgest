@@ -139,6 +139,16 @@ function Tarjeta({datos,alias}){
       </a>}
     </div>
 
+    <a href={`/r/${alias}`} style={{textDecoration:"none"}}>
+      <div className="tarjeta-accion" style={{...card,marginBottom:12,display:"flex",alignItems:"center",gap:12,background:"linear-gradient(160deg,#173863,#0a1c35)"}}>
+        <div style={{fontSize:26}}>🌅</div>
+        <div>
+          <div style={{fontSize:14.5,fontWeight:700,color:"#fff"}}>¿Ya sabes cuánto necesitas para tu retiro?</div>
+          <div style={{fontSize:12.5,color:"#C7D3E3",marginTop:2}}>Cotízalo gratis en 2 minutos →</div>
+        </div>
+      </div>
+    </a>
+
     <div style={{...card,marginBottom:12}}>
       <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>¿Quieres que te cotice?</div>
       {enviado
