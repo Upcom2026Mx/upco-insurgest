@@ -533,6 +533,7 @@ function PanelPromotoria({session,onSalir}){
       <button onClick={()=>setVista("agentes")} style={tabStyle(vista==="agentes")}>Agentes</button>
       <button onClick={()=>setVista("avisos")} style={tabStyle(vista==="avisos")}>Avisos</button>
       <button onClick={()=>setVista("suscripcion")} style={tabStyle(vista==="suscripcion")}>Suscripción</button>
+      <a href="../ayuda/" target="_blank" rel="noopener" style={tabStyle(false)}>Ayuda</a>
     </div>
 
     {vista==="resumen"?<Resumen codigo={promotoria.codigo_invitacion}/>
