@@ -28,6 +28,22 @@
   --font-display:'Fraunces',ui-serif,Georgia,'Iowan Old Style',serif;
 }
 
+/* ============ LOGOTIPO "UPCO" EN TEXTO ============
+   El logo real (logo-upco.png) tiene transparencia, así que se puede usar como máscara para
+   dibujar exactamente sus mismas formas (incluido el acento sobre la "U") en cualquier color —
+   sin esto, el "Upco" en los encabezados se escribía en Fraunces y no calzaba con el logotipo real.
+   url() aquí es relativo a este archivo (raíz del repo), así que funciona igual sin importar
+   desde qué carpeta se cargue estilos.css. */
+.brand-logo{
+  display:inline-block;vertical-align:middle;
+  width:64px;height:24px;
+  background-color:#fff;
+  -webkit-mask-image:url(logo-upco.png);mask-image:url(logo-upco.png);
+  -webkit-mask-size:contain;mask-size:contain;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  -webkit-mask-position:left center;mask-position:left center;
+}
+
 html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 
 h1,h2,h3,h4{font-family:var(--font-display);letter-spacing:-.01em;text-wrap:balance}
