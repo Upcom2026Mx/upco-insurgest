@@ -251,6 +251,7 @@ function ClienteForm({agenteId,clienteExistente,onGuardado,onCancelar}){
   const[nombre,setNombre]=useState(c?c.nombre:"");
   const[rfc,setRfc]=useState(c?c.rfc||"":"");
   const[curp,setCurp]=useState(c?c.curp||"":"");
+  const[fechaNacimiento,setFechaNacimiento]=useState(c?c.fecha_nacimiento||"":"");
   const[correo,setCorreo]=useState(c?c.correo||"":"");
   const[telefono,setTelefono]=useState(c?c.telefono||"":"");
   const[notas,setNotas]=useState(c?c.notas||"":"");
@@ -266,6 +267,7 @@ function ClienteForm({agenteId,clienteExistente,onGuardado,onCancelar}){
       nombre:nombre.trim(),
       rfc:rfc.trim()||null,
       curp:tipoPersona==="fisica"?(curp.trim()||null):null,
+      fecha_nacimiento:tipoPersona==="fisica"?(fechaNacimiento||null):null,
       correo:correo.trim()||null,
       telefono:telefono.trim()||null,
       notas:notas.trim()||null,
@@ -304,6 +306,10 @@ function ClienteForm({agenteId,clienteExistente,onGuardado,onCancelar}){
       </Campo>}
     </div>
 
+    {tipoPersona==="fisica"&&<Campo label="Fecha de nacimiento (para saludarlo en su cumpleaños)">
+      <input name="fecha_nacimiento" type="date" value={fechaNacimiento} onChange={e=>setFechaNacimiento(e.target.value)} style={est.input}/>
+    </Campo>}
+
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
       <Campo label="Correo electrónico">
         <input name="correo" value={correo} onChange={e=>setCorreo(e.target.value)} type="email" style={est.input}/>
@@ -325,6 +331,35 @@ function ClienteForm({agenteId,clienteExistente,onGuardado,onCancelar}){
   </form>;
 }
 
+function ProximosCumpleanos({onAbrirCliente,clientes}){
+  const[lista,setLista]=useState(null);
+
+  useEffect(()=>{
+    sb.rpc("agente_cumpleanos_proximos",{p_dias:14}).then(({data,error})=>{
+      if(error)return;
+      setLista(data||[]);
+    });
+  },[]);
+
+  if(!lista||lista.length===0)return null;
+
+  const textoDia=(d)=>d===0?"Hoy":d===1?"Mañana":`En ${d} días`;
+
+  return <div style={{...est.card,border:"1.5px solid #FBBF24",marginBottom:16}}>
+    <div style={{fontSize:14,fontWeight:700,marginBottom:10}}>🎂 Próximos cumpleaños</div>
+    {lista.map(l=>{
+      const cliente=(clientes||[]).find(c=>c.id===l.id);
+      const wa=l.telefono?l.telefono.replace(/\D/g,""):null;
+      return <div key={l.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #F1F5F9"}}>
+        <div style={{fontSize:13,cursor:cliente?"pointer":"default"}} onClick={()=>cliente&&onAbrirCliente(cliente)}>
+          <b>{l.nombre}</b> <span style={{color:l.dias_para_cumple===0?"#B45309":"#8FA0B4"}}>— {textoDia(l.dias_para_cumple)}</span>
+        </div>
+        {wa&&<a href={`https://wa.me/52${wa}?text=${encodeURIComponent(`¡Feliz cumpleaños, ${l.nombre.split(" ")[0]}! 🎉 Que tengas un excelente día.`)}`} target="_blank" rel="noopener" style={{fontSize:12,fontWeight:700,color:"#16a34a"}} onClick={e=>e.stopPropagation()}>Felicitar por WhatsApp</a>}
+      </div>;
+    })}
+  </div>;
+}
+
 function ClientesList({agenteId,onAbrirCliente}){
   const[clientes,setClientes]=useState(null);
   const[formAbierto,setFormAbierto]=useState(false);
@@ -339,6 +374,7 @@ function ClientesList({agenteId,onAbrirCliente}){
   useEffect(()=>{cargar()},[]);
 
   return <div>
+    {!formAbierto&&!formPolizaAbierto&&<ProximosCumpleanos clientes={clientes} onAbrirCliente={onAbrirCliente}/>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
       <div style={{fontSize:16,fontWeight:700}}>Mis clientes {clientes?`(${clientes.length})`:""}</div>
       {!formAbierto&&!formPolizaAbierto&&<div style={{display:"flex",gap:8}}>
@@ -672,6 +708,7 @@ function ClienteDetalle({cliente,agenteId,onVolver,onClienteCambiado}){
         <div style={{marginTop:14,fontSize:13,color:"#374151",lineHeight:1.8}}>
           {cliente.rfc&&<div>RFC: {cliente.rfc}</div>}
           {cliente.curp&&<div>CURP: {cliente.curp}</div>}
+          {cliente.fecha_nacimiento&&<div>Cumpleaños: {fecha(cliente.fecha_nacimiento)}</div>}
           {cliente.correo&&<div>Correo: {cliente.correo}</div>}
           {cliente.telefono&&<div>Teléfono: {cliente.telefono}</div>}
           {cliente.notas&&<div>Notas: {cliente.notas}</div>}
