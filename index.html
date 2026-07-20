@@ -94,27 +94,28 @@
     .blob{display:none}
   }
 
-  /* Manchas de color que se mueven más lento que el scroll (parallax). Puramente decorativas. */
-  .heroWrap{position:relative;overflow:hidden}
-  .blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;pointer-events:none;will-change:transform}
-  .blob-a{width:340px;height:340px;background:#F59E0B33;top:-120px;left:-90px}
-  .blob-b{width:300px;height:300px;background:#10284A26;top:40px;right:-110px}
   .header{background:linear-gradient(135deg,#173863,#0a1c35);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;max-width:1040px;margin:0 auto;border-radius:0 0 16px 16px;box-shadow:0 4px 20px rgba(10,28,53,.18)}
   .brand{color:#fff;font-weight:700;font-size:19px;font-family:var(--font-display)}
   .brand span{color:#F59E0B}
   .navlink{color:#DDE4EE;font-size:14px;font-weight:600;padding:8px 14px;transition:color .15s ease}
   .navlink:hover{color:#fff}
-  .hero{max-width:720px;margin:0 auto;padding:72px 20px 44px;text-align:center}
-  .hero-dolor{font-size:13.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#c8790a;margin:0 0 12px}
-  .hero h1{font-size:34px;font-weight:600;line-height:1.2;margin:0 0 18px}
-  .hero p{font-size:16.5px;color:#374151;line-height:1.65;margin:0 0 30px}
+  .heroWrap{max-width:1040px;margin:20px auto 0;padding:0 20px}
+  .hero{position:relative;overflow:hidden;isolation:isolate;margin:0 auto;padding:64px 24px;text-align:center;border-radius:24px;box-shadow:0 20px 50px rgba(16,40,74,.22)}
+  .hero .hero-foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%;z-index:0;filter:saturate(.85)}
+  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(165deg,rgba(10,28,53,.7) 0%,rgba(8,20,38,.92) 100%);z-index:0}
+  .hero>*{position:relative;z-index:1}
+  .hero-categoria{font-size:12.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9FB4CE;margin:0 0 10px}
+  .hero-dolor{font-size:20px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:#FBBF24;margin:0 0 16px}
+  .hero h1{color:#fff;font-size:34px;font-weight:600;line-height:1.2;margin:0 0 18px}
+  .hero p{font-size:16.5px;color:#C7D3E3;line-height:1.65;margin:0 0 30px;max-width:52ch;margin-left:auto;margin-right:auto}
   .cta-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:8px}
   .boton{display:inline-block;background:linear-gradient(180deg,#173863,#0d2140);color:#fff;border-radius:11px;padding:15px 28px;font-size:16px;font-weight:700;box-shadow:0 10px 26px rgba(16,40,74,.24);transition:transform .15s ease,box-shadow .15s ease}
   .boton:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(16,40,74,.3)}
   .boton-sec{display:inline-block;background:#fff;color:#10284A;border:1.5px solid #DDE4EE;border-radius:11px;padding:15px 28px;font-size:16px;font-weight:700;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
   .boton-sec:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(16,28,53,.08);border-color:#c7d3e3}
   @media(prefers-reduced-motion:reduce){.boton,.boton-sec,.navlink{transition:none}.boton:hover,.boton-sec:hover{transform:none}}
-  .subnota{font-size:13px;color:#8FA0B4;margin-top:14px}
+  .subnota{font-size:13px;color:#9FB4CE;margin-top:14px}
+  @media(max-width:600px){.hero{padding:48px 20px}}
   .features{max-width:1040px;margin:0 auto;padding:20px 20px 60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
   .fcard{background:#fff;border:1px solid rgba(16,40,74,.08);border-radius:16px;padding:24px;box-shadow:0 3px 12px rgba(16,28,53,.06)}
   .ficon{width:46px;height:46px;border-radius:12px;background:rgba(16,40,74,.06);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
@@ -258,9 +259,9 @@
 </div>
 
 <div class="heroWrap">
-  <div class="blob blob-a" data-parallax="0.25"></div>
-  <div class="blob blob-b" data-parallax="0.14"></div>
   <div class="hero">
+    <img class="hero-foto" src="img/hero-fondo.jpg" alt="" loading="eager"/>
+    <div class="hero-categoria">Para agentes de seguros independientes en México</div>
     <div class="hero-dolor">Los olvidos cuestan dinero</div>
     <h1>Deja de perder clientes y comisiones por pólizas vencidas</h1>
     <p>Upco InsurGest ordena tu cartera, envía y recibe avisos automáticos sobre los próximos vencimientos, y te ayuda a captar clientes nuevos con un servicio que los hace quedarse — sin hojas de cálculo.</p>
@@ -609,26 +610,6 @@ document.documentElement.classList.add("js");
       if (document.querySelector(".reveal.visible")) return;
       aparecer.forEach(function(el){ el.classList.add("visible"); });
     }, 1500);
-  }
-
-  // Parallax de las manchas del hero. Se apaga solo cuando el hero ya no se ve, para no
-  // estar recalculando durante todo el scroll de la página.
-  var manchas = document.querySelectorAll("[data-parallax]");
-  if (!menosMovimiento && manchas.length) {
-    var pendiente = false;
-    window.addEventListener("scroll", function(){
-      if (pendiente) return;
-      pendiente = true;
-      requestAnimationFrame(function(){
-        var y = window.pageYOffset;
-        if (y < 700) {
-          manchas.forEach(function(m){
-            m.style.transform = "translate3d(0," + (y * parseFloat(m.dataset.parallax)) + "px,0)";
-          });
-        }
-        pendiente = false;
-      });
-    }, { passive: true });
   }
 })();
 </script>
