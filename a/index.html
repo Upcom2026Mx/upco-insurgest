@@ -4,6 +4,14 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Tarjeta digital — Upco InsurGest</title>
+<meta name="description" content="Tarjeta digital de un agente de seguros independiente en México, con Upco InsurGest. Contacta por WhatsApp, llamada o correo, o pide una cotización."/>
+<meta property="og:type" content="profile"/>
+<meta property="og:site_name" content="Upco InsurGest"/>
+<meta property="og:locale" content="es_MX"/>
+<meta property="og:title" content="Tarjeta digital — Upco InsurGest"/>
+<meta property="og:description" content="Contacta por WhatsApp, llamada o correo, o pide una cotización directamente."/>
+<meta property="og:image" content="https://insurgest.upco.app/img/og-cover.png"/>
+<meta name="twitter:card" content="summary"/>
 <link rel="icon" href="../icon-192.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -177,7 +185,9 @@ function App(){
     sb.rpc("tarjeta_publica",{p_alias:alias}).then(({data,error})=>{
       if(error||!data){setEstado("noexiste");return;}
       setDatos(data);
-      document.title=`${data.nombre||"Agente de seguros"}${data.nombre_negocio?" — "+data.nombre_negocio:""}`;
+      document.title=`${data.nombre||"Agente de seguros"}${data.nombre_negocio?" — "+data.nombre_negocio:""} | Upco InsurGest`;
+      const meta=document.querySelector('meta[name="description"]');
+      if(meta)meta.setAttribute("content",`${data.nombre||"Un agente de seguros"} independiente en México — contáctalo por WhatsApp, llamada o correo, o pide una cotización.`);
       setEstado("ok");
     });
   },[alias]);

@@ -4,6 +4,14 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Cotizador de retiro — Upco InsurGest</title>
+<meta name="description" content="Calcula gratis cuánto necesitas para tu retiro y qué te falta, con tu asesor de seguros independiente. Incluye Modalidad 40 IMSS."/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Upco InsurGest"/>
+<meta property="og:locale" content="es_MX"/>
+<meta property="og:title" content="Cotizador de retiro — Upco InsurGest"/>
+<meta property="og:description" content="Calcula gratis cuánto necesitas para tu retiro y qué te falta. Incluye Modalidad 40 IMSS."/>
+<meta property="og:image" content="https://insurgest.upco.app/img/og-cover.png"/>
+<meta name="twitter:card" content="summary"/>
 <link rel="icon" href="../icon-192.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -324,6 +332,8 @@ function App(){
       if(error||!data){setEstado("noexiste");return;}
       setDatos(data);
       document.title=`Cotizador de retiro de ${data.nombre||"tu agente"} — Upco InsurGest`;
+      const meta=document.querySelector('meta[name="description"]');
+      if(meta)meta.setAttribute("content",`Calcula gratis cuánto necesitas para tu retiro, con ${data.nombre||"tu agente"}. Incluye Modalidad 40 IMSS.`);
       setEstado("ok");
     });
   },[alias]);
