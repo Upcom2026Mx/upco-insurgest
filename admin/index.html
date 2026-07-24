@@ -105,14 +105,23 @@ function Login(){
   </div>;
 }
 
-function TarjetaKPI({label,valor,color,grande}){
-  return <div style={{...est.card,textAlign:"center"}}>
+function TarjetaKPI({label,valor,color,grande,onClick}){
+  const a11y=onClick?{role:"button",tabIndex:0,onKeyDown:e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();onClick();}}}:{};
+  return <div
+    {...a11y}
+    onClick={onClick}
+    onMouseEnter={onClick?e=>{e.currentTarget.style.boxShadow="0 6px 20px rgba(16,40,74,.16)";e.currentTarget.style.transform="translateY(-2px)";}:undefined}
+    onMouseLeave={onClick?e=>{e.currentTarget.style.boxShadow=est.card.boxShadow;e.currentTarget.style.transform="none";}:undefined}
+    style={{...est.card,textAlign:"center",cursor:onClick?"pointer":"default",transition:"box-shadow .15s ease, transform .15s ease"}}>
     <div style={{fontSize:grande?30:22,fontWeight:700,color:color||"#10284A"}}>{valor}</div>
-    <div style={{fontSize:12,color:"#8FA0B4",marginTop:4}}>{label}</div>
+    <div style={{fontSize:12,color:"#8FA0B4",marginTop:4}}>{label}{onClick?" →":""}</div>
   </div>;
 }
 
-function Resumen(){
+// onIrA(vista, filtro) — cambia de pestaña y, si aplica, preselecciona el filtro de esa lista.
+// Solo las tarjetas con un listado real detrás llevan onClick; "Clientes", "Pólizas" y "Prima"
+// son agregados sin pantalla propia en este panel, así que se quedan sin flecha ni clic.
+function Resumen({onIrA}){
   const[r,setR]=useState(null);
   const[error,setError]=useState("");
 
@@ -127,21 +136,21 @@ function Resumen(){
   if(!r)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
 
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:24}}>
-    <TarjetaKPI label="Agentes totales" valor={r.agentes_totales} grande/>
-    <TarjetaKPI label="Agentes aprobados" valor={r.agentes_aprobados} color="#16a34a"/>
-    <TarjetaKPI label="Afiliaciones de red sin confirmar" valor={r.agentes_red_pendiente} color="#F59E0B"/>
-    <TarjetaKPI label="Promotorías" valor={r.promotorias_totales}/>
-    <TarjetaKPI label="Promotorías pendientes" valor={r.promotorias_pendientes} color="#F59E0B"/>
+    <TarjetaKPI label="Agentes totales" valor={r.agentes_totales} grande onClick={()=>onIrA("agentes","todos")}/>
+    <TarjetaKPI label="Agentes aprobados" valor={r.agentes_aprobados} color="#16a34a" onClick={()=>onIrA("agentes","todos")}/>
+    <TarjetaKPI label="Afiliaciones de red sin confirmar" valor={r.agentes_red_pendiente} color="#F59E0B" onClick={()=>onIrA("agentes","red_pendiente")}/>
+    <TarjetaKPI label="Promotorías" valor={r.promotorias_totales} onClick={()=>onIrA("promotorias","todos")}/>
+    <TarjetaKPI label="Promotorías pendientes" valor={r.promotorias_pendientes} color="#F59E0B" onClick={()=>onIrA("promotorias","pendiente")}/>
     <TarjetaKPI label="Clientes gestionados" valor={r.clientes_totales}/>
     <TarjetaKPI label="Pólizas gestionadas" valor={r.polizas_totales} grande/>
     <TarjetaKPI label="Prima total vigente" valor={pesos(r.prima_total_vigente)}/>
   </div>;
 }
 
-function Promotorias(){
+function Promotorias({initFiltro}){
   const[promotorias,setPromotorias]=useState(null);
   const[error,setError]=useState("");
-  const[filtro,setFiltro]=useState("pendiente");
+  const[filtro,setFiltro]=useState(initFiltro||"pendiente");
 
   const cargar=async()=>{
     const{data,error}=await sb.rpc("admin_promotorias");
@@ -214,10 +223,10 @@ function Promotorias(){
   </div>;
 }
 
-function Agentes(){
+function Agentes({initFiltro}){
   const[agentes,setAgentes]=useState(null);
   const[error,setError]=useState("");
-  const[filtro,setFiltro]=useState("red_pendiente"); // red_pendiente | todos
+  const[filtro,setFiltro]=useState(initFiltro||"red_pendiente"); // red_pendiente | todos
 
   const cargar=async()=>{
     const{data,error}=await sb.rpc("admin_agentes");
@@ -365,7 +374,17 @@ function SolicitudesServicio(){
 
 function PanelAdmin({session,onSalir}){
   const[vista,setVista]=useState("resumen"); // resumen | agentes | promotorias | servicios
+  const[filtroAgentes,setFiltroAgentes]=useState("red_pendiente");
+  const[filtroPromotorias,setFiltroPromotorias]=useState("pendiente");
   const[noAutorizado,setNoAutorizado]=useState(false);
+
+  // Único punto de navegación entre pestañas: lo usan tanto los botones de arriba como las
+  // tarjetas de Resumen, para que un clic en un número deje la lista filtrada tal cual promete.
+  const irA=(v,f)=>{
+    if(v==="agentes")setFiltroAgentes(f||"red_pendiente");
+    if(v==="promotorias")setFiltroPromotorias(f||"pendiente");
+    setVista(v);
+  };
 
   useEffect(()=>{
     sb.rpc("es_admin").then(({data,error})=>{
@@ -385,13 +404,13 @@ function PanelAdmin({session,onSalir}){
     </div>
 
     <div style={{display:"flex",gap:16,marginBottom:24,borderBottom:"1px solid #DDE4EE"}}>
-      <button onClick={()=>setVista("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
-      <button onClick={()=>setVista("agentes")} style={tabStyle(vista==="agentes")}>Agentes</button>
-      <button onClick={()=>setVista("promotorias")} style={tabStyle(vista==="promotorias")}>Promotorías</button>
-      <button onClick={()=>setVista("servicios")} style={tabStyle(vista==="servicios")}>Servicios</button>
+      <button onClick={()=>irA("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
+      <button onClick={()=>irA("agentes")} style={tabStyle(vista==="agentes")}>Agentes</button>
+      <button onClick={()=>irA("promotorias")} style={tabStyle(vista==="promotorias")}>Promotorías</button>
+      <button onClick={()=>irA("servicios")} style={tabStyle(vista==="servicios")}>Servicios</button>
     </div>
 
-    {vista==="resumen"?<Resumen/>:vista==="promotorias"?<Promotorias/>:vista==="servicios"?<SolicitudesServicio/>:<Agentes/>}
+    {vista==="resumen"?<Resumen onIrA={irA}/>:vista==="promotorias"?<Promotorias initFiltro={filtroPromotorias}/>:vista==="servicios"?<SolicitudesServicio/>:<Agentes initFiltro={filtroAgentes}/>}
   </div>;
 }
 
