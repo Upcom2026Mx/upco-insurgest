@@ -360,28 +360,82 @@ function ProximosCumpleanos({onAbrirCliente,clientes}){
   </div>;
 }
 
+// Convierte clientes+pólizas a un CSV (Excel lo abre nativo, con acentos correctos gracias al
+// BOM) — una fila por póliza, y una fila con las columnas de póliza vacías si el cliente no
+// tiene ninguna, para que la cartera completa quede reflejada aunque sea recién dado de alta.
+function descargarClientesCSV(clientes,polizasPorCliente){
+  const encabezados=["Cliente","Tipo de persona","RFC","CURP","Correo","Teléfono","Aseguradora","Ramo","Número de póliza","Prima","Forma de pago","Inicio de vigencia","Fin de vigencia","Estatus"];
+  const filas=[];
+  (clientes||[]).forEach(c=>{
+    const propias=polizasPorCliente[c.id]||[];
+    const base=[c.nombre,c.tipo_persona==="moral"?"Persona moral":"Persona física",c.rfc||"",c.curp||"",c.correo||"",c.telefono||""];
+    if(propias.length===0){
+      filas.push([...base,"","","","","","","",""]);
+    }else{
+      propias.forEach(p=>filas.push([...base,p.aseguradora||"",p.ramo||"",p.numero_poliza||"",p.prima??"",p.forma_pago||"",p.fecha_inicio||"",p.fecha_fin||"",p.estatus||""]));
+    }
+  });
+  const escapar=v=>{
+    const t=String(v??"");
+    return /[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;
+  };
+  const csv=[encabezados,...filas].map(fila=>fila.map(escapar).join(",")).join("\r\n");
+  const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`mis-clientes-polizas-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function ClientesList({agenteId,onAbrirCliente}){
   const[clientes,setClientes]=useState(null);
+  const[polizas,setPolizas]=useState([]);
+  const[busqueda,setBusqueda]=useState("");
   const[formAbierto,setFormAbierto]=useState(false);
   const[formPolizaAbierto,setFormPolizaAbierto]=useState(false);
   const[error,setError]=useState("");
 
   const cargar=async()=>{
-    const{data,error}=await sb.from("clientes").select("*").eq("agente_id",agenteId).order("nombre");
-    if(error){setError(error.message);return;}
-    setClientes(data);
+    const[resCl,resPz]=await Promise.all([
+      sb.from("clientes").select("*").eq("agente_id",agenteId).order("nombre"),
+      sb.from("polizas").select("*") // RLS ya limita a las pólizas de este agente, igual que en el Resumen
+    ]);
+    if(resCl.error){setError(resCl.error.message);return;}
+    if(resPz.error){setError(resPz.error.message);return;}
+    setClientes(resCl.data);
+    setPolizas(resPz.data||[]);
   };
   useEffect(()=>{cargar()},[]);
 
+  const polizasPorCliente={};
+  polizas.forEach(p=>{(polizasPorCliente[p.cliente_id]=polizasPorCliente[p.cliente_id]||[]).push(p);});
+
+  const texto=busqueda.trim().toLowerCase();
+  const clientesFiltrados=!clientes?null:!texto?clientes:clientes.filter(c=>{
+    const propias=polizasPorCliente[c.id]||[];
+    const enCliente=[c.nombre,c.correo,c.telefono,c.rfc,c.curp,c.nombre_negocio].some(v=>v&&v.toLowerCase().includes(texto));
+    const enPolizas=propias.some(p=>[p.aseguradora,p.numero_poliza,p.ramo].some(v=>v&&String(v).toLowerCase().includes(texto)));
+    return enCliente||enPolizas;
+  });
+
   return <div>
     {!formAbierto&&!formPolizaAbierto&&<ProximosCumpleanos clientes={clientes} onAbrirCliente={onAbrirCliente}/>}
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-      <div style={{fontSize:16,fontWeight:700}}>Mis clientes {clientes?`(${clientes.length})`:""}</div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+      <div style={{fontSize:16,fontWeight:700}}>Mis clientes {clientesFiltrados?`(${clientesFiltrados.length})`:""}</div>
       {!formAbierto&&!formPolizaAbierto&&<div style={{display:"flex",gap:8}}>
+        {clientes&&clientes.length>0&&<Boton color="#53647D" onClick={()=>descargarClientesCSV(clientes,polizasPorCliente)}>Exportar a Excel</Boton>}
         {clientes&&clientes.length>0&&<Boton color="#F59E0B" onClick={()=>setFormPolizaAbierto(true)}>+ Nueva póliza</Boton>}
         <Boton onClick={()=>setFormAbierto(true)}>+ Nuevo cliente</Boton>
       </div>}
     </div>
+
+    {!formAbierto&&!formPolizaAbierto&&clientes&&clientes.length>0&&
+      <input placeholder="Buscar por cliente, correo, teléfono, RFC, aseguradora o número de póliza..."
+        value={busqueda} onChange={e=>setBusqueda(e.target.value)} style={est.input}/>}
 
     {formAbierto&&<ClienteForm agenteId={agenteId}
       onGuardado={()=>{setFormAbierto(false);cargar();}}
@@ -400,8 +454,11 @@ function ClientesList({agenteId,onAbrirCliente}){
     {clientes&&clientes.length===0&&!formAbierto&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
       Todavía no tienes clientes registrados.
     </div>}
-    {clientes&&clientes.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
-      {clientes.map(c=><div key={c.id} style={est.fila} onClick={()=>onAbrirCliente(c)}>
+    {clientesFiltrados&&clientesFiltrados.length===0&&clientes.length>0&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
+      Ningún cliente o póliza coincide con "{busqueda}".
+    </div>}
+    {clientesFiltrados&&clientesFiltrados.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
+      {clientesFiltrados.map(c=><div key={c.id} style={est.fila} onClick={()=>onAbrirCliente(c)}>
         <div>
           <div style={{fontWeight:700,fontSize:14}}>{c.nombre}</div>
           <div style={{fontSize:12,color:"#8FA0B4"}}>{c.tipo_persona==="moral"?"Persona moral":"Persona física"}{c.correo?` · ${c.correo}`:""}</div>
