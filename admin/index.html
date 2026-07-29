@@ -372,6 +372,62 @@ function SolicitudesServicio(){
   </div>;
 }
 
+function Invitar(){
+  const[correo,setCorreo]=useState("");
+  const[nombre,setNombre]=useState("");
+  const[enviando,setEnviando]=useState(false);
+  const[mensaje,setMensaje]=useState("");
+  const[error,setError]=useState("");
+  const[invitaciones,setInvitaciones]=useState(null);
+
+  const cargar=async()=>{
+    const{data,error}=await sb.rpc("admin_invitaciones");
+    if(error){setError(error.message);return;}
+    setInvitaciones(data||[]);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const enviar=async(e)=>{
+    e.preventDefault();
+    setError("");setMensaje("");
+    if(!correo.trim()||!correo.includes("@")){setError("Escribe un correo válido.");return;}
+    setEnviando(true);
+    const{error}=await sb.rpc("admin_enviar_invitacion",{p_correo:correo.trim(),p_nombre:nombre.trim()||null});
+    setEnviando(false);
+    if(error){setError(error.message);return;}
+    setMensaje(`Invitación enviada a ${correo.trim()}.`);
+    setCorreo("");setNombre("");
+    cargar();
+  };
+
+  return <div>
+    <div style={{...est.card,marginBottom:20}}>
+      <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>Invitar a probar InsurGest</div>
+      <div style={{fontSize:13,color:"#6B7280",marginBottom:16}}>Manda una invitación por correo a cualquier dirección — no tiene que ser un contacto, agente o cliente ya registrado.</div>
+      <form onSubmit={enviar}>
+        <input placeholder="Correo del invitado *" type="email" value={correo} onChange={e=>setCorreo(e.target.value)} style={est.input}/>
+        <input placeholder="Nombre (opcional)" value={nombre} onChange={e=>setNombre(e.target.value)} style={est.input}/>
+        {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+        {mensaje&&<div style={{color:"#16a34a",fontSize:13,marginBottom:10}}>{mensaje}</div>}
+        <Boton type="submit" disabled={enviando}>{enviando?"Enviando...":"Enviar invitación"}</Boton>
+      </form>
+    </div>
+
+    <div style={{fontSize:14,fontWeight:700,marginBottom:10}}>Invitaciones enviadas {invitaciones?`(${invitaciones.length})`:""}</div>
+    {!invitaciones&&<div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>}
+    {invitaciones&&invitaciones.length===0&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>Todavía no has enviado ninguna invitación.</div>}
+    {invitaciones&&invitaciones.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
+      {invitaciones.map(inv=><div key={inv.id} style={est.fila}>
+        <div>
+          <div style={{fontWeight:700,fontSize:14}}>{inv.nombre||inv.correo}</div>
+          {inv.nombre&&<div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{inv.correo}</div>}
+        </div>
+        <div style={{fontSize:12,color:"#8FA0B4"}}>{new Date(inv.enviada_en).toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"})}</div>
+      </div>)}
+    </div>}
+  </div>;
+}
+
 function PanelAdmin({session,onSalir}){
   const[vista,setVista]=useState("resumen"); // resumen | agentes | promotorias | servicios
   const[filtroAgentes,setFiltroAgentes]=useState("red_pendiente");
@@ -408,9 +464,10 @@ function PanelAdmin({session,onSalir}){
       <button onClick={()=>irA("agentes")} style={tabStyle(vista==="agentes")}>Agentes</button>
       <button onClick={()=>irA("promotorias")} style={tabStyle(vista==="promotorias")}>Promotorías</button>
       <button onClick={()=>irA("servicios")} style={tabStyle(vista==="servicios")}>Servicios</button>
+      <button onClick={()=>irA("invitar")} style={tabStyle(vista==="invitar")}>Invitar</button>
     </div>
 
-    {vista==="resumen"?<Resumen onIrA={irA}/>:vista==="promotorias"?<Promotorias initFiltro={filtroPromotorias}/>:vista==="servicios"?<SolicitudesServicio/>:<Agentes initFiltro={filtroAgentes}/>}
+    {vista==="resumen"?<Resumen onIrA={irA}/>:vista==="promotorias"?<Promotorias initFiltro={filtroPromotorias}/>:vista==="servicios"?<SolicitudesServicio/>:vista==="invitar"?<Invitar/>:<Agentes initFiltro={filtroAgentes}/>}
   </div>;
 }
 
