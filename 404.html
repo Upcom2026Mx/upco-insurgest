@@ -10,10 +10,16 @@
 //   /p/{token} = liga privada del cliente (sus pólizas)
 //   /a/{alias} = tarjeta pública del agente (para prospectos)
 //   /r/{alias} = cotizador de retiro público del agente (para prospectos)
+//   /pr/{alias} = tarjeta pública de la promotoría (para prospectos)
 (function(){
   var p = location.pathname.match(/^\/p\/([^\/]+)\/?$/);
   if (p) {
     location.replace("/p/index.html?t=" + encodeURIComponent(p[1]));
+    return;
+  }
+  var pr = location.pathname.match(/^\/pr\/([^\/]+)\/?$/);
+  if (pr) {
+    location.replace("/pr/index.html?u=" + encodeURIComponent(pr[1]));
     return;
   }
   var a = location.pathname.match(/^\/a\/([^\/]+)\/?$/);

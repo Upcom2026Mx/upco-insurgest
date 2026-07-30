@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tarjeta digital — Upco InsurGest</title>
+<meta name="description" content="Tarjeta digital de una promotoría de seguros en México, con Upco InsurGest. Contacta por WhatsApp, llamada o correo, o pide una cotización."/>
+<meta property="og:type" content="profile"/>
+<meta property="og:site_name" content="Upco InsurGest"/>
+<meta property="og:locale" content="es_MX"/>
+<meta property="og:title" content="Tarjeta digital — Upco InsurGest"/>
+<meta property="og:description" content="Contacta por WhatsApp, llamada o correo, o pide una cotización directamente."/>
+<meta property="og:image" content="https://insurgest.upco.app/img/og-cover.png"/>
+<meta name="twitter:card" content="summary"/>
+<link rel="icon" href="../icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../estilos.css"/>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#F0F4F9 380px);color:#0a1c35;min-height:100vh}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../shared.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect}=React;
+
+// Igual que /a/{alias} pero para promotorías: página pública, sin login, pensada para
+// compartirse por WhatsApp o redes por la promotoría misma (no por un agente individual).
+function leerAlias(){
+  const porQuery=new URLSearchParams(location.search).get("u");
+  if(porQuery)return porQuery;
+  const m=location.pathname.match(/^\/pr\/([^\/]+)\/?$/);
+  return m?decodeURIComponent(m[1]):null;
+}
+
+const card={background:"#fff",borderRadius:18,padding:22,border:"1px solid rgba(16,40,74,.08)",boxShadow:"0 4px 16px rgba(16,28,53,.08), 0 1px 3px rgba(16,28,53,.05)"};
+const campo={width:"100%",padding:"13px 15px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"};
+
+const VARIANTE_BOTON={"#10284A":"btn-navy","#F59E0B":"btn-amber","#53647D":"btn-neutral","#16a34a":"btn-good"};
+function Boton({children,onClick,disabled,color="#10284A",type="button"}){
+  return <button type={type} onClick={onClick} disabled={disabled} style={{width:"100%"}} className={`btn ${VARIANTE_BOTON[color]||"btn-navy"}`}>
+    {children}
+  </button>;
+}
+
+function aWhatsapp(tel){
+  if(!tel)return null;
+  let d=tel.replace(/\D/g,"");
+  if(d.length===10)d="52"+d;
+  return d.length>=11?d:null;
+}
+
+function FormularioContacto({alias,onListo}){
+  const[nombre,setNombre]=useState("");
+  const[correo,setCorreo]=useState("");
+  const[telefono,setTelefono]=useState("");
+  const[ramo,setRamo]=useState("");
+  const[descripcion,setDescripcion]=useState("");
+  const[guardando,setGuardando]=useState(false);
+  const[error,setError]=useState("");
+
+  const enviar=async(e)=>{
+    e.preventDefault();
+    setError("");
+    if(!nombre.trim()){setError("Necesitamos tu nombre.");return;}
+    if(!correo.trim()&&!telefono.trim()){setError("Déjanos un correo o un teléfono para poder contactarte.");return;}
+    setGuardando(true);
+    const{error:err}=await sb.rpc("tarjeta_promotoria_contactar",{
+      p_alias:alias,p_nombre:nombre,p_correo:correo||null,p_telefono:telefono||null,
+      p_ramo_interes:ramo||null,p_descripcion:descripcion||null
+    });
+    setGuardando(false);
+    if(err){setError(err.message||"No se pudo enviar. Intenta de nuevo.");return;}
+    onListo();
+  };
+
+  return <form onSubmit={enviar}>
+    <input style={campo} placeholder="Tu nombre *" value={nombre} onChange={e=>setNombre(e.target.value)} name="nombre"/>
+    <input style={campo} placeholder="Tu correo" type="email" value={correo} onChange={e=>setCorreo(e.target.value)} name="correo"/>
+    <input style={campo} placeholder="Tu teléfono" value={telefono} onChange={e=>setTelefono(e.target.value)} name="telefono"/>
+    <select style={campo} value={ramo} onChange={e=>setRamo(e.target.value)} name="ramo">
+      <option value="">¿Qué te interesa cotizar?</option>
+      {RAMOS_SUGERIDOS.map(r=><option key={r} value={r}>{r}</option>)}
+      <option value="Otro">Otro</option>
+    </select>
+    <textarea style={{...campo,minHeight:80,resize:"vertical"}} placeholder="Cuéntanos brevemente qué necesitas" value={descripcion} onChange={e=>setDescripcion(e.target.value)} name="descripcion"/>
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    <Boton type="submit" disabled={guardando} color="#F59E0B">{guardando?"Enviando...":"Enviar mis datos"}</Boton>
+  </form>;
+}
+
+function Tarjeta({datos,alias}){
+  const[enviado,setEnviado]=useState(false);
+  const wa=aWhatsapp(datos.whatsapp);
+
+  return <div style={{maxWidth:520,margin:"0 auto",padding:16}}>
+    <div style={{...card,textAlign:"center",marginBottom:12,background:"linear-gradient(180deg,#fff 0%,#fbfcfe 100%)"}}>
+      {datos.foto_url
+        ? <img src={datos.foto_url} alt={datos.nombre_negocio||"Promotoría"} style={{width:114,height:114,borderRadius:"50%",objectFit:"cover",border:"3px solid #fff",boxShadow:"0 0 0 3px #10284A, 0 8px 20px rgba(16,40,74,.22)"}}/>
+        : <div style={{width:114,height:114,borderRadius:"50%",background:"linear-gradient(160deg,#173863,#0a1c35)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:38,fontWeight:700,fontFamily:"var(--font-display)",margin:"0 auto",boxShadow:"0 8px 20px rgba(16,40,74,.22)"}}>
+            {(datos.nombre_negocio||"?").trim().charAt(0).toUpperCase()}
+          </div>}
+      <div style={{fontSize:24,fontWeight:700,color:"#10284A",marginTop:14,fontFamily:"var(--font-display)"}}>{datos.nombre_negocio||"Promotoría de seguros"}</div>
+      {datos.titulo&&<div style={{fontSize:14,color:"#B45309",fontWeight:700,marginTop:3}}>{datos.titulo}</div>}
+    </div>
+
+    {datos.bio&&<div style={{...card,marginBottom:12,fontSize:15,lineHeight:1.5,color:"#374151"}}>{datos.bio}</div>}
+
+    <div style={{display:"grid",gap:8,marginBottom:12}}>
+      {wa&&<a href={`https://wa.me/${wa}`} target="_blank" rel="noopener" style={{textDecoration:"none"}}>
+        <div className="tarjeta-accion" style={{background:"linear-gradient(180deg,#2fdb75,#20bd5f)",color:"#fff",borderRadius:11,padding:"14px 18px",fontSize:15,fontWeight:700,textAlign:"center"}}>Escribirnos por WhatsApp</div>
+      </a>}
+      {datos.correo&&<a href={`mailto:${datos.correo}`} style={{textDecoration:"none"}}>
+        <div className="tarjeta-accion" style={{background:"#fff",color:"#10284A",border:"1.5px solid #10284A",borderRadius:11,padding:"14px 18px",fontSize:15,fontWeight:700,textAlign:"center"}}>Mandarnos un correo</div>
+      </a>}
+    </div>
+
+    <div style={{...card,marginBottom:12}}>
+      <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>¿Quieres que te cotice uno de nuestros agentes?</div>
+      {enviado
+        ? <div style={{fontSize:14,color:"#16a34a",marginTop:8}}>¡Listo! {datos.nombre_negocio||"Ya"} recibimos tus datos y te vamos a contactar pronto.</div>
+        : <div>
+            <div style={{fontSize:13,color:"#6B7280",marginBottom:12}}>Déjanos tus datos y te buscamos.</div>
+            <FormularioContacto alias={alias} onListo={()=>setEnviado(true)}/>
+          </div>}
+    </div>
+
+    <div style={{textAlign:"center",fontSize:12,color:"#8FA0B4",padding:"8px 0 20px"}}>
+      Tarjeta hecha con <a href="/" style={{color:"#10284A",fontWeight:700,textDecoration:"none"}}>Upco InsurGest</a>
+    </div>
+  </div>;
+}
+
+function App(){
+  const[estado,setEstado]=useState("cargando");
+  const[datos,setDatos]=useState(null);
+  const alias=leerAlias();
+
+  useEffect(()=>{
+    if(!alias){setEstado("noexiste");return;}
+    if(location.search){history.replaceState(null,"","/pr/"+encodeURIComponent(alias));}
+    sb.rpc("tarjeta_promotoria_publica",{p_alias:alias}).then(({data,error})=>{
+      if(error||!data){setEstado("noexiste");return;}
+      setDatos(data);
+      document.title=`${data.nombre_negocio||"Promotoría de seguros"} | Upco InsurGest`;
+      const meta=document.querySelector('meta[name="description"]');
+      if(meta)meta.setAttribute("content",`${data.nombre_negocio||"Una promotoría de seguros"} en México — contáctala por WhatsApp o correo, o pide una cotización.`);
+      setEstado("ok");
+    });
+  },[alias]);
+
+  if(estado==="cargando")return <div style={{padding:40,textAlign:"center",color:"#8FA0B4"}}>Cargando...</div>;
+  if(estado==="noexiste")return <div style={{maxWidth:420,margin:"60px auto",padding:20,textAlign:"center"}}>
+    <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:8}}>Esta tarjeta no está disponible</div>
+    <div style={{fontSize:14,color:"#6B7280"}}>Puede que la dirección esté mal escrita o que la promotoría la haya desactivado.</div>
+    <div style={{marginTop:20}}><a href="/" style={{color:"#10284A",fontWeight:700}}>Ir a Upco InsurGest</a></div>
+  </div>;
+  return <Tarjeta datos={datos} alias={alias}/>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

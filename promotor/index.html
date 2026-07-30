@@ -466,6 +466,150 @@ const tabStyle=(activo)=>({
   color:activo?"#10284A":"#8FA0B4",cursor:"pointer"
 });
 
+function MiTarjetaPromotoria({promotoria,onPromotoriaCambiada}){
+  const[alias,setAlias]=useState(promotoria.alias_publico||"");
+  const[activa,setActiva]=useState(!!promotoria.tarjeta_activa);
+  const[titulo,setTitulo]=useState(promotoria.tarjeta_titulo||"");
+  const[bio,setBio]=useState(promotoria.tarjeta_bio||"");
+  const[whatsapp,setWhatsapp]=useState(promotoria.tarjeta_whatsapp||"");
+  const[correoPub,setCorreoPub]=useState(promotoria.tarjeta_correo_publico||"");
+  const[foto,setFoto]=useState(null);
+  const[guardando,setGuardando]=useState(false);
+  const[guardado,setGuardado]=useState(false);
+  const[error,setError]=useState("");
+  const[copiado,setCopiado]=useState(false);
+
+  const url=promotoria.alias_publico?`https://insurgest.upco.app/pr/${promotoria.alias_publico}`:null;
+
+  const guardar=async(e)=>{
+    e.preventDefault();
+    setError("");setGuardado(false);setGuardando(true);
+
+    let fotoPath=null,fotoUrl=null;
+    if(foto){
+      fotoPath=`${promotoria.id}/foto.jpg`;
+      const{error:errSubida}=await sb.storage.from("tarjetas").upload(fotoPath,foto,{upsert:true,contentType:foto.type});
+      if(errSubida){setGuardando(false);setError("No se pudo subir el logo: "+errSubida.message);return;}
+      const{data:pub}=sb.storage.from("tarjetas").getPublicUrl(fotoPath);
+      fotoUrl=`${pub.publicUrl}?v=${Date.now()}`;
+    }
+
+    const{error:err}=await sb.rpc("promotoria_guardar_tarjeta",{
+      p_alias:alias,p_activa:activa,p_titulo:titulo||null,p_bio:bio||null,
+      p_whatsapp:whatsapp||null,p_correo_publico:correoPub||null,p_foto_path:fotoPath,p_foto_url:fotoUrl
+    });
+    if(err){setGuardando(false);setError(err.message);return;}
+
+    const{data:fresca}=await sb.from("promotorias").select("*").eq("id",promotoria.id).single();
+    setGuardando(false);setGuardado(true);setFoto(null);
+    if(fresca)onPromotoriaCambiada(fresca);
+    setTimeout(()=>setGuardado(false),2000);
+  };
+
+  const copiar=()=>{navigator.clipboard.writeText(url);setCopiado(true);setTimeout(()=>setCopiado(false),1500);};
+
+  return <div>
+    <form onSubmit={guardar} style={{...est.card,maxWidth:520,marginBottom:14}}>
+      <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>Tarjeta digital de tu promotoría</div>
+      <div style={{fontSize:13,color:"#6B7280",marginBottom:16}}>Una página para compartir con prospectos por WhatsApp o redes — a nombre de tu promotoría, no de un agente en particular.</div>
+
+      <div style={est.label}>Dirección de tu tarjeta</div>
+      <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:2}}>
+        <span style={{fontSize:13,color:"#8FA0B4"}}>insurgest.upco.app/pr/</span>
+        <input name="alias" value={alias} onChange={e=>setAlias(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,""))}
+          placeholder="tu-promotoria" style={{...est.input,flex:1}}/>
+      </div>
+      <div style={{fontSize:12,color:"#8FA0B4",marginTop:-8,marginBottom:14}}>Solo minúsculas, números y guiones. Elígela bien: es la que vas a compartir por WhatsApp.</div>
+
+      <div style={est.label}>Logo (opcional)</div>
+      <input name="foto" type="file" accept="image/*" onChange={e=>setFoto(e.target.files[0]||null)} style={{fontSize:14,marginBottom:14}}/>
+      {promotoria.tarjeta_foto_url&&!foto&&<div style={{marginBottom:14}}>
+        <img src={promotoria.tarjeta_foto_url} alt="Tu logo" style={{width:70,height:70,borderRadius:"50%",objectFit:"cover",border:"2px solid #DDE4EE"}}/>
+      </div>}
+
+      <div style={est.label}>Título</div>
+      <input name="titulo" value={titulo} onChange={e=>setTitulo(e.target.value)} placeholder="Promotoría de seguros" style={est.input}/>
+
+      <div style={est.label}>Presentación</div>
+      <textarea name="bio" value={bio} onChange={e=>setBio(e.target.value)} rows={3}
+        placeholder="Dos o tres líneas sobre tu promotoría y a quién ayuda." style={{...est.input,resize:"vertical",fontFamily:"inherit"}}/>
+
+      <div style={est.label}>WhatsApp de la promotoría</div>
+      <input name="whatsapp" value={whatsapp} onChange={e=>setWhatsapp(e.target.value)} placeholder="5512345678" style={est.input}/>
+      {whatsapp.replace(/\D/g,"").length>0&&whatsapp.replace(/\D/g,"").length!==10&&whatsapp.replace(/\D/g,"").length!==12&&
+        <div style={{fontSize:12,color:"#dc2626",marginTop:-8,marginBottom:14}}>
+          Ese número lleva {whatsapp.replace(/\D/g,"").length} dígitos. Un celular mexicano lleva 10 (o 12 con el 52 al inicio). Si lo dejas así, el botón de WhatsApp no va a aparecer en tu tarjeta.
+        </div>}
+
+      <div style={est.label}>Correo público</div>
+      <input name="correo_publico" type="email" value={correoPub} onChange={e=>setCorreoPub(e.target.value)} placeholder="contacto@tupromotoria.com" style={est.input}/>
+      <div style={{fontSize:12,color:"#8FA0B4",marginTop:-8,marginBottom:14}}>
+        Es el correo que verán los prospectos en la tarjeta. Los avisos de prospectos nuevos te seguimos mandando a {promotoria.correo}.
+      </div>
+
+      <label style={{display:"flex",alignItems:"center",gap:8,fontSize:14,marginBottom:14,cursor:"pointer"}}>
+        <input type="checkbox" checked={activa} onChange={e=>setActiva(e.target.checked)}/>
+        Publicar mi tarjeta (si la apagas, deja de abrirse para todos)
+      </label>
+
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":guardado?"¡Guardado!":"Guardar tarjeta"}</Boton>
+    </form>
+
+    {url&&promotoria.tarjeta_activa&&<div style={{...est.card,maxWidth:520,marginBottom:14}}>
+      <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",marginBottom:8}}>TU TARJETA ESTÁ PUBLICADA</div>
+      <div style={{fontSize:14,wordBreak:"break-all",marginBottom:10,color:"#10284A"}}>{url}</div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <Boton onClick={copiar}>{copiado?"¡Copiada!":"Copiar liga"}</Boton>
+        <a href={url} target="_blank" rel="noopener"><Boton color="#F59E0B">Verla</Boton></a>
+      </div>
+    </div>}
+  </div>;
+}
+
+function ProspectosPromotoria(){
+  const[prospectos,setProspectos]=useState(null);
+  const[error,setError]=useState("");
+
+  const cargar=async()=>{
+    const{data,error}=await sb.rpc("promotoria_prospectos");
+    if(error){setError(error.message);return;}
+    setProspectos(data||[]);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const marcar=async(p,estatus)=>{
+    const{error}=await sb.rpc("promotoria_marcar_prospecto",{p_id:p.id,p_estatus:estatus});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
+  if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
+  if(!prospectos)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+  if(prospectos.length===0)return <div style={{...est.card,textAlign:"center",color:"#6B7280"}}>Todavía no ha llegado ningún prospecto desde tu tarjeta.</div>;
+
+  return <div>
+    {prospectos.map(p=><div key={p.id} style={{...est.card,marginBottom:10,opacity:p.estatus==="atendida"?0.6:1}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div>
+          <div style={{fontWeight:700,fontSize:14}}>{p.nombre}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>
+            {p.correo}{p.telefono?` · ${p.telefono}`:""}{p.ramo_interes?` · ${p.ramo_interes}`:""}{" · "}
+            {new Date(p.created_at).toLocaleString("es-MX",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}
+          </div>
+          {p.descripcion&&<div style={{fontSize:13,color:"#374151",marginTop:6}}>{p.descripcion}</div>}
+        </div>
+        <span style={est.badge(p.estatus==="nueva"?"#F59E0B":"#6b7280")}>{p.estatus}</span>
+      </div>
+      <div style={{marginTop:10}}>
+        <button onClick={()=>marcar(p,p.estatus==="nueva"?"atendida":"nueva")} style={est.linkBtn}>
+          {p.estatus==="nueva"?"Marcar atendida":"Reabrir"}
+        </button>
+      </div>
+    </div>)}
+  </div>;
+}
+
 function PanelPromotoria({session,onSalir}){
   const[promotoria,setPromotoria]=useState(null);
   const[vista,setVista]=useState("resumen");
@@ -532,12 +676,16 @@ function PanelPromotoria({session,onSalir}){
       <button onClick={()=>setVista("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
       <button onClick={()=>setVista("agentes")} style={tabStyle(vista==="agentes")}>Agentes</button>
       <button onClick={()=>setVista("avisos")} style={tabStyle(vista==="avisos")}>Avisos</button>
+      <button onClick={()=>setVista("tarjeta")} style={tabStyle(vista==="tarjeta")}>Mi tarjeta</button>
+      <button onClick={()=>setVista("prospectos")} style={tabStyle(vista==="prospectos")}>Prospectos</button>
       <button onClick={()=>setVista("suscripcion")} style={tabStyle(vista==="suscripcion")}>Suscripción</button>
       <a href="../ayuda/" target="_blank" rel="noopener" style={tabStyle(false)}>Ayuda</a>
     </div>
 
     {vista==="resumen"?<Resumen codigo={promotoria.codigo_invitacion}/>
       :vista==="avisos"?<AvisosPromotoria/>
+      :vista==="tarjeta"?<MiTarjetaPromotoria promotoria={promotoria} onPromotoriaCambiada={setPromotoria}/>
+      :vista==="prospectos"?<ProspectosPromotoria/>
       :vista==="suscripcion"?<PantallaSuscripcionPromotoria cuenta={promotoria} bloqueado={false}/>
       :<Agentes/>}
   </div>;
