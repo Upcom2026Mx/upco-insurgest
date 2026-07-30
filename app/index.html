@@ -1852,6 +1852,9 @@ function AvisosAgente({agenteId}){
 
       <input value={asunto} onChange={e=>setAsunto(e.target.value)} placeholder="Asunto" style={est.input}/>
       <textarea value={mensaje} onChange={e=>setMensaje(e.target.value)} placeholder="Mensaje" rows={4} style={est.input}/>
+      <div style={{fontSize:11.5,color:"#8FA0B4",marginTop:-8,marginBottom:14}}>
+        Igual que en WhatsApp: escribe *así* para <b>negritas</b> y _así_ para <i>cursiva</i>. Solo aplica en el correo, no en el push.
+      </div>
 
       <div style={{display:"flex",gap:16,marginBottom:14}}>
         <label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"#374151",cursor:"pointer"}}>
