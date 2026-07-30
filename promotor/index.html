@@ -292,7 +292,7 @@ function Agentes(){
   </div>;
 }
 
-function AvisosPromotoria(){
+function AvisosPromotoria({promotoriaId}){
   const[agentes,setAgentes]=useState(null);
   const[clientes,setClientes]=useState(null);
   const[selAgentes,setSelAgentes]=useState({});
@@ -305,8 +305,17 @@ function AvisosPromotoria(){
   const[resultado,setResultado]=useState(null);
   const[error,setError]=useState("");
   const[disponibles,setDisponibles]=useState(null);
+  const[imagen,setImagen]=useState(null);
+  const[subiendoImagen,setSubiendoImagen]=useState(false);
 
   const cargarDisponibles=()=>{sb.rpc("avisos_disponibles_hoy").then(({data})=>setDisponibles(data));};
+
+  const elegirImagen=(archivo)=>{
+    setError("");
+    if(!archivo){setImagen(null);return;}
+    if(archivo.size>5*1024*1024){setError("La imagen no puede pesar más de 5 MB.");return;}
+    setImagen(archivo);
+  };
 
   useEffect(()=>{
     sb.rpc("promotoria_agentes").then(({data,error})=>{if(error){setError(error.message);return;}setAgentes(data||[]);});
@@ -324,13 +333,25 @@ function AvisosPromotoria(){
     if(agenteIds.length===0&&clienteIds.length===0){setError("Selecciona al menos un destinatario.");return;}
     if(!asunto.trim()||!mensaje.trim()){setError("Escribe un asunto y un mensaje.");return;}
     setError("");setEnviando(true);setResultado(null);
+
+    let imagenUrl=null;
+    if(imagen){
+      setSubiendoImagen(true);
+      const ruta=`${promotoriaId}/${Date.now()}-${imagen.name}`;
+      const{error:errSubida}=await sb.storage.from("avisos-adjuntos").upload(ruta,imagen,{contentType:imagen.type});
+      setSubiendoImagen(false);
+      if(errSubida){setEnviando(false);setError("No se pudo subir la imagen: "+errSubida.message);return;}
+      const{data:pub}=sb.storage.from("avisos-adjuntos").getPublicUrl(ruta);
+      imagenUrl=pub.publicUrl;
+    }
+
     const{data,error:errRpc}=await sb.rpc("promotoria_notificar",{
       p_agente_ids:agenteIds,p_cliente_ids:clienteIds,p_asunto:asunto.trim(),p_mensaje:mensaje.trim(),
-      p_via_correo:viaCorreo,p_via_push:viaPush
+      p_via_correo:viaCorreo,p_via_push:viaPush,p_imagen_url:imagenUrl
     });
     setEnviando(false);
     if(errRpc){setError(errRpc.message);return;}
-    setResultado(data);setAsunto("");setMensaje("");setSelAgentes({});setSelClientes({});
+    setResultado(data);setAsunto("");setMensaje("");setSelAgentes({});setSelClientes({});setImagen(null);
     cargarDisponibles();
   };
 
@@ -372,6 +393,14 @@ function AvisosPromotoria(){
         Igual que en WhatsApp: escribe *así* para <b>negritas</b> y _así_ para <i>cursiva</i>. Solo aplica en el correo, no en el push.
       </div>
 
+      <label style={est.label}>Imagen (opcional — un arte de tu aseguradora, un póster de Canva...)</label>
+      <input type="file" accept="image/*" onChange={e=>elegirImagen(e.target.files[0]||null)} style={{fontSize:14,marginBottom:4}}/>
+      <div style={{fontSize:11.5,color:"#8FA0B4",marginBottom:14}}>Solo se ve en el correo — el push cuando mucho muestra un ícono pequeño, no la imagen completa. Máximo 5 MB.</div>
+      {imagen&&<div style={{marginBottom:14}}>
+        <img src={URL.createObjectURL(imagen)} alt="" style={{maxWidth:200,borderRadius:8,display:"block",marginBottom:6}}/>
+        <button type="button" onClick={()=>setImagen(null)} style={est.linkBtn}>Quitar imagen</button>
+      </div>}
+
       <div style={{display:"flex",gap:16,marginBottom:14}}>
         <label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"#374151",cursor:"pointer"}}>
           <input type="checkbox" checked={viaCorreo} onChange={e=>setViaCorreo(e.target.checked)}/> Por correo
@@ -383,7 +412,7 @@ function AvisosPromotoria(){
 
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
       {resultado&&<div style={{color:"#16a34a",fontSize:13,marginBottom:10}}>Enviado: {resultado.correos_enviados} correos, {resultado.push_disparados} avisos push.</div>}
-      <Boton type="submit" disabled={enviando||sinEnvios||(!viaCorreo&&!viaPush)}>{enviando?"Enviando...":"Enviar aviso"}</Boton>
+      <Boton type="submit" disabled={enviando||sinEnvios||(!viaCorreo&&!viaPush)}>{subiendoImagen?"Subiendo imagen...":enviando?"Enviando...":"Enviar aviso"}</Boton>
     </form>
   </div>;
 }
@@ -695,7 +724,7 @@ function PanelPromotoria({session,onSalir}){
     </div>
 
     {vista==="resumen"?<Resumen codigo={promotoria.codigo_invitacion}/>
-      :vista==="avisos"?<AvisosPromotoria/>
+      :vista==="avisos"?<AvisosPromotoria promotoriaId={promotoria.id}/>
       :vista==="tarjeta"?<MiTarjetaPromotoria promotoria={promotoria} onPromotoriaCambiada={setPromotoria}/>
       :vista==="prospectos"?<ProspectosPromotoria/>
       :vista==="suscripcion"?<PantallaSuscripcionPromotoria cuenta={promotoria} bloqueado={false}/>
