@@ -304,10 +304,14 @@ function AvisosPromotoria(){
   const[enviando,setEnviando]=useState(false);
   const[resultado,setResultado]=useState(null);
   const[error,setError]=useState("");
+  const[disponibles,setDisponibles]=useState(null);
+
+  const cargarDisponibles=()=>{sb.rpc("avisos_disponibles_hoy").then(({data})=>setDisponibles(data));};
 
   useEffect(()=>{
     sb.rpc("promotoria_agentes").then(({data,error})=>{if(error){setError(error.message);return;}setAgentes(data||[]);});
     sb.rpc("promotoria_clientes").then(({data,error})=>{if(error){setError(error.message);return;}setClientes(data||[]);});
+    cargarDisponibles();
   },[]);
 
   const toggleAgente=(id)=>setSelAgentes(prev=>({...prev,[id]:!prev[id]}));
@@ -327,14 +331,19 @@ function AvisosPromotoria(){
     setEnviando(false);
     if(errRpc){setError(errRpc.message);return;}
     setResultado(data);setAsunto("");setMensaje("");setSelAgentes({});setSelClientes({});
+    cargarDisponibles();
   };
 
   if(!agentes||!clientes)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
   const totalSel=Object.values(selAgentes).filter(Boolean).length+Object.values(selClientes).filter(Boolean).length;
+  const sinEnvios=disponibles===0;
 
   return <div>
     <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>Avisos a tu red</div>
-    <div style={{fontSize:13,color:"#8FA0B4",marginBottom:16}}>Manda un correo y/o notificación push a los agentes de tu red, o directo a sus clientes.</div>
+    <div style={{fontSize:13,color:"#8FA0B4",marginBottom:6}}>Manda un correo y/o notificación push a los agentes de tu red, o directo a sus clientes.</div>
+    {disponibles!=null&&<div style={{fontSize:12,fontWeight:700,color:sinEnvios?"#dc2626":"#8FA0B4",marginBottom:16}}>
+      {sinEnvios?"Llegaste al límite de envíos masivos de hoy — vuelve a intentarlo más tarde.":`Te quedan ${disponibles} envíos masivos hoy.`}
+    </div>}
 
     <form onSubmit={enviar} style={est.card}>
       <label style={est.label}>Agentes de tu red</label>
@@ -371,7 +380,7 @@ function AvisosPromotoria(){
 
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
       {resultado&&<div style={{color:"#16a34a",fontSize:13,marginBottom:10}}>Enviado: {resultado.correos_enviados} correos, {resultado.push_disparados} avisos push.</div>}
-      <Boton type="submit" disabled={enviando||(!viaCorreo&&!viaPush)}>{enviando?"Enviando...":"Enviar aviso"}</Boton>
+      <Boton type="submit" disabled={enviando||sinEnvios||(!viaCorreo&&!viaPush)}>{enviando?"Enviando...":"Enviar aviso"}</Boton>
     </form>
   </div>;
 }

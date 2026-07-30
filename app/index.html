@@ -1780,10 +1780,14 @@ function AvisosAgente({agenteId}){
   const[error,setError]=useState("");
   const[pushActivo,setPushActivo]=useState(false);
   const[activandoPush,setActivandoPush]=useState(false);
+  const[disponibles,setDisponibles]=useState(null);
+
+  const cargarDisponibles=()=>{sb.rpc("avisos_disponibles_hoy").then(({data})=>setDisponibles(data));};
 
   useEffect(()=>{
     sb.from("clientes").select("id,nombre,correo").eq("agente_id",agenteId).order("nombre")
       .then(({data,error})=>{if(error){setError(error.message);return;}setClientes(data||[]);});
+    cargarDisponibles();
   },[agenteId]);
 
   const toggleCliente=(id)=>setSeleccion(prev=>({...prev,[id]:!prev[id]}));
@@ -1812,14 +1816,19 @@ function AvisosAgente({agenteId}){
     setEnviando(false);
     if(errRpc){setError(errRpc.message);return;}
     setResultado(data);setAsunto("");setMensaje("");setSeleccion({});
+    cargarDisponibles();
   };
 
   if(!clientes)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
   const seleccionados=Object.values(seleccion).filter(Boolean).length;
+  const sinEnvios=disponibles===0;
 
   return <div>
     <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>Avisos a tus clientes</div>
-    <div style={{fontSize:13,color:"#8FA0B4",marginBottom:16}}>Manda un correo y/o notificación push a los clientes que elijas.</div>
+    <div style={{fontSize:13,color:"#8FA0B4",marginBottom:6}}>Manda un correo y/o notificación push a los clientes que elijas.</div>
+    {disponibles!=null&&<div style={{fontSize:12,fontWeight:700,color:sinEnvios?"#dc2626":"#8FA0B4",marginBottom:16}}>
+      {sinEnvios?"Llegaste al límite de envíos masivos de hoy — vuelve a intentarlo más tarde.":`Te quedan ${disponibles} envíos masivos hoy.`}
+    </div>}
 
     <button type="button" onClick={activarMisPush} disabled={pushActivo||activandoPush} style={{background:pushActivo?"#EAF7EF":"#FEF3E2",border:"none",borderRadius:20,padding:"7px 14px",fontSize:12.5,fontWeight:700,color:pushActivo?"#16a34a":"#B45309",cursor:pushActivo?"default":"pointer",marginBottom:16}}>
       {pushActivo?"✓ Recibirás avisos push":activandoPush?"Activando...":"🔔 Activar mis notificaciones push"}
@@ -1855,7 +1864,7 @@ function AvisosAgente({agenteId}){
 
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
       {resultado&&<div style={{color:"#16a34a",fontSize:13,marginBottom:10}}>Enviado: {resultado.correos_enviados} correos, {resultado.push_disparados} avisos push.</div>}
-      <Boton type="submit" disabled={enviando||(!viaCorreo&&!viaPush)}>{enviando?"Enviando...":"Enviar aviso"}</Boton>
+      <Boton type="submit" disabled={enviando||sinEnvios||(!viaCorreo&&!viaPush)}>{enviando?"Enviando...":"Enviar aviso"}</Boton>
     </form>
   </div>;
 }
