@@ -105,6 +105,7 @@ function Login(){
   const[nombre,setNombre]=useState("");
   const[nombreNegocio,setNombreNegocio]=useState("");
   const[rfc,setRfc]=useState("");
+  const[codigoAgencia,setCodigoAgencia]=useState("");
   const[aceptoTerminos,setAceptoTerminos]=useState(false);
   const[error,setError]=useState("");
   const[cargando,setCargando]=useState(false);
@@ -134,6 +135,7 @@ function Login(){
         nombre:nombre.trim()||null,
         nombre_negocio:nombreNegocio.trim(),
         rfc:rfc.trim()||null,
+        codigo_agencia:codigoAgencia.trim()||null,
         acepto_terminos:true,
         acepto_terminos_version:VERSION_TERMINOS,
         acepto_terminos_fecha:new Date().toISOString()
@@ -159,6 +161,7 @@ function Login(){
         <input value={nombreNegocio} onChange={e=>setNombreNegocio(e.target.value)} placeholder="nombre de tu promotoría" style={est.input}/>
         <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="nombre de contacto (opcional)" style={est.input}/>
         <input value={rfc} onChange={e=>setRfc(e.target.value.toUpperCase())} placeholder="RFC (opcional)" style={est.input}/>
+        <input value={codigoAgencia} onChange={e=>setCodigoAgencia(e.target.value.toUpperCase())} placeholder="Código de agencia máster (opcional)" style={est.input}/>
       </>}
       <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username" style={est.input}/>
       <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="tu contraseña" type="password" autoComplete={modo==="entrar"?"current-password":"new-password"} style={{...est.input,marginBottom:12}}/>
@@ -204,6 +207,35 @@ function CodigoInvitacion({codigo}){
   </div>;
 }
 
+function BonoAnual(){
+  const[residual,setResidual]=useState(null);
+  const[acumulado,setAcumulado]=useState(null);
+
+  useEffect(()=>{
+    sb.rpc("promotoria_mi_residual").then(({data})=>setResidual(data));
+    sb.rpc("mi_residual_acumulado_anio").then(({data})=>setAcumulado(data));
+  },[]);
+
+  if(!residual||!residual.tasa||residual.tasa<=0)return null;
+
+  return <div style={{...est.card,marginBottom:20,background:"linear-gradient(160deg,#173863,#0a1c35)"}}>
+    <div style={{fontSize:13,fontWeight:700,color:"#F59E0B",marginBottom:6}}>🎁 TU BONO DE FIN DE AÑO</div>
+    <div style={{fontSize:12.5,color:"#C7D3E3",lineHeight:1.5,marginBottom:14}}>
+      Ganas un {Math.round(residual.tasa*100)}% sobre lo que tus agentes adicionales le facturan a Upco cada mes. Se acumula durante el año y se te paga junto con tu aguinaldo.
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <div>
+        <div style={{fontSize:22,fontWeight:700,color:"#fff"}}>{pesos(residual.residual_mensual)}</div>
+        <div style={{fontSize:11,color:"#8FA0B4"}}>ESTE MES ({residual.agentes_que_cuentan} agentes adicionales)</div>
+      </div>
+      <div>
+        <div style={{fontSize:22,fontWeight:700,color:"#fff"}}>{pesos(acumulado)}</div>
+        <div style={{fontSize:11,color:"#8FA0B4"}}>ACUMULADO ESTE AÑO</div>
+      </div>
+    </div>
+  </div>;
+}
+
 function Resumen({codigo}){
   const[r,setR]=useState(null);
   const[error,setError]=useState("");
@@ -216,6 +248,7 @@ function Resumen({codigo}){
   },[]);
 
   return <div>
+    <BonoAnual/>
     <CodigoInvitacion codigo={codigo}/>
     {error&&<div style={{color:"#dc2626",fontSize:13}}>{error}</div>}
     {!error&&!r&&<div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>}
@@ -662,11 +695,17 @@ function PanelPromotoria({session,onSalir}){
       if(errSel){setError(errSel.message);return;}
       if(data){setPromotoria(data);return;}
       const meta=session.user.user_metadata||{};
+      let agenciaId=null;
+      if(meta.codigo_agencia){
+        const{data:idResuelto}=await sb.rpc("resolver_codigo_agencia",{p_codigo:meta.codigo_agencia});
+        agenciaId=idResuelto||null;
+      }
       const{data:nueva,error:errIns}=await sb.from("promotorias")
         .insert({
           id:session.user.id,correo:session.user.email,
           nombre:meta.nombre||null,nombre_negocio:meta.nombre_negocio||null,rfc:meta.rfc||null,
-          acepto_terminos:meta.acepto_terminos||false,acepto_terminos_version:meta.acepto_terminos_version||null,acepto_terminos_fecha:meta.acepto_terminos_fecha||null
+          acepto_terminos:meta.acepto_terminos||false,acepto_terminos_version:meta.acepto_terminos_version||null,acepto_terminos_fecha:meta.acepto_terminos_fecha||null,
+          agencia_maestra_id:agenciaId
         })
         .select().single();
       if(errIns){

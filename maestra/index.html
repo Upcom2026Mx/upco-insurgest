@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Upco InsurGest — Portal de Agencia Máster</title>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="icon" href="../icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../estilos.css"/>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#F0F4F9 380px);color:#0a1c35;min-height:100vh}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../shared.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect}=React;
+
+const VERSION_TERMINOS="2026-07-10";
+
+const est={
+  input:{width:"100%",padding:"13px 15px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"},
+  label:{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"},
+  card:{background:"#fff",borderRadius:16,padding:22,border:"1px solid rgba(16,40,74,.08)",boxShadow:"0 3px 12px rgba(16,28,53,.07), 0 1px 3px rgba(16,28,53,.05)"},
+  fila:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:"1px solid #f1f5f9"},
+  linkBtn:{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer",padding:"4px 8px"},
+  badge:(color)=>({display:"inline-block",fontSize:11,fontWeight:700,color,background:color+"1a",borderRadius:7,padding:"3px 9px"})
+};
+
+const ALTO_HEADER=54;
+function HeaderBar(){
+  return <div style={{background:"linear-gradient(135deg,#173863,#0a1c35)",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:10,height:ALTO_HEADER,boxShadow:"0 2px 14px rgba(10,28,53,.25)"}}>
+    <a href="../" style={{color:"#fff",fontWeight:700,fontSize:18,fontFamily:"var(--font-display)",display:"inline-flex",alignItems:"center",gap:8,textDecoration:"none"}}><span className="brand-logo"></span> <span style={{color:"#F59E0B"}}>InsurGest</span></a>
+    <span style={{color:"#fff",fontSize:12,fontWeight:600,background:"rgba(255,255,255,.15)",borderRadius:20,padding:"3px 10px"}}>Portal de Agencia Máster</span>
+  </div>;
+}
+
+const VARIANTE_BOTON={"#10284A":"btn-navy","#F59E0B":"btn-amber","#53647D":"btn-neutral","#16a34a":"btn-good"};
+function Boton({children,onClick,disabled,color="#10284A",type="button"}){
+  return <button type={type} onClick={onClick} disabled={disabled} className={`btn ${VARIANTE_BOTON[color]||"btn-navy"}`}>
+    {children}
+  </button>;
+}
+
+function Login(){
+  const[modo,setModo]=useState(new URLSearchParams(location.search).get("registro")?"registro":"entrar");
+  const[email,setEmail]=useState("");
+  const[password,setPassword]=useState("");
+  const[nombre,setNombre]=useState("");
+  const[nombreNegocio,setNombreNegocio]=useState("");
+  const[rfc,setRfc]=useState("");
+  const[aceptoTerminos,setAceptoTerminos]=useState(false);
+  const[error,setError]=useState("");
+  const[cargando,setCargando]=useState(false);
+  const[registroListo,setRegistroListo]=useState(false);
+
+  const entrar=async(e)=>{
+    e.preventDefault();
+    if(!email||!email.includes("@")){setError("Escribe un correo válido.");return;}
+    if(!password){setError("Escribe tu contraseña.");return;}
+    setError("");setCargando(true);
+    const{error}=await sb.auth.signInWithPassword({email:email.trim(),password});
+    setCargando(false);
+    if(error){setError(`Correo o contraseña incorrectos. (${error.message||"sin detalle"})`);return;}
+  };
+
+  const registrar=async(e)=>{
+    e.preventDefault();
+    if(!email||!email.includes("@")){setError("Escribe un correo válido.");return;}
+    if(!nombreNegocio.trim()){setError("Escribe el nombre de tu agencia.");return;}
+    if(!password||password.length<6){setError("La contraseña debe tener al menos 6 caracteres.");return;}
+    if(!aceptoTerminos){setError("Debes aceptar los Términos y Condiciones y el Aviso de Privacidad para registrarte.");return;}
+    setError("");setCargando(true);
+    const{data,error}=await sb.auth.signUp({
+      email:email.trim(),
+      password,
+      options:{data:{
+        nombre:nombre.trim()||null,
+        nombre_negocio:nombreNegocio.trim(),
+        rfc:rfc.trim()||null,
+        acepto_terminos:true,
+        acepto_terminos_version:VERSION_TERMINOS,
+        acepto_terminos_fecha:new Date().toISOString()
+      }}
+    });
+    setCargando(false);
+    if(error){setError(error.message);return;}
+    if(!data.session)setRegistroListo(true);
+  };
+
+  if(registroListo)return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>¡Cuenta creada!</div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.6}}>Revisa tu correo para confirmar tu cuenta. Tu acceso quedará pendiente de aprobación hasta que lo revisemos.</div>
+    </div>
+  </div>;
+
+  return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <form onSubmit={modo==="entrar"?entrar:registrar} style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:20,color:"#10284A"}}>{modo==="entrar"?"Iniciar sesión":"Registrar mi agencia"}</div>
+
+      {modo==="registro"&&<>
+        <input value={nombreNegocio} onChange={e=>setNombreNegocio(e.target.value)} placeholder="nombre de tu agencia" style={est.input}/>
+        <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="nombre de contacto (opcional)" style={est.input}/>
+        <input value={rfc} onChange={e=>setRfc(e.target.value.toUpperCase())} placeholder="RFC (opcional)" style={est.input}/>
+      </>}
+      <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username" style={est.input}/>
+      <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="tu contraseña" type="password" autoComplete={modo==="entrar"?"current-password":"new-password"} style={{...est.input,marginBottom:12}}/>
+
+      {modo==="registro"&&<label style={{display:"flex",alignItems:"flex-start",gap:8,fontSize:13,color:"#374151",marginBottom:12,cursor:"pointer"}}>
+        <input type="checkbox" checked={aceptoTerminos} onChange={e=>setAceptoTerminos(e.target.checked)} style={{marginTop:2}}/>
+        <span>Acepto los <a href="../terminos/" target="_blank" rel="noopener" style={{color:"#10284A"}}>Términos y Condiciones y el Aviso de Privacidad</a>.</span>
+      </label>}
+
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <div style={{width:"100%"}}><Boton type="submit" disabled={cargando}>
+        {cargando?(modo==="entrar"?"Entrando...":"Registrando..."):(modo==="entrar"?"Iniciar sesión":"Registrar mi agencia")}
+      </Boton></div>
+      <button type="button" onClick={()=>{setModo(modo==="entrar"?"registro":"entrar");setError("");}} style={{...est.linkBtn,marginTop:12,padding:0}}>
+        {modo==="entrar"?"¿Administras varias promotorías? Regístrate":"¿Ya tienes cuenta? Inicia sesión"}
+      </button>
+    </form>
+  </div>;
+}
+
+function TarjetaKPI({label,valor,color,grande}){
+  return <div style={{...est.card,textAlign:"center"}}>
+    <div style={{fontSize:grande?30:22,fontWeight:700,color:color||"#10284A"}}>{valor}</div>
+    <div style={{fontSize:12,color:"#8FA0B4",marginTop:4}}>{label}</div>
+  </div>;
+}
+
+function CodigoInvitacion({codigo}){
+  const[copiado,setCopiado]=useState(false);
+  const copiar=async()=>{
+    try{await navigator.clipboard.writeText(codigo);setCopiado(true);setTimeout(()=>setCopiado(false),2000);}
+    catch(e){}
+  };
+  return <div style={{...est.card,marginBottom:24,background:"#F4F7FB"}}>
+    <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",marginBottom:8}}>TU CÓDIGO DE INVITACIÓN</div>
+    <div style={{fontSize:13,color:"#374151",marginBottom:10,lineHeight:1.5}}>
+      Comparte este código con las promotorías de tu red — al registrarse en Upco InsurGest lo escriben en "Código de agencia máster" y quedan ligadas a tu red.
+    </div>
+    <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <div style={{background:"#fff",border:"1px solid #DDE4EE",borderRadius:10,padding:"10px 16px",fontSize:20,fontWeight:800,letterSpacing:2,color:"#10284A"}}>{codigo}</div>
+      <Boton color="#53647D" onClick={copiar}>{copiado?"¡Copiado!":"Copiar"}</Boton>
+    </div>
+  </div>;
+}
+
+function BonoAnual(){
+  const[residual,setResidual]=useState(null);
+  const[acumulado,setAcumulado]=useState(null);
+
+  useEffect(()=>{
+    sb.rpc("agencia_maestra_mi_residual").then(({data})=>setResidual(data));
+    sb.rpc("mi_residual_acumulado_anio").then(({data})=>setAcumulado(data));
+  },[]);
+
+  if(!residual||!residual.tasa||residual.tasa<=0)return null;
+
+  return <div style={{...est.card,marginBottom:20,background:"linear-gradient(160deg,#173863,#0a1c35)"}}>
+    <div style={{fontSize:13,fontWeight:700,color:"#F59E0B",marginBottom:6}}>🎁 TU BONO DE FIN DE AÑO</div>
+    <div style={{fontSize:12.5,color:"#C7D3E3",lineHeight:1.5,marginBottom:14}}>
+      Ganas un {Math.round(residual.tasa*100)}% sobre la cuota base de las promotorías de tu red. Se acumula durante el año y se te paga junto con tu aguinaldo.
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <div>
+        <div style={{fontSize:22,fontWeight:700,color:"#fff"}}>{pesos(residual.residual_mensual)}</div>
+        <div style={{fontSize:11,color:"#8FA0B4"}}>ESTE MES ({residual.promotorias_que_cuentan} promotorías)</div>
+      </div>
+      <div>
+        <div style={{fontSize:22,fontWeight:700,color:"#fff"}}>{pesos(acumulado)}</div>
+        <div style={{fontSize:11,color:"#8FA0B4"}}>ACUMULADO ESTE AÑO</div>
+      </div>
+    </div>
+  </div>;
+}
+
+function Resumen({codigo}){
+  const[r,setR]=useState(null);
+  const[error,setError]=useState("");
+
+  useEffect(()=>{
+    sb.rpc("agencia_maestra_resumen").then(({data,error})=>{
+      if(error){setError(error.message);return;}
+      setR(data);
+    });
+  },[]);
+
+  return <div>
+    <BonoAnual/>
+    <CodigoInvitacion codigo={codigo}/>
+    {error&&<div style={{color:"#dc2626",fontSize:13}}>{error}</div>}
+    {!error&&!r&&<div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>}
+    {r&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+      <TarjetaKPI label="Promotorías en tu red" valor={r.promotorias_totales} grande/>
+      <TarjetaKPI label="Confirmadas" valor={r.promotorias_confirmadas} color="#16a34a"/>
+      <TarjetaKPI label="Por confirmar" valor={r.promotorias_pendientes} color="#F59E0B"/>
+      <TarjetaKPI label="Agentes en tu red" valor={r.agentes_totales} grande/>
+      <TarjetaKPI label="Clientes gestionados" valor={r.clientes_totales}/>
+    </div>}
+  </div>;
+}
+
+function Promotorias(){
+  const[promotorias,setPromotorias]=useState(null);
+  const[error,setError]=useState("");
+  const[filtro,setFiltro]=useState("pendiente");
+
+  const cargar=async()=>{
+    const{data,error}=await sb.rpc("agencia_maestra_promotorias");
+    if(error){setError(error.message);return;}
+    setPromotorias(data||[]);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const confirmar=async(p)=>{
+    const{error}=await sb.rpc("agencia_maestra_confirmar_promotoria",{p_promotoria_id:p.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+  const sacar=async(p)=>{
+    if(!window.confirm(`¿Sacar a ${p.nombre_negocio||p.correo} de tu red?`))return;
+    const{error}=await sb.rpc("agencia_maestra_sacar_promotoria",{p_promotoria_id:p.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
+  if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
+  if(!promotorias)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+
+  const lista=filtro==="pendiente"?promotorias.filter(p=>!p.agencia_confirmada_en):promotorias;
+
+  return <div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{fontSize:16,fontWeight:700}}>Promotorías de tu red {lista?`(${lista.length})`:""}</div>
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={()=>setFiltro("pendiente")} style={{...est.linkBtn,fontWeight:filtro==="pendiente"?700:500,color:filtro==="pendiente"?"#10284A":"#8FA0B4"}}>Por confirmar</button>
+        <button onClick={()=>setFiltro("todos")} style={{...est.linkBtn,fontWeight:filtro==="todos"?700:500,color:filtro==="todos"?"#10284A":"#8FA0B4"}}>Todas</button>
+      </div>
+    </div>
+
+    {lista.length===0&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
+      {filtro==="pendiente"?"No hay promotorías esperando confirmación.":"Todavía no tienes promotorías en tu red — comparte tu código de invitación."}
+    </div>}
+
+    {lista.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
+      {lista.map(p=><div key={p.id} style={est.fila}>
+        <div>
+          <div style={{fontWeight:700,fontSize:14}}>{p.nombre_negocio||p.correo}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{p.correo}{p.nombre?` · ${p.nombre}`:""}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{p.agentes} agentes · {p.clientes} clientes · {p.polizas} pólizas</div>
+          <div style={{fontSize:12,marginTop:2,color:p.agencia_confirmada_en?"#16a34a":"#B45309"}}>
+            {p.agencia_confirmada_en?"Confirmada en tu red":"Sin confirmar — no cuenta todavía para tu bono"}
+          </div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={est.badge(p.estatus_aprobacion==="aprobado"?"#16a34a":"#F59E0B")}>{p.estatus_aprobacion}</span>
+          {!p.agencia_confirmada_en&&<button onClick={()=>confirmar(p)} style={{...est.linkBtn,color:"#16a34a"}}>Confirmar</button>}
+          <button onClick={()=>sacar(p)} style={{...est.linkBtn,color:"#dc2626"}}>Sacar de mi red</button>
+        </div>
+      </div>)}
+    </div>}
+  </div>;
+}
+
+const tabStyle=(activo)=>({
+  background:"none",border:"none",borderBottom:activo?"2px solid #10284A":"2px solid transparent",
+  padding:"8px 4px",marginBottom:-1,fontSize:14,fontWeight:activo?700:500,
+  color:activo?"#10284A":"#8FA0B4",cursor:"pointer"
+});
+
+// Mismo candado de 2FA compartido con /app y /promotor (misma sesión, mismo dominio).
+function PedirSegundoFactor({onOk,onSalir}){
+  const[codigo,setCodigo]=useState("");
+  const[respaldo,setRespaldo]=useState("");
+  const[modo,setModo]=useState("totp");
+  const[error,setError]=useState("");
+  const[verificando,setVerificando]=useState(false);
+
+  const verificar=async(e)=>{
+    e.preventDefault();setError("");
+    if(!/^[0-9]{6}$/.test(codigo)){setError("Escribe los 6 dígitos de tu app.");return;}
+    setVerificando(true);
+    const{data:f}=await sb.auth.mfa.listFactors();
+    const factor=(f&&f.totp&&f.totp[0])||null;
+    if(!factor){setVerificando(false);setError("No encontramos tu método de verificación.");return;}
+    const{error:err}=await sb.auth.mfa.challengeAndVerify({factorId:factor.id,code:codigo});
+    setVerificando(false);
+    if(err){setError("Ese código no es válido. Revisa que tu reloj esté en hora e inténtalo otra vez.");return;}
+    onOk();
+  };
+
+  const usarRespaldo=async(e)=>{
+    e.preventDefault();setError("");
+    if(respaldo.trim().length<8){setError("Escribe uno de tus códigos de respaldo completo.");return;}
+    setVerificando(true);
+    const{error:err}=await sb.rpc("usar_codigo_respaldo",{p_codigo:respaldo});
+    setVerificando(false);
+    if(err){setError(err.message);return;}
+    alert("Listo. Te desactivamos la verificación en dos pasos para que puedas entrar. Vuelve a activarla desde tu panel con tu teléfono nuevo.");
+    location.reload();
+  };
+
+  const caja=(contenido)=><div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:26,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>{contenido}</div>
+  </div>;
+
+  if(modo==="respaldo")return caja(<>
+    <form onSubmit={usarRespaldo}>
+      <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>¿Perdiste tu teléfono?</div>
+      <div style={{fontSize:13.5,color:"#374151",lineHeight:1.5,marginBottom:16}}>
+        Escribe uno de tus códigos de respaldo. Vamos a <strong>desactivarte la verificación en dos pasos</strong> para que puedas entrar, y la vuelves a activar con tu teléfono nuevo.
+      </div>
+      <input value={respaldo} onChange={e=>setRespaldo(e.target.value.toUpperCase())} placeholder="XXXXX-XXXXX" name="respaldo" autoFocus
+        style={{width:"100%",padding:"14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:18,letterSpacing:2,textAlign:"center",fontFamily:"ui-monospace,Consolas,monospace",marginBottom:10}}/>
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton type="submit" disabled={verificando}>{verificando?"Verificando...":"Usar este código"}</Boton>
+    </form>
+    <button onClick={()=>{setModo("totp");setError("");}} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:14,padding:0}}>Sí tengo mi teléfono</button>
+  </>);
+
+  return caja(<>
+    <form onSubmit={verificar}>
+      <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:6}}>Verificación en dos pasos</div>
+      <div style={{fontSize:13.5,color:"#374151",lineHeight:1.5,marginBottom:16}}>Abre tu app de autenticación y escribe el código de 6 dígitos.</div>
+      <input value={codigo} onChange={e=>setCodigo(e.target.value.replace(/\D/g,"").slice(0,6))}
+        type="tel" inputMode="numeric" placeholder="••••••" name="codigo" autoFocus
+        style={{width:"100%",padding:"14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:26,letterSpacing:"12px",textAlign:"center",fontFamily:"inherit",marginBottom:10}}/>
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton type="submit" disabled={verificando}>{verificando?"Verificando...":"Entrar"}</Boton>
+    </form>
+    <div style={{fontSize:12.5,color:"#374151",lineHeight:1.5,marginTop:16,paddingTop:14,borderTop:"1px solid #DDE4EE"}}>
+      <strong>¿Perdiste o cambiaste de teléfono?</strong> Escríbenos a <a href="mailto:hola@upco.app?subject=Perdí mi teléfono — verificación en dos pasos" style={{color:"#10284A",fontWeight:700}}>hola@upco.app</a> y te lo quitamos para que puedas entrar.
+      <div style={{marginTop:8}}>
+        <button onClick={()=>{setModo("respaldo");setError("");}} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",padding:0,textDecoration:"underline"}}>
+          Tengo un código de respaldo
+        </button>
+      </div>
+    </div>
+    <div><button onClick={onSalir} style={{background:"none",border:"none",color:"#53647D",fontSize:12.5,cursor:"pointer",marginTop:14,padding:0}}>Cerrar sesión</button></div>
+  </>);
+}
+
+function PanelAgenciaMaestra({session,onSalir}){
+  const[agencia,setAgencia]=useState(null);
+  const[vista,setVista]=useState("resumen");
+  const[error,setError]=useState("");
+
+  useEffect(()=>{
+    (async()=>{
+      const{data,error:errSel}=await sb.from("agencias_maestras").select("*").eq("id",session.user.id).maybeSingle();
+      if(errSel){setError(errSel.message);return;}
+      if(data){setAgencia(data);return;}
+      const meta=session.user.user_metadata||{};
+      const{data:nueva,error:errIns}=await sb.from("agencias_maestras")
+        .insert({
+          id:session.user.id,correo:session.user.email,
+          nombre:meta.nombre||null,nombre_negocio:meta.nombre_negocio||null,rfc:meta.rfc||null,
+          acepto_terminos:meta.acepto_terminos||false,acepto_terminos_version:meta.acepto_terminos_version||null,acepto_terminos_fecha:meta.acepto_terminos_fecha||null
+        })
+        .select().single();
+      if(errIns){
+        if(errIns.code==="23505"){
+          const{data:existente,error:errSel2}=await sb.from("agencias_maestras").select("*").eq("id",session.user.id).maybeSingle();
+          if(errSel2){setError(errSel2.message);return;}
+          if(existente){setAgencia(existente);return;}
+        }
+        setError(errIns.message);return;
+      }
+      setAgencia(nueva);
+    })();
+  },[]);
+
+  if(error)return <div style={{padding:40,textAlign:"center",color:"#dc2626"}}>Ocurrió un error: {error}</div>;
+  if(!agencia)return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando tu panel...</div>;
+
+  if(agencia.estatus_aprobacion==="pendiente")return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>Cuenta pendiente de aprobación</div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.6,marginBottom:20}}>Te avisaremos por correo en cuanto podamos activar tu portal de agencia máster.</div>
+      <button onClick={onSalir} style={est.linkBtn}>Salir</button>
+    </div>
+  </div>;
+
+  if(agencia.estatus_aprobacion==="rechazado")return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>Solicitud no aprobada</div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.6,marginBottom:20}}>Tu solicitud de registro no fue aprobada. Si crees que es un error, contáctanos.</div>
+      <button onClick={onSalir} style={est.linkBtn}>Salir</button>
+    </div>
+  </div>;
+
+  return <div style={{maxWidth:760,margin:"0 auto",padding:"24px 16px 60px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+      <div style={{fontSize:16,fontWeight:700,color:"#10284A"}}>Hola, {agencia.nombre_negocio||agencia.correo}</div>
+      <button onClick={onSalir} style={{background:"none",border:"none",color:"#6B7280",fontSize:14,cursor:"pointer"}}>Salir ({agencia.correo})</button>
+    </div>
+
+    <div style={{display:"flex",gap:16,marginBottom:24,borderBottom:"1px solid #DDE4EE",flexWrap:"wrap"}}>
+      <button onClick={()=>setVista("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
+      <button onClick={()=>setVista("promotorias")} style={tabStyle(vista==="promotorias")}>Promotorías</button>
+      <a href="../ayuda/" target="_blank" rel="noopener" style={tabStyle(false)}>Ayuda</a>
+    </div>
+
+    {vista==="resumen"?<Resumen codigo={agencia.codigo_invitacion}/>:<Promotorias/>}
+  </div>;
+}
+
+function App(){
+  const[sesion,setSesion]=useState(undefined);
+  const[mfa,setMfa]=useState("revisando");
+  useEffect(()=>{
+    sb.auth.getSession().then(({data})=>setSesion(data.session||null));
+    const{data:sub}=sb.auth.onAuthStateChange((_e,s)=>setSesion(s));
+    return ()=>sub.subscription.unsubscribe();
+  },[]);
+
+  useEffect(()=>{
+    if(!sesion){setMfa("revisando");return;}
+    sb.auth.mfa.getAuthenticatorAssuranceLevel().then(({data})=>{
+      if(data&&data.nextLevel==="aal2"&&data.currentLevel!=="aal2")setMfa("pedir");
+      else setMfa("ok");
+    }).catch(()=>setMfa("ok"));
+  },[sesion]);
+
+  const salir=()=>sb.auth.signOut();
+  const cargando=<div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando...</div>;
+
+  return <>
+    <HeaderBar/>
+    {sesion===undefined
+      ?cargando
+      :!sesion
+        ?<Login/>
+        :mfa==="revisando"
+          ?cargando
+          :mfa==="pedir"
+            ?<PedirSegundoFactor onOk={()=>setMfa("ok")} onSalir={salir}/>
+            :<PanelAgenciaMaestra session={sesion} onSalir={salir}/>}
+  </>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

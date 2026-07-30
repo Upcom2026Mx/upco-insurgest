@@ -151,6 +151,7 @@ function Promotorias({initFiltro}){
   const[promotorias,setPromotorias]=useState(null);
   const[error,setError]=useState("");
   const[filtro,setFiltro]=useState(initFiltro||"pendiente");
+  const[tasas,setTasas]=useState({});
 
   const cargar=async()=>{
     const{data,error}=await sb.rpc("admin_promotorias");
@@ -158,6 +159,16 @@ function Promotorias({initFiltro}){
     setPromotorias(data||[]);
   };
   useEffect(()=>{cargar()},[]);
+
+  const guardarTasa=async(p)=>{
+    const texto=tasas[p.id];
+    const valor=texto!=null&&texto!==""?parseFloat(texto):p.tasa_residual*100;
+    if(isNaN(valor)||valor<0||valor>100){setError("La tasa debe ser un número entre 0 y 100.");return;}
+    setError("");
+    const{error}=await sb.rpc("admin_fijar_tasa_residual",{p_remitente_id:p.id,p_remitente_tipo:"promotoria",p_tasa:valor/100});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
 
   const aprobar=async(p)=>{
     const{error}=await sb.rpc("admin_aprobar_promotoria",{p_promotoria_id:p.id});
@@ -210,6 +221,14 @@ function Promotorias({initFiltro}){
           </div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>Código {p.codigo_invitacion} · {p.agentes} agentes en su red</div>
           <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>{textoEstatusPago(p)}{p.tiene_2fa?" · 🔒 2FA activado":""}</div>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}>
+            <span style={{fontSize:11,color:"#8FA0B4"}}>Bono residual:</span>
+            <input type="number" min="0" max="100" step="1" placeholder={String(Math.round((p.tasa_residual||0)*100))}
+              value={tasas[p.id]??""} onChange={e=>setTasas(prev=>({...prev,[p.id]:e.target.value}))}
+              style={{width:50,padding:"3px 6px",fontSize:12,border:"1px solid #DDE4EE",borderRadius:6}}/>
+            <span style={{fontSize:11,color:"#8FA0B4"}}>%</span>
+            <button onClick={()=>guardarTasa(p)} style={{...est.linkBtn,padding:"2px 6px",fontSize:11}}>Guardar</button>
+          </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span style={est.badge(colorEstatusAgente[p.estatus_aprobacion]||"#6b7280")}>{p.estatus_aprobacion}</span>
@@ -217,6 +236,85 @@ function Promotorias({initFiltro}){
           {p.estatus_aprobacion!=="rechazado"&&<button onClick={()=>rechazar(p)} style={{...est.linkBtn,color:"#dc2626"}}>Rechazar</button>}
           {p.estatus_aprobacion==="aprobado"&&<button onClick={()=>extender(p)} style={est.linkBtn}>+30 días</button>}
           {p.tiene_2fa&&<button onClick={()=>resetear2fa(p)} style={est.linkBtn}>Perdió su teléfono</button>}
+        </div>
+      </div>)}
+    </div>}
+  </div>;
+}
+
+function Agencias(){
+  const[agencias,setAgencias]=useState(null);
+  const[error,setError]=useState("");
+  const[filtro,setFiltro]=useState("pendiente");
+  const[tasas,setTasas]=useState({});
+
+  const cargar=async()=>{
+    const{data,error}=await sb.rpc("admin_agencias_maestras");
+    if(error){setError(error.message);return;}
+    setAgencias(data||[]);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const aprobar=async(a)=>{
+    const{error}=await sb.rpc("admin_aprobar_agencia_maestra",{p_agencia_id:a.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+  const rechazar=async(a)=>{
+    if(!window.confirm(`¿Rechazar el registro de ${a.correo}?`))return;
+    const{error}=await sb.rpc("admin_rechazar_agencia_maestra",{p_agencia_id:a.id});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+  const guardarTasa=async(a)=>{
+    const texto=tasas[a.id];
+    const valor=texto!=null&&texto!==""?parseFloat(texto):a.tasa_residual*100;
+    if(isNaN(valor)||valor<0||valor>100){setError("La tasa debe ser un número entre 0 y 100.");return;}
+    setError("");
+    const{error}=await sb.rpc("admin_fijar_tasa_residual",{p_remitente_id:a.id,p_remitente_tipo:"agencia_maestra",p_tasa:valor/100});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
+  if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
+  if(!agencias)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+
+  const lista=filtro==="pendiente"?agencias.filter(a=>a.estatus_aprobacion==="pendiente"):agencias;
+
+  return <div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{fontSize:16,fontWeight:700}}>Agencias máster {lista?`(${lista.length})`:""}</div>
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={()=>setFiltro("pendiente")} style={{...est.linkBtn,fontWeight:filtro==="pendiente"?700:500,color:filtro==="pendiente"?"#10284A":"#8FA0B4"}}>Pendientes</button>
+        <button onClick={()=>setFiltro("todos")} style={{...est.linkBtn,fontWeight:filtro==="todos"?700:500,color:filtro==="todos"?"#10284A":"#8FA0B4"}}>Todas</button>
+      </div>
+    </div>
+
+    {lista.length===0&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
+      {filtro==="pendiente"?"No hay registros pendientes de aprobación.":"No hay agencias máster registradas."}
+    </div>}
+
+    {lista.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
+      {lista.map(a=><div key={a.id} style={est.fila}>
+        <div>
+          <div style={{fontWeight:700,fontSize:14}}>{a.nombre_negocio||a.correo}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>
+            {a.correo}{a.nombre?` · ${a.nombre}`:""}{a.rfc?` · RFC ${a.rfc}`:""}
+          </div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>Código {a.codigo_invitacion} · {a.promotorias} promotorías confirmadas</div>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}>
+            <span style={{fontSize:11,color:"#8FA0B4"}}>Bono residual:</span>
+            <input type="number" min="0" max="100" step="1" placeholder={String(Math.round((a.tasa_residual||0)*100))}
+              value={tasas[a.id]??""} onChange={e=>setTasas(prev=>({...prev,[a.id]:e.target.value}))}
+              style={{width:50,padding:"3px 6px",fontSize:12,border:"1px solid #DDE4EE",borderRadius:6}}/>
+            <span style={{fontSize:11,color:"#8FA0B4"}}>%</span>
+            <button onClick={()=>guardarTasa(a)} style={{...est.linkBtn,padding:"2px 6px",fontSize:11}}>Guardar</button>
+          </div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={est.badge(colorEstatusAgente[a.estatus_aprobacion]||"#6b7280")}>{a.estatus_aprobacion}</span>
+          {a.estatus_aprobacion!=="aprobado"&&<button onClick={()=>aprobar(a)} style={{...est.linkBtn,color:"#16a34a"}}>Aprobar</button>}
+          {a.estatus_aprobacion!=="rechazado"&&<button onClick={()=>rechazar(a)} style={{...est.linkBtn,color:"#dc2626"}}>Rechazar</button>}
         </div>
       </div>)}
     </div>}
@@ -463,11 +561,12 @@ function PanelAdmin({session,onSalir}){
       <button onClick={()=>irA("resumen")} style={tabStyle(vista==="resumen")}>Resumen</button>
       <button onClick={()=>irA("agentes")} style={tabStyle(vista==="agentes")}>Agentes</button>
       <button onClick={()=>irA("promotorias")} style={tabStyle(vista==="promotorias")}>Promotorías</button>
+      <button onClick={()=>irA("agencias")} style={tabStyle(vista==="agencias")}>Agencias</button>
       <button onClick={()=>irA("servicios")} style={tabStyle(vista==="servicios")}>Servicios</button>
       <button onClick={()=>irA("invitar")} style={tabStyle(vista==="invitar")}>Invitar</button>
     </div>
 
-    {vista==="resumen"?<Resumen onIrA={irA}/>:vista==="promotorias"?<Promotorias initFiltro={filtroPromotorias}/>:vista==="servicios"?<SolicitudesServicio/>:vista==="invitar"?<Invitar/>:<Agentes initFiltro={filtroAgentes}/>}
+    {vista==="resumen"?<Resumen onIrA={irA}/>:vista==="promotorias"?<Promotorias initFiltro={filtroPromotorias}/>:vista==="agencias"?<Agencias/>:vista==="servicios"?<SolicitudesServicio/>:vista==="invitar"?<Invitar/>:<Agentes initFiltro={filtroAgentes}/>}
   </div>;
 }
 
