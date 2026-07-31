@@ -83,6 +83,8 @@ Deno.serve(async (req) => {
       cancel_url: `https://insurgest.upco.app/${portal}/?suscripcion=cancelada`,
       metadata: { tipo, id: userId },
       subscription_data: { metadata: { tipo, id: userId } },
+      automatic_tax: { enabled: true },
+      customer_update: { address: "auto" },
     });
 
     return new Response(JSON.stringify({ url: session.url }), { headers: json });

@@ -1,0 +1,3 @@
+# Estado local del Supabase CLI (vínculo al proyecto, cachés de versión) — no es código,
+# es específico de cada máquina donde se instale el CLI.
+supabase/.temp/
