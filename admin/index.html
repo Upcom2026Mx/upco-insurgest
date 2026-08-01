@@ -422,7 +422,52 @@ const tabStyle=(activo)=>({
   color:activo?"#10284A":"#8FA0B4",cursor:"pointer"
 });
 
-const ETIQUETA_SERVICIO={sitio_web:"Sitio web",correo:"Correo con dominio",ambos:"Sitio web y correo"};
+const ETIQUETA_TIPO_REMITENTE={promotoria:"Promotoría",agencia_maestra:"Agencia máster"};
+const COLOR_ESTATUS_RESIDUAL={solicitado:"#F59E0B",pagado:"#16a34a",rechazado:"#6b7280"};
+
+function Comisiones(){
+  const[filas,setFilas]=useState(null);
+  const[error,setError]=useState("");
+
+  const cargar=async()=>{
+    const{data,error}=await sb.rpc("admin_solicitudes_residual");
+    if(error){setError(error.message);return;}
+    setFilas(data||[]);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const marcar=async(s,estatus)=>{
+    let nota=null;
+    if(estatus==="pagado")nota=window.prompt("Referencia de la transferencia (opcional):")||null;
+    const{error}=await sb.rpc("admin_marcar_residual",{p_id:s.id,p_estatus:estatus,p_nota:nota});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
+  if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
+  if(!filas)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+  if(filas.length===0)return <div style={{...est.card,textAlign:"center",color:"#6B7280"}}>Nadie ha solicitado su comisión todavía.</div>;
+
+  return <div>
+    {filas.map(s=><div key={s.id} style={{...est.card,marginBottom:10,opacity:s.estatus==="rechazado"?0.6:1}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div>
+          <div style={{fontWeight:700,fontSize:14}}>{s.nombre||s.correo} — {pesos(s.monto)}</div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>
+            {ETIQUETA_TIPO_REMITENTE[s.remitente_tipo]} · {s.correo}{" · "}
+            {new Date(s.solicitado_en).toLocaleString("es-MX",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}
+          </div>
+          {s.nota_admin&&<div style={{fontSize:13,color:"#374151",marginTop:6}}>{s.nota_admin}</div>}
+        </div>
+        <span style={est.badge(COLOR_ESTATUS_RESIDUAL[s.estatus])}>{s.estatus}</span>
+      </div>
+      {s.estatus==="solicitado"&&<div style={{marginTop:10,display:"flex",gap:14}}>
+        <button onClick={()=>marcar(s,"pagado")} style={{...est.linkBtn,color:"#16a34a"}}>Marcar pagada</button>
+        <button onClick={()=>marcar(s,"rechazado")} style={{...est.linkBtn,color:"#dc2626"}}>Rechazar</button>
+      </div>}
+    </div>)}
+  </div>;
+}
 
 function SolicitudesServicio(){
   const[filas,setFilas]=useState(null);
@@ -562,11 +607,12 @@ function PanelAdmin({session,onSalir}){
       <button onClick={()=>irA("agentes")} style={tabStyle(vista==="agentes")}>Agentes</button>
       <button onClick={()=>irA("promotorias")} style={tabStyle(vista==="promotorias")}>Promotorías</button>
       <button onClick={()=>irA("agencias")} style={tabStyle(vista==="agencias")}>Agencias</button>
+      <button onClick={()=>irA("comisiones")} style={tabStyle(vista==="comisiones")}>Comisiones</button>
       <button onClick={()=>irA("servicios")} style={tabStyle(vista==="servicios")}>Servicios</button>
       <button onClick={()=>irA("invitar")} style={tabStyle(vista==="invitar")}>Invitar</button>
     </div>
 
-    {vista==="resumen"?<Resumen onIrA={irA}/>:vista==="promotorias"?<Promotorias initFiltro={filtroPromotorias}/>:vista==="agencias"?<Agencias/>:vista==="servicios"?<SolicitudesServicio/>:vista==="invitar"?<Invitar/>:<Agentes initFiltro={filtroAgentes}/>}
+    {vista==="resumen"?<Resumen onIrA={irA}/>:vista==="promotorias"?<Promotorias initFiltro={filtroPromotorias}/>:vista==="agencias"?<Agencias/>:vista==="comisiones"?<Comisiones/>:vista==="servicios"?<SolicitudesServicio/>:vista==="invitar"?<Invitar/>:<Agentes initFiltro={filtroAgentes}/>}
   </div>;
 }
 

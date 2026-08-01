@@ -160,20 +160,37 @@ function CodigoInvitacion({codigo}){
 function BonoAnual(){
   const[residual,setResidual]=useState(null);
   const[acumulado,setAcumulado]=useState(null);
+  const[pendiente,setPendiente]=useState(null);
+  const[solicitando,setSolicitando]=useState(false);
+  const[mensaje,setMensaje]=useState("");
+  const[error,setError]=useState("");
 
-  useEffect(()=>{
+  const cargar=()=>{
     sb.rpc("agencia_maestra_mi_residual").then(({data})=>setResidual(data));
     sb.rpc("mi_residual_acumulado_anio").then(({data})=>setAcumulado(data));
-  },[]);
+    sb.rpc("mi_residual_pendiente").then(({data})=>setPendiente(data));
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const solicitar=async()=>{
+    setError("");setMensaje("");setSolicitando(true);
+    const{data,error:err}=await sb.rpc("solicitar_residual");
+    setSolicitando(false);
+    if(err){setError(err.message);return;}
+    setMensaje(`Listo, solicitaste ${pesos(data.monto)}. Te avisamos en cuanto quede pagada.`);
+    cargar();
+  };
 
   if(!residual||!residual.tasa||residual.tasa<=0)return null;
 
+  const hayPendiente=pendiente&&pendiente.pendiente_por_solicitar>0;
+
   return <div style={{...est.card,marginBottom:20,background:"linear-gradient(160deg,#173863,#0a1c35)"}}>
-    <div style={{fontSize:13,fontWeight:700,color:"#F59E0B",marginBottom:6}}>🎁 TU BONO DE FIN DE AÑO</div>
+    <div style={{fontSize:13,fontWeight:700,color:"#F59E0B",marginBottom:6}}>🎁 TU COMISIÓN</div>
     <div style={{fontSize:12.5,color:"#C7D3E3",lineHeight:1.5,marginBottom:14}}>
-      Ganas un {Math.round(residual.tasa*100)}% sobre la cuota base de las promotorías de tu red. Se acumula durante el año y se te paga junto con tu aguinaldo.
+      Ganas un {Math.round(residual.tasa*100)}% sobre la cuota base de las promotorías de tu red. Se va acumulando mes a mes y la puedes solicitar cuando quieras.
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:hayPendiente?16:0}}>
       <div>
         <div style={{fontSize:22,fontWeight:700,color:"#fff"}}>{pesos(residual.residual_mensual)}</div>
         <div style={{fontSize:11,color:"#8FA0B4"}}>ESTE MES ({residual.promotorias_que_cuentan} promotorías)</div>
@@ -183,6 +200,14 @@ function BonoAnual(){
         <div style={{fontSize:11,color:"#8FA0B4"}}>ACUMULADO ESTE AÑO</div>
       </div>
     </div>
+    {hayPendiente&&<div style={{borderTop:"1px solid rgba(255,255,255,.15)",paddingTop:14}}>
+      <div style={{fontSize:13,color:"#C7D3E3",marginBottom:10}}>Tienes <b style={{color:"#fff"}}>{pesos(pendiente.pendiente_por_solicitar)}</b> sin solicitar.</div>
+      {mensaje&&<div style={{color:"#86efac",fontSize:13,marginBottom:10}}>{mensaje}</div>}
+      {error&&<div style={{color:"#fca5a5",fontSize:13,marginBottom:10}}>{error}</div>}
+      <Boton color="#F59E0B" onClick={solicitar} disabled={solicitando||pendiente.solicitud_abierta}>
+        {solicitando?"Enviando...":pendiente.solicitud_abierta?"Ya tienes una solicitud en proceso":"Solicitar mi comisión"}
+      </Boton>
+    </div>}
   </div>;
 }
 
