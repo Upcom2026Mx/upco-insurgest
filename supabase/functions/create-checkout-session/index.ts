@@ -16,6 +16,19 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 
 const stripe = new Stripe(STRIPE_SECRET_KEY);
 
+// "agente_afiliado" es la tarifa de $249 del agente 6+ de una red — la paga el propio agente
+// (misma tabla/Customer que "agente"), no la promotoría. "agencia_maestra" es su propio nivel.
+function tablaDeTipo(tipo: string): string {
+  if (tipo === "agente" || tipo === "agente_afiliado") return "agentes";
+  if (tipo === "agencia_maestra") return "agencias_maestras";
+  return "promotorias";
+}
+function portalDeTipo(tipo: string): string {
+  if (tipo === "agente" || tipo === "agente_afiliado") return "app";
+  if (tipo === "agencia_maestra") return "maestra";
+  return "promotor";
+}
+
 // El navegador llama a esta función desde insurgest.upco.app (otro dominio), así que manda
 // primero un preflight OPTIONS y exige estos encabezados en toda respuesta. Sin ellos la
 // petición se bloquea antes de llegar al código. No hay riesgo en abrir el origen: la
@@ -45,12 +58,12 @@ Deno.serve(async (req) => {
     const userEmail = userData.user.email ?? undefined;
 
     const { tipo, periodo } = await req.json();
-    if (!["agente", "promotoria_base"].includes(tipo) || !["mensual", "trimestral", "semestral", "anual"].includes(periodo)) {
+    if (!["agente", "agente_afiliado", "promotoria_base", "agencia_maestra"].includes(tipo) || !["mensual", "trimestral", "semestral", "anual"].includes(periodo)) {
       return new Response(JSON.stringify({ error: "tipo o periodo inválido" }), { status: 400, headers: json });
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const tabla = tipo === "agente" ? "agentes" : "promotorias";
+    const tabla = tablaDeTipo(tipo);
 
     const { data: cuenta, error: cuentaError } = await supabase.from(tabla).select("*").eq("id", userId).maybeSingle();
     if (cuentaError || !cuenta) {
@@ -74,7 +87,7 @@ Deno.serve(async (req) => {
       await supabase.from(tabla).update({ stripe_customer_id: customerId }).eq("id", userId);
     }
 
-    const portal = tipo === "agente" ? "app" : "promotor";
+    const portal = portalDeTipo(tipo);
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",

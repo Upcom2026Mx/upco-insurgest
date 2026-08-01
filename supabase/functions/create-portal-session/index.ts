@@ -20,6 +20,18 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 
 const stripe = new Stripe(STRIPE_SECRET_KEY);
 
+// Mismos helpers que create-checkout-session — ver ese archivo para el porqué.
+function tablaDeTipo(tipo: string): string {
+  if (tipo === "agente" || tipo === "agente_afiliado") return "agentes";
+  if (tipo === "agencia_maestra") return "agencias_maestras";
+  return "promotorias";
+}
+function portalDeTipo(tipo: string): string {
+  if (tipo === "agente" || tipo === "agente_afiliado") return "app";
+  if (tipo === "agencia_maestra") return "maestra";
+  return "promotor";
+}
+
 // Mismo motivo que en create-checkout-session: la llama el navegador desde otro dominio.
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -45,19 +57,19 @@ Deno.serve(async (req) => {
     const userId = userData.user.id;
 
     const { tipo } = await req.json();
-    if (!["agente", "promotoria_base"].includes(tipo)) {
+    if (!["agente", "agente_afiliado", "promotoria_base", "agencia_maestra"].includes(tipo)) {
       return new Response(JSON.stringify({ error: "tipo inválido" }), { status: 400, headers: json });
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const tabla = tipo === "agente" ? "agentes" : "promotorias";
+    const tabla = tablaDeTipo(tipo);
 
     const { data: cuenta } = await supabase.from(tabla).select("stripe_customer_id").eq("id", userId).maybeSingle();
     if (!cuenta?.stripe_customer_id) {
       return new Response(JSON.stringify({ error: "Todavía no tienes un pago registrado" }), { status: 400, headers: json });
     }
 
-    const portal = tipo === "agente" ? "app" : "promotor";
+    const portal = portalDeTipo(tipo);
     const sesion = await stripe.billingPortal.sessions.create({
       customer: cuenta.stripe_customer_id,
       return_url: `https://insurgest.upco.app/${portal}/`,

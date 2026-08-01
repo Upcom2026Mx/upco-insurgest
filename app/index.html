@@ -1675,13 +1675,20 @@ const PLANES_AGENTE=[
   {periodo:"anual",label:"Anual",monto:"$2,990 MXN/año"}
 ];
 
+const PLANES_AGENTE_AFILIADO=[
+  {periodo:"mensual",label:"Mensual",monto:"$249 MXN/mes"},
+  {periodo:"trimestral",label:"Trimestral",monto:"$720 MXN cada 3 meses"},
+  {periodo:"semestral",label:"Semestral",monto:"$1,390 MXN cada 6 meses"},
+  {periodo:"anual",label:"Anual",monto:"$2,490 MXN/año"}
+];
+
 function PantallaSuscripcion({cuenta,bloqueado,estadoRed}){
   const[cargando,setCargando]=useState(null);
   const[error,setError]=useState("");
 
-  const suscribirse=async(periodo)=>{
+  const suscribirse=async(periodo,tipo="agente")=>{
     setError("");setCargando(periodo);
-    const{data,error:errFn}=await sb.functions.invoke("create-checkout-session",{body:{tipo:"agente",periodo}});
+    const{data,error:errFn}=await sb.functions.invoke("create-checkout-session",{body:{tipo,periodo}});
     setCargando(null);
     if(errFn||!data?.url){
       let detalle=(data&&data.error)||"";
@@ -1737,12 +1744,16 @@ function PantallaSuscripcion({cuenta,bloqueado,estadoRed}){
       <div style={{fontSize:13,color:"#374151"}}>Eres parte de la red de <strong>{estadoRed.promotoria_nombre||"tu promotoría"}</strong> — no tienes que pagar nada por separado mientras ella tenga su suscripción vigente.</div>
     </div>}
 
-    {enRedSinGratis&&<div style={{...est.card,background:"#FFFBEB",border:"1px solid #FDE68A"}}>
+    {enRedSinGratis&&<div style={{marginBottom:14}}>
       <div style={{fontSize:14,fontWeight:700,color:"#B45309",marginBottom:6}}>Tarifa de red — $249/mes</div>
-      <div style={{fontSize:13,color:"#374151",marginBottom:12}}>Eres parte de la red de <strong>{estadoRed.promotoria_nombre||"tu promotoría"}</strong>, pero ya se ocuparon los primeros 5 lugares incluidos. Te toca la tarifa de agente adicional: $249/mes en vez de $299 — la activamos manual, todavía no está automatizada.</div>
-      <a href="mailto:hola@upco.app?subject=Activar%20mi%20tarifa%20de%20red%20(%24249%2Fmes)" style={{textDecoration:"none"}}>
-        <Boton color="#F59E0B">Escribir para activarla</Boton>
-      </a>
+      <div style={{fontSize:13,color:"#374151",marginBottom:12}}>Eres parte de la red de <strong>{estadoRed.promotoria_nombre||"tu promotoría"}</strong>, pero ya se ocuparon los primeros 5 lugares incluidos. Te toca la tarifa de agente afiliado: $249/mes en vez de $299.</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
+        {PLANES_AGENTE_AFILIADO.map(p=><div key={p.periodo} style={est.card}>
+          <div style={{fontSize:11,fontWeight:700,color:"#8FA0B4",marginBottom:4}}>{p.label.toUpperCase()}</div>
+          <div style={{fontSize:14,fontWeight:700,color:"#10284A",marginBottom:12}}>{p.monto}</div>
+          <Boton onClick={()=>suscribirse(p.periodo,"agente_afiliado")} disabled={cargando!==null} color="#F59E0B">{cargando===p.periodo?"Redirigiendo...":"Elegir"}</Boton>
+        </div>)}
+      </div>
     </div>}
 
     {!suscripcionActiva&&!accesoGratisPorRed&&!enRedSinGratis&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
@@ -1759,7 +1770,7 @@ function PantallaSuscripcion({cuenta,bloqueado,estadoRed}){
     </div>}
 
     {error&&<div style={{color:"#dc2626",fontSize:13,marginTop:14,textAlign:"center"}}>{error}</div>}
-    {!suscripcionActiva&&!accesoGratisPorRed&&!enRedSinGratis&&<div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Se cobra por Stripe, cancela cuando quieras.</div>}
+    {!suscripcionActiva&&!accesoGratisPorRed&&<div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Se cobra por Stripe, cancela cuando quieras.</div>}
   </div>;
 
   if(!bloqueado)return contenido;

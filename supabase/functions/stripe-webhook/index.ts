@@ -22,6 +22,13 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 const stripe = new Stripe(STRIPE_SECRET_KEY);
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+// Mismos helpers que create-checkout-session — ver ese archivo para el porqué.
+function tablaDeTipo(tipo: string): string {
+  if (tipo === "agente" || tipo === "agente_afiliado") return "agentes";
+  if (tipo === "agencia_maestra") return "agencias_maestras";
+  return "promotorias";
+}
+
 function periodoDesdePrice(interval: string | undefined, intervalCount: number | undefined): string {
   if (interval === "month" && intervalCount === 3) return "trimestral";
   if (interval === "month" && intervalCount === 6) return "semestral";
@@ -57,7 +64,7 @@ Deno.serve(async (req) => {
       const tipo = sub.metadata?.tipo;
       const id = sub.metadata?.id;
       if (tipo && id) {
-        const tabla = tipo === "agente" ? "agentes" : "promotorias";
+        const tabla = tablaDeTipo(tipo);
         const item = sub.items.data[0];
         const periodo = periodoDesdePrice(item?.price?.recurring?.interval, item?.price?.recurring?.interval_count);
         const cambios: Record<string, unknown> = {
@@ -74,7 +81,7 @@ Deno.serve(async (req) => {
       const tipo = sub.metadata?.tipo;
       const id = sub.metadata?.id;
       if (tipo && id) {
-        const tabla = tipo === "agente" ? "agentes" : "promotorias";
+        const tabla = tablaDeTipo(tipo);
         await supabase.from(tabla).update({ estatus_suscripcion: "canceled" }).eq("id", id);
       }
     }
