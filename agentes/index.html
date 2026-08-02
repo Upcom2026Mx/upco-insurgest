@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Para agentes independientes — Upco InsurGest</title>
+<meta name="description" content="Todo lo que Upco InsurGest hace por ti como agente de seguros independiente: cartera organizada, avisos automáticos, tarjeta digital, cotizador de retiro y Análisis de Necesidades Financieras."/>
+<link rel="canonical" href="https://insurgest.upco.app/agentes/"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Upco InsurGest"/>
+<meta property="og:locale" content="es_MX"/>
+<meta property="og:url" content="https://insurgest.upco.app/agentes/"/>
+<meta property="og:title" content="Para agentes independientes — Upco InsurGest"/>
+<meta property="og:description" content="Todo lo que Upco InsurGest hace por ti: cartera organizada, avisos automáticos, tarjeta digital, cotizador de retiro y ANF."/>
+<meta property="og:image" content="https://insurgest.upco.app/img/og-cover.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<link rel="icon" href="../icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../estilos.css"/>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#EFF3F9 460px);color:#0a1c35}
+  a{text-decoration:none}
+  .header{background:linear-gradient(135deg,#173863,#0a1c35);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 0;max-width:1040px;margin:0 auto;border-radius:0 0 16px 16px;box-shadow:0 4px 20px rgba(10,28,53,.18)}
+  .header>div{display:flex;flex-wrap:wrap;justify-content:flex-end}
+  .brand{color:#fff;font-weight:700;font-size:19px;font-family:var(--font-display)}
+  .brand span{color:#F59E0B}
+  .navlink{color:#DDE4EE;font-size:14px;font-weight:600;padding:8px 14px;transition:color .15s ease}
+  .navlink:hover{color:#fff}
+  @media(max-width:560px){.navlink{font-size:13px;padding:7px 9px}}
+
+  .hero{max-width:720px;margin:0 auto;padding:52px 20px 8px;text-align:center}
+  .hero-eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8FA0B4;margin:0 0 10px}
+  .hero h1{font-size:32px;font-weight:600;line-height:1.25;margin:0 0 14px;color:#10284A}
+  .hero p{font-size:15.5px;color:#374151;line-height:1.6;margin:0 0 26px}
+  .cta-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .boton{display:inline-block;background:linear-gradient(180deg,#173863,#0d2140);color:#fff;border-radius:11px;padding:14px 26px;font-size:15px;font-weight:700;box-shadow:0 10px 26px rgba(16,40,74,.24);transition:transform .15s ease}
+  .boton:hover{transform:translateY(-2px)}
+  .boton-sec{display:inline-block;background:#fff;color:#10284A;border:1.5px solid #DDE4EE;border-radius:11px;padding:14px 26px;font-size:15px;font-weight:700;transition:transform .15s ease}
+  .boton-sec:hover{transform:translateY(-2px)}
+  @media(prefers-reduced-motion:reduce){.boton,.boton-sec{transition:none}.boton:hover,.boton-sec:hover{transform:none}}
+
+  .grupo{max-width:1040px;margin:0 auto;padding:40px 20px 0}
+  .grupo-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .grupo-num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:linear-gradient(160deg,#FBBF24,#F59E0B);color:#10284A;font-weight:800;font-size:15px;flex:none;box-shadow:0 4px 10px rgba(245,158,11,.3)}
+  .grupo-head h2{font-size:20px;font-weight:700;color:#10284A;margin:0}
+
+  .lista{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+  .item{background:#fff;border:1px solid rgba(16,40,74,.08);border-radius:14px;padding:18px;box-shadow:0 3px 12px rgba(16,28,53,.05);display:flex;gap:12px}
+  .item-icono{width:38px;height:38px;border-radius:10px;background:rgba(16,40,74,.06);display:flex;align-items:center;justify-content:center;flex:none}
+  .item-icono i{width:20px;height:20px;display:block;background:#10284A;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+  .item-icono span{font-size:18px;line-height:1}
+  .item h3{font-size:14.5px;margin:0 0 4px;color:#10284A;font-weight:700}
+  .item p{font-size:13px;color:#6B7280;line-height:1.55;margin:0}
+  .item .nuevo{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.03em;color:#10284A;background:#F59E0B;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+
+  .cta-final{background:linear-gradient(160deg,#173863,#0a1c35);padding:56px 20px;text-align:center;border-radius:24px;max-width:1040px;margin:52px auto 40px;box-shadow:0 20px 50px rgba(16,40,74,.2)}
+  .cta-final h2{color:#fff;font-size:24px;font-weight:600;margin:0 0 10px}
+  .cta-final p{color:#DDE4EE;font-size:14px;margin:0 0 24px}
+  .cta-final .boton{background:linear-gradient(180deg,#FBBF24,#F59E0B);color:#10284A;box-shadow:0 10px 26px rgba(245,158,11,.32)}
+
+  footer{max-width:1040px;margin:0 auto;padding:24px 20px;text-align:center;font-size:12.5px;color:#8FA0B4}
+  footer a{color:#53647D;font-weight:600}
+
+  .modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(8,20,38,.6);display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay[hidden]{display:none}
+  .modal-card{position:relative;background:#fff;border-radius:20px;max-width:420px;width:100%;padding:32px 28px;box-shadow:0 30px 70px rgba(8,20,38,.35);max-height:90vh;overflow-y:auto}
+  .modal-cerrar{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:#F4F7FB;color:#53647D;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .15s ease}
+  .modal-cerrar:hover{background:#E8EEF7}
+  .modal-card h3{font-size:20px;font-weight:700;color:#10284A;margin:0 0 6px;font-family:var(--font-display)}
+  .modal-sub{font-size:13.5px;color:#6B7280;margin:0 0 20px}
+  .modal-input{width:100%;padding:13px 15px;border:1.5px solid #DDE4EE;border-radius:10px;font-size:15px;margin-bottom:10px;font-family:inherit;color:#0a1c35}
+  .modal-input:focus{outline:none;border-color:#10284A}
+  .modal-textarea{min-height:80px;resize:vertical}
+  .modal-error{color:#dc2626;font-size:13px;margin-bottom:10px}
+  .modal-exito{text-align:center;padding:12px 0}
+  .modal-exito-check{width:52px;height:52px;border-radius:50%;background:rgba(22,163,74,.1);color:#16a34a;font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+  .modal-exito p{font-size:15px;color:#10284A;font-weight:600;margin:0}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a class="brand" href="../"><span class="brand-logo"></span> <span>InsurGest</span></a>
+  <div>
+    <a class="navlink" href="./" style="color:#F59E0B;font-weight:800">Para agentes</a>
+    <a class="navlink" href="../promotorias/">Promotorías</a>
+    <a class="navlink" href="../precios/">Precios</a>
+    <a class="navlink" href="../app/">Iniciar sesión</a>
+    <a class="navlink" href="../app/?registro=1" style="background:rgba(255,255,255,.12);border-radius:8px">Crear cuenta</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-eyebrow">Para agentes de seguros independientes</div>
+  <h1>Todo lo que Upco InsurGest hace por ti, en una sola hoja</h1>
+  <p>Una herramienta, tres trabajos: organizar tu cartera, hacer que tus clientes se queden, y conseguir prospectos nuevos sin gastar en publicidad. Esto es todo lo que incluye tu cuenta.</p>
+  <div class="cta-row">
+    <a class="boton" href="../app/?registro=1">Crear mi cuenta gratis</a>
+    <a class="boton-sec" href="../precios/">Ver precios</a>
+  </div>
+</div>
+
+<div class="grupo">
+  <div class="grupo-head"><span class="grupo-num">1</span><h2>Controla tu cartera</h2></div>
+  <div class="lista">
+    <div class="item">
+      <div class="item-icono"><i style="-webkit-mask-image:url(../img/ic-checklist.png);mask-image:url(../img/ic-checklist.png)"></i></div>
+      <div><h3>Clientes, pólizas y vehículos</h3><p>Cada cliente con sus pólizas y sus autos en un solo lugar. La vigencia se calcula sola — nunca la escribes a mano.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-icono"><i style="-webkit-mask-image:url(../img/ic-avisos.png);mask-image:url(../img/ic-avisos.png)"></i></div>
+      <div><h3>Centro de avisos</h3><p>Te avisa solo de tus pólizas por vencer, y a tu cliente de su póliza, su verificación y su servicio. Tú también puedes escribirle a quien quieras, cuando quieras.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-icono"><i style="-webkit-mask-image:url(../img/ic-cartera.png);mask-image:url(../img/ic-cartera.png)"></i></div>
+      <div><h3>Dashboard de tu cartera</h3><p>Prima total vigente, pólizas por estatus, y cuánto le colocas a cada aseguradora y ramo — se recalcula solo.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-icono"><i style="-webkit-mask-image:url(../img/ic-portal.png);mask-image:url(../img/ic-portal.png)"></i></div>
+      <div><h3>Liga mágica del cliente</h3><p>Cada cliente tiene su propia liga privada para ver sus pólizas y descargar su PDF, sin registrarse.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="grupo">
+  <div class="grupo-head"><span class="grupo-num">2</span><h2>Consiente a tus clientes</h2></div>
+  <div class="lista">
+    <div class="item">
+      <div class="item-icono"><i style="-webkit-mask-image:url(../img/ic-auto.png);mask-image:url(../img/ic-auto.png)"></i></div>
+      <div><h3>Flotilla de hasta 5 autos</h3><p>Tu cliente lleva el kilometraje y el servicio de sus autos, y le avisamos a él antes de que le toque.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-icono"><i style="-webkit-mask-image:url(../img/ic-familia.png);mask-image:url(../img/ic-familia.png)"></i></div>
+      <div><h3>Presupuesto familiar</h3><p>Para tus clientes de Vida: ordenan su gasto con la regla 50/30/20. Sus números se quedan en su teléfono.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-icono"><span>🔒</span></div>
+      <div><h3>Verificación en dos pasos</h3><p>Protege tu cuenta (y la de tus clientes) aunque alguien más consiga tu contraseña.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="grupo">
+  <div class="grupo-head"><span class="grupo-num">3</span><h2>Consigue clientes nuevos</h2></div>
+  <div class="lista">
+    <div class="item">
+      <div class="item-icono"><i style="-webkit-mask-image:url(../img/ic-agente.png);mask-image:url(../img/ic-agente.png)"></i></div>
+      <div><h3>Tu tarjeta digital<span class="nuevo">CON QR</span></h3><p>Tu página con tu foto, cédula, ramos y aseguradoras. Con botón de WhatsApp/llamada/correo, y un código QR descargable para presentaciones.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-icono"><i style="-webkit-mask-image:url(../img/ic-prospectos.png);mask-image:url(../img/ic-prospectos.png)"></i></div>
+      <div><h3>Prospectos automáticos</h3><p>El formulario de tu tarjeta te manda cada prospecto directo a tu bandeja, con correo de aviso al instante.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-icono"><i style="-webkit-mask-image:url(../img/ic-retiro.png);mask-image:url(../img/ic-retiro.png)"></i></div>
+      <div><h3>Cotizador de retiro<span class="nuevo">NUEVO</span></h3><p>Tu propia liga: el prospecto ve cuánto le falta para su retiro en pesos de hoy, y te llega como una solicitud nueva.</p></div>
+    </div>
+    <div class="item">
+      <div class="item-icono"><span style="font-size:18px">🛡️</span></div>
+      <div><h3>Análisis de Necesidades Financieras<span class="nuevo">NUEVO</span></h3><p>El ANF que ya conoces, en una liga: calcula cuánta protección de vida le falta a la familia del prospecto.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="cta-final">
+  <h2>30 días gratis, sin esperar aprobación</h2>
+  <p>Tu cuenta queda activa de inmediato. Cancela cuando quieras.</p>
+  <div class="cta-row">
+    <a class="boton" href="../app/?registro=1">Crear mi cuenta gratis</a>
+    <button type="button" class="boton-sec" id="btnMasInfo">Quiero más información</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalInfo" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalInfoTitulo">
+    <button type="button" class="modal-cerrar" id="btnCerrarInfo" aria-label="Cerrar">✕</button>
+    <h3 id="modalInfoTitulo">Quiero más información</h3>
+    <p class="modal-sub">Déjanos tus datos y te contactamos — sin compromiso.</p>
+    <form id="formInfo">
+      <input class="modal-input" type="text" name="nombre" placeholder="Tu nombre *"/>
+      <input class="modal-input" type="email" name="correo" placeholder="Tu correo"/>
+      <input class="modal-input" type="tel" name="telefono" placeholder="Tu teléfono"/>
+      <textarea class="modal-input modal-textarea" name="mensaje" placeholder="¿En qué te podemos ayudar? (opcional)"></textarea>
+      <div class="modal-error" id="modalInfoError" hidden></div>
+      <button type="submit" class="boton" id="btnEnviarInfo" style="width:100%">Enviar</button>
+    </form>
+    <div class="modal-exito" id="modalInfoExito" hidden>
+      <div class="modal-exito-check">✓</div>
+      <p>¡Gracias! Te contactamos pronto.</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  © 2026 Upco InsurGest · <a href="../terminos/">Términos y Aviso de Privacidad</a> · <a href="../precios/">Precios</a> · <a href="../ayuda/">Guía de uso</a>
+</footer>
+
+<script>
+// Mismo modal y mismo RPC que la portada (landing_crear_contacto) — sin cargar el SDK completo
+// de supabase-js, esta página tampoco lo usa para nada más.
+(function(){
+  var SUPABASE_URL="https://pxcvckqahkjlizgotvqw.supabase.co";
+  var SUPABASE_ANON_KEY="sb_publishable_F2WhknXrY8MLjI5ftd0H6w_-XXjej6I";
+
+  var btnAbrir=document.getElementById("btnMasInfo");
+  var overlay=document.getElementById("modalInfo");
+  if(!btnAbrir||!overlay)return;
+  var btnCerrar=document.getElementById("btnCerrarInfo");
+  var form=document.getElementById("formInfo");
+  var error=document.getElementById("modalInfoError");
+  var exito=document.getElementById("modalInfoExito");
+  var enviar=document.getElementById("btnEnviarInfo");
+
+  function abrir(){
+    overlay.hidden=false;
+    form.hidden=false; exito.hidden=true; error.hidden=true;
+    form.reset();
+    document.body.style.overflow="hidden";
+  }
+  function cerrar(){
+    overlay.hidden=true;
+    document.body.style.overflow="";
+  }
+  btnAbrir.addEventListener("click",abrir);
+  btnCerrar.addEventListener("click",cerrar);
+  overlay.addEventListener("click",function(e){ if(e.target===overlay)cerrar(); });
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape"&&!overlay.hidden)cerrar(); });
+
+  form.addEventListener("submit",async function(e){
+    e.preventDefault();
+    error.hidden=true;
+    var datos=new FormData(form);
+    var nombre=(datos.get("nombre")||"").trim();
+    var correo=(datos.get("correo")||"").trim();
+    var telefono=(datos.get("telefono")||"").trim();
+    var mensaje=(datos.get("mensaje")||"").trim();
+    if(!nombre){error.textContent="Necesitamos tu nombre.";error.hidden=false;return;}
+    if(!correo&&!telefono){error.textContent="Déjanos un correo o un teléfono para poder contactarte.";error.hidden=false;return;}
+    enviar.disabled=true;enviar.textContent="Enviando...";
+    try{
+      var resp=await fetch(SUPABASE_URL+"/rest/v1/rpc/landing_crear_contacto",{
+        method:"POST",
+        headers:{"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+SUPABASE_ANON_KEY,"Content-Type":"application/json"},
+        body:JSON.stringify({p_nombre:nombre,p_correo:correo||null,p_telefono:telefono||null,p_mensaje:mensaje||null})
+      });
+      if(!resp.ok){
+        var j=await resp.json().catch(function(){return{};});
+        throw new Error(j.message||"No se pudo enviar. Intenta de nuevo.");
+      }
+      form.hidden=true;
+      exito.hidden=false;
+    }catch(err){
+      error.textContent=err.message||"No se pudo enviar. Intenta de nuevo.";
+      error.hidden=false;
+    }finally{
+      enviar.disabled=false;enviar.textContent="Enviar";
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

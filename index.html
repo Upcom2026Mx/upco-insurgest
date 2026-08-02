@@ -94,10 +94,12 @@
     .blob{display:none}
   }
 
-  .header{background:linear-gradient(135deg,#173863,#0a1c35);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;max-width:1040px;margin:0 auto;border-radius:0 0 16px 16px;box-shadow:0 4px 20px rgba(10,28,53,.18)}
+  .header{background:linear-gradient(135deg,#173863,#0a1c35);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 0;max-width:1040px;margin:0 auto;border-radius:0 0 16px 16px;box-shadow:0 4px 20px rgba(10,28,53,.18)}
+  .header>div{display:flex;flex-wrap:wrap;justify-content:flex-end}
   .brand{color:#fff;font-weight:700;font-size:19px;font-family:var(--font-display)}
   .brand span{color:#F59E0B}
   .navlink{color:#DDE4EE;font-size:14px;font-weight:600;padding:8px 14px;transition:color .15s ease}
+  @media(max-width:560px){.navlink{font-size:13px;padding:7px 9px}}
   .navlink:hover{color:#fff}
   .heroWrap{max-width:1040px;margin:20px auto 0;padding:0 20px}
   .hero{position:relative;overflow:hidden;isolation:isolate;margin:0 auto;padding:64px 24px;text-align:center;border-radius:24px;box-shadow:0 20px 50px rgba(16,40,74,.22)}
@@ -116,6 +118,18 @@
   @media(prefers-reduced-motion:reduce){.boton,.boton-sec,.navlink{transition:none}.boton:hover,.boton-sec:hover{transform:none}}
   .subnota{font-size:13px;color:#9FB4CE;margin-top:14px}
   @media(max-width:600px){.hero{padding:48px 20px}}
+
+  /* Nubes ambientales del lado derecho del hero — drift lento, capa puramente decorativa entre
+     la foto/overlay y el texto. Pura CSS (sin video externo): más ligero, sin depender de que un
+     archivo cargue, y reusa el gancho ".blob{display:none}" que ya existía para prefers-reduced-motion. */
+  .hero-ambient{position:absolute!important;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+  .blob{position:absolute;border-radius:50%;filter:blur(36px);animation:blobDrift ease-in-out infinite}
+  .blob.b1{width:300px;height:300px;top:-70px;right:2%;background:radial-gradient(circle at 32% 32%,rgba(255,255,255,.95),rgba(199,211,227,.3) 58%,transparent 72%);opacity:.85;animation-duration:16s}
+  .blob.b2{width:210px;height:210px;top:30%;right:24%;background:radial-gradient(circle at 32% 32%,rgba(255,255,255,.8),rgba(199,211,227,.24) 58%,transparent 72%);opacity:.65;animation-duration:13s;animation-delay:-4s}
+  .blob.b3{width:180px;height:180px;top:54%;right:-2%;background:radial-gradient(circle at 32% 32%,rgba(251,191,36,.85),rgba(251,191,36,.15) 58%,transparent 74%);opacity:.6;animation-duration:15s;animation-delay:-8s}
+  .blob.b4{width:130px;height:130px;top:12%;right:38%;background:radial-gradient(circle at 32% 32%,rgba(255,255,255,.7),rgba(199,211,227,.2) 58%,transparent 72%);opacity:.5;animation-duration:12s;animation-delay:-2s}
+  @keyframes blobDrift{0%{transform:translate(0,0) scale(1)}33%{transform:translate(-30px,22px) scale(1.12)}66%{transform:translate(18px,-16px) scale(.94)}100%{transform:translate(0,0) scale(1)}}
+  @media(max-width:600px){.hero-ambient{display:none}}
   .features{max-width:1040px;margin:0 auto;padding:20px 20px 60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
   .fcard{background:#fff;border:1px solid rgba(16,40,74,.08);border-radius:16px;padding:24px;box-shadow:0 3px 12px rgba(16,28,53,.06)}
   .ficon{width:46px;height:46px;border-radius:12px;background:rgba(16,40,74,.06);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
@@ -267,7 +281,9 @@
 <div class="header">
   <a class="brand" href="./"><span class="brand-logo"></span> <span>InsurGest</span></a>
   <div>
-    <a class="navlink" href="./precios/">Precios</a>
+    <a class="navlink" href="./agentes/">Para agentes</a>
+    <a class="navlink" href="./promotorias/">Promotorías</a>
+    <a class="navlink" href="./precios/" style="color:#F59E0B;font-weight:800">Precios</a>
     <a class="navlink" href="./app/">Iniciar sesión</a>
     <a class="navlink" href="./app/?registro=1" style="background:rgba(255,255,255,.12);border-radius:8px">Crear cuenta</a>
   </div>
@@ -276,6 +292,7 @@
 <div class="heroWrap">
   <div class="hero">
     <img class="hero-foto" src="img/hero-fondo.jpg" alt="" loading="eager"/>
+    <div class="hero-ambient" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="blob b4"></span></div>
     <div class="hero-categoria">Para agentes de seguros independientes en México</div>
     <div class="hero-dolor">Los olvidos cuestan dinero</div>
     <h1>Deja de perder clientes y comisiones por pólizas vencidas</h1>
@@ -503,7 +520,7 @@
   <div class="fcard destacada reveal">
     <div class="ficon"><i style="-webkit-mask-image:url(img/ic-agente.png);mask-image:url(img/ic-agente.png)"></i></div>
     <h3>Tu tarjeta digital <span class="nuevo">NUEVO</span></h3>
-    <p>Tu propia página con tu foto, tu nombre, tu cédula, los ramos que manejas y las aseguradoras con las que trabajas. Trae botón de WhatsApp, de llamada y de correo, así que el prospecto te contacta con un toque. Es una liga corta —<b>insurgest.upco.app/a/tu-nombre</b>— que pegas en tu WhatsApp, tu Instagram o tu firma de correo. La prendes y la apagas cuando quieras.</p>
+    <p>Tu propia página con tu foto, tu nombre, tu cédula, los ramos que manejas y las aseguradoras con las que trabajas. Trae botón de WhatsApp, de llamada y de correo, así que el prospecto te contacta con un toque. Es una liga corta —<b>insurgest.upco.app/a/tu-nombre</b>— que pegas en tu WhatsApp, tu Instagram o tu firma de correo. La prendes y la apagas cuando quieras. <b>Trae también tu código QR</b>, listo para descargar e insertar en tus presentaciones o imprimir.</p>
   </div>
   <div class="fcard destacada reveal">
     <div class="ficon"><i style="-webkit-mask-image:url(img/ic-prospectos.png);mask-image:url(img/ic-prospectos.png)"></i></div>
@@ -514,6 +531,11 @@
     <div class="ficon"><i style="-webkit-mask-image:url(img/ic-retiro.png);mask-image:url(img/ic-retiro.png)"></i></div>
     <h3>Cotizador de retiro <span class="nuevo">NUEVO</span></h3>
     <p>Una calculadora de brecha de retiro con tu nombre, lista para compartir por separado en anuncios o publicaciones — no solo desde tu tarjeta. El prospecto contesta unas preguntas, ve cuánto le falta para su retiro en pesos de hoy, y <b>te llega su resultado como una solicitud nueva</b>. Ideal para vender Vida y PPR sin empezar la conversación en frío.</p>
+  </div>
+  <div class="fcard destacada reveal">
+    <div class="ficon"><i style="-webkit-mask-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 240'%3E%3Cpath d='M100,8 L184,42 V112 C184,176 140,220 100,232 C60,220 16,176 16,112 V42 Z' fill='none' stroke='%23000' stroke-width='10'/%3E%3Cpath d='M74,116 L92,134 L128,90' fill='none' stroke='%23000' stroke-width='13' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E&quot;);mask-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 240'%3E%3Cpath d='M100,8 L184,42 V112 C184,176 140,220 100,232 C60,220 16,176 16,112 V42 Z' fill='none' stroke='%23000' stroke-width='10'/%3E%3Cpath d='M74,116 L92,134 L128,90' fill='none' stroke='%23000' stroke-width='13' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E&quot;)"></i></div>
+    <h3>Análisis de Necesidades Financieras <span class="nuevo">NUEVO</span></h3>
+    <p>Tu propia liga del ANF que ya conoces: el prospecto contesta su ingreso, deudas y gastos finales, y ve al instante cuánta protección de vida le falta a su familia si él faltara. <b>El resultado te llega como una solicitud nueva</b>, igual que el cotizador de retiro — el mismo "golpe de realidad" que usas en consultoría, ahora en una liga que compartes tú mismo.</p>
   </div>
 </div>
 
@@ -565,6 +587,7 @@
         <a class="boton" href="./promotor/?registro=1" style="background:linear-gradient(180deg,#FBBF24,#F59E0B);color:#10284A;box-shadow:0 10px 26px rgba(245,158,11,.32)">Registrar mi promotoría</a>
         <a class="boton-sec" href="./precios/">Ver precios completos</a>
       </div>
+      <div style="font-size:12.5px;color:#9FB4CE;margin-top:14px">¿Administras varias promotorías? <a href="./precios/" style="color:#F59E0B;font-weight:700">Conoce Agencia Máster →</a></div>
     </div>
     <div class="promo-panel">
       <div class="precio-tag">CUOTA BASE MENSUAL</div>

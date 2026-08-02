@@ -28,10 +28,12 @@
   *{box-sizing:border-box}
   body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#EFF3F9 620px);color:#0a1c35}
   a{text-decoration:none}
-  .header{background:linear-gradient(135deg,#173863,#0a1c35);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;max-width:1040px;margin:0 auto;border-radius:0 0 16px 16px;box-shadow:0 4px 20px rgba(10,28,53,.18)}
+  .header{background:linear-gradient(135deg,#173863,#0a1c35);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 0;max-width:1040px;margin:0 auto;border-radius:0 0 16px 16px;box-shadow:0 4px 20px rgba(10,28,53,.18)}
+  .header>div{display:flex;flex-wrap:wrap;justify-content:flex-end}
   .brand{color:#fff;font-weight:700;font-size:19px;font-family:var(--font-display)}
   .brand span{color:#F59E0B}
   .navlink{color:#DDE4EE;font-size:14px;font-weight:600;padding:8px 14px}
+  @media(max-width:560px){.navlink{font-size:13px;padding:7px 9px}}
   .hero{max-width:640px;margin:0 auto;padding:52px 20px 8px;text-align:center}
   .hero h1{font-size:30px;font-weight:800;line-height:1.25;margin:0 0 12px}
   .hero p{font-size:15px;color:#374151;line-height:1.6;margin:0}
@@ -84,6 +86,8 @@
   <a class="brand" href="../"><span class="brand-logo"></span> <span>InsurGest</span></a>
   <div>
     <a class="navlink" href="../">Inicio</a>
+    <a class="navlink" href="../agentes/">Para agentes</a>
+    <a class="navlink" href="../promotorias/">Promotorías</a>
     <a class="navlink" href="../app/">Iniciar sesión</a>
     <a class="navlink" href="../app/?registro=1" style="background:rgba(255,255,255,.12);border-radius:8px">Crear cuenta</a>
   </div>
