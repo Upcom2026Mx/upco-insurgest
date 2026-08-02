@@ -43,6 +43,7 @@
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="../shared.js"></script>
 </head>
 <body>
@@ -392,12 +393,138 @@ function descargarClientesCSV(clientes,polizasPorCliente){
   URL.revokeObjectURL(url);
 }
 
+// ============ IMPORTAR CLIENTES DESDE CSV ============
+// Fase 1 del roadmap de import — solo clientes del propio agente (sin pólizas todavía). La
+// validación real (nombre obligatorio, duplicados) vive en agente_importar_clientes() del lado
+// del servidor; aquí solo detectamos columnas y armamos el arreglo que se manda al RPC.
+const COLUMNAS_IMPORT=["nombre","tipo_persona","rfc","curp","correo","telefono","notas"];
+const ALIAS_COLUMNA={
+  nombre:["nombre","cliente","nombre completo","nombre del cliente"],
+  tipo_persona:["tipo_persona","tipo de persona","persona"],
+  rfc:["rfc"],
+  curp:["curp"],
+  correo:["correo","correo electronico","email"],
+  telefono:["telefono","celular","tel"],
+  notas:["notas","nota","comentarios"]
+};
+
+function normalizarEncabezado(h){
+  return (h||"").toString().trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+}
+
+function mapearColumnasImport(encabezados){
+  const normalizados=encabezados.map(normalizarEncabezado);
+  const mapa={};
+  COLUMNAS_IMPORT.forEach(campo=>{
+    const variantes=ALIAS_COLUMNA[campo].map(normalizarEncabezado);
+    const idx=normalizados.findIndex(h=>variantes.includes(h));
+    if(idx>-1)mapa[campo]=encabezados[idx];
+  });
+  return mapa;
+}
+
+function descargarPlantillaCSV(){
+  const encabezados=["nombre","tipo_persona","rfc","curp","correo","telefono","notas"];
+  const ejemplo=["Juan Pérez López","fisica","PELJ800101ABC","PELJ800101HDFXXX01","juan@example.com","5512345678",""];
+  const csv=[encabezados,ejemplo].map(fila=>fila.join(",")).join("\r\n");
+  const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="plantilla-clientes.csv";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function ImportarClientes({onCerrar,onImportado}){
+  const[filas,setFilas]=useState(null);
+  const[mapa,setMapa]=useState(null);
+  const[error,setError]=useState("");
+  const[importando,setImportando]=useState(false);
+  const[resultado,setResultado]=useState(null);
+
+  const elegirArchivo=(file)=>{
+    setError("");setFilas(null);setResultado(null);
+    if(!file)return;
+    Papa.parse(file,{
+      header:true,skipEmptyLines:true,
+      complete:(res)=>{
+        if(!res.data.length){setError("El archivo no tiene filas.");return;}
+        const encabezados=res.meta.fields||[];
+        const m=mapearColumnasImport(encabezados);
+        if(!m.nombre){setError('No encontramos una columna de "nombre" en tu archivo. Descarga la plantilla para asegurarte de que las columnas coincidan.');return;}
+        setMapa(m);
+        const datos=res.data.map(fila=>{
+          const obj={};
+          COLUMNAS_IMPORT.forEach(campo=>{ if(m[campo])obj[campo]=fila[m[campo]]; });
+          return obj;
+        }).filter(f=>Object.values(f).some(v=>v&&String(v).trim()));
+        if(datos.length>1000){setError(`Tu archivo tiene ${datos.length} filas — el máximo por importación es 1000. Divídelo en partes más chicas.`);return;}
+        setFilas(datos);
+      },
+      error:(err)=>setError("No se pudo leer el archivo: "+err.message)
+    });
+  };
+
+  const importar=async()=>{
+    if(!filas||!filas.length)return;
+    setImportando(true);setError("");
+    const{data,error:err}=await sb.rpc("agente_importar_clientes",{p_filas:filas});
+    setImportando(false);
+    if(err){setError(err.message);return;}
+    setResultado(data);
+    if(data.insertados>0)onImportado();
+  };
+
+  return <div style={{...est.card,maxWidth:560,marginBottom:16}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+      <div style={{fontSize:16,fontWeight:700}}>Importar clientes desde CSV</div>
+      <button onClick={onCerrar} style={est.linkBtn}>Cerrar</button>
+    </div>
+    <div style={{fontSize:13,color:"#6B7280",marginBottom:14}}>
+      Por ahora solo importa clientes (sin pólizas). <button type="button" onClick={descargarPlantillaCSV} style={{...est.linkBtn,padding:0,textDecoration:"underline"}}>Descargar plantilla</button> para asegurarte de que las columnas coincidan.
+    </div>
+
+    {!resultado&&<>
+      <input type="file" accept=".csv" name="archivo_csv" onChange={e=>elegirArchivo(e.target.files[0])} style={{marginBottom:14}}/>
+      {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+
+      {filas&&filas.length>0&&<div>
+        <div style={{fontSize:13,color:"#374151",marginBottom:10}}>
+          Encontramos <b>{filas.length}</b> cliente(s) listos para revisar. Columnas detectadas: {COLUMNAS_IMPORT.filter(c=>mapa[c]).join(", ")}.
+        </div>
+        <div style={{...est.card,maxHeight:220,overflowY:"auto",padding:0,marginBottom:14}}>
+          {filas.slice(0,8).map((f,i)=><div key={i} style={{...est.fila,cursor:"default"}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:13}}>{f.nombre||"(sin nombre)"}</div>
+              <div style={{fontSize:11,color:"#8FA0B4"}}>{[f.rfc,f.correo,f.telefono].filter(Boolean).join(" · ")||"—"}</div>
+            </div>
+          </div>)}
+          {filas.length>8&&<div style={{padding:"10px 16px",fontSize:12,color:"#8FA0B4"}}>y {filas.length-8} más…</div>}
+        </div>
+        <Boton onClick={importar} disabled={importando}>{importando?"Importando...":`Importar ${filas.length} cliente(s)`}</Boton>
+      </div>}
+    </>}
+
+    {resultado&&<div>
+      <div style={{color:"#16a34a",fontSize:14,fontWeight:700,marginBottom:8}}>{resultado.insertados} cliente(s) importado(s) correctamente.</div>
+      {resultado.omitidos.length>0&&<div style={{marginTop:10}}>
+        <div style={{fontSize:13,fontWeight:700,color:"#B45309",marginBottom:6}}>{resultado.omitidos.length} fila(s) omitida(s):</div>
+        <div style={{...est.card,maxHeight:180,overflowY:"auto",padding:"10px 14px"}}>
+          {resultado.omitidos.map((o,i)=><div key={i} style={{fontSize:12.5,color:"#374151",marginBottom:4}}>Fila {o.fila}{o.nombre?` (${o.nombre})`:""}: {o.motivo}</div>)}
+        </div>
+      </div>}
+      <div style={{marginTop:14}}><Boton onClick={onCerrar}>Listo</Boton></div>
+    </div>}
+  </div>;
+}
+
 function ClientesList({agenteId,onAbrirCliente}){
   const[clientes,setClientes]=useState(null);
   const[polizas,setPolizas]=useState([]);
   const[busqueda,setBusqueda]=useState("");
   const[formAbierto,setFormAbierto]=useState(false);
   const[formPolizaAbierto,setFormPolizaAbierto]=useState(false);
+  const[importarAbierto,setImportarAbierto]=useState(false);
   const[error,setError]=useState("");
 
   const cargar=async()=>{
@@ -424,17 +551,18 @@ function ClientesList({agenteId,onAbrirCliente}){
   });
 
   return <div>
-    {!formAbierto&&!formPolizaAbierto&&<ProximosCumpleanos clientes={clientes} onAbrirCliente={onAbrirCliente}/>}
+    {!formAbierto&&!formPolizaAbierto&&!importarAbierto&&<ProximosCumpleanos clientes={clientes} onAbrirCliente={onAbrirCliente}/>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
       <div style={{fontSize:16,fontWeight:700}}>Mis clientes {clientesFiltrados?`(${clientesFiltrados.length})`:""}</div>
-      {!formAbierto&&!formPolizaAbierto&&<div style={{display:"flex",gap:8}}>
+      {!formAbierto&&!formPolizaAbierto&&!importarAbierto&&<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
         {clientes&&clientes.length>0&&<Boton color="#53647D" onClick={()=>descargarClientesCSV(clientes,polizasPorCliente)}>Exportar a Excel</Boton>}
+        <Boton color="#53647D" onClick={()=>setImportarAbierto(true)}>Importar CSV</Boton>
         {clientes&&clientes.length>0&&<Boton color="#F59E0B" onClick={()=>setFormPolizaAbierto(true)}>+ Nueva póliza</Boton>}
         <Boton onClick={()=>setFormAbierto(true)}>+ Nuevo cliente</Boton>
       </div>}
     </div>
 
-    {!formAbierto&&!formPolizaAbierto&&clientes&&clientes.length>0&&
+    {!formAbierto&&!formPolizaAbierto&&!importarAbierto&&clientes&&clientes.length>0&&
       <input placeholder="Buscar por cliente, correo, teléfono, RFC, aseguradora o número de póliza..."
         value={busqueda} onChange={e=>setBusqueda(e.target.value)} style={est.input}/>}
 
@@ -450,15 +578,17 @@ function ClientesList({agenteId,onAbrirCliente}){
       }}
       onCancelar={()=>setFormPolizaAbierto(false)}/>}
 
+    {importarAbierto&&<ImportarClientes onCerrar={()=>{setImportarAbierto(false);cargar();}} onImportado={cargar}/>}
+
     {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
-    {!clientes&&<div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>}
-    {clientes&&clientes.length===0&&!formAbierto&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
+    {!importarAbierto&&!clientes&&<div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>}
+    {!importarAbierto&&clientes&&clientes.length===0&&!formAbierto&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
       Todavía no tienes clientes registrados.
     </div>}
-    {clientesFiltrados&&clientesFiltrados.length===0&&clientes.length>0&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
+    {!importarAbierto&&clientesFiltrados&&clientesFiltrados.length===0&&clientes.length>0&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
       Ningún cliente o póliza coincide con "{busqueda}".
     </div>}
-    {clientesFiltrados&&clientesFiltrados.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
+    {!importarAbierto&&clientesFiltrados&&clientesFiltrados.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
       {clientesFiltrados.map(c=><div key={c.id} style={est.fila} onClick={()=>onAbrirCliente(c)}>
         <div>
           <div style={{fontWeight:700,fontSize:14}}>{c.nombre}</div>
