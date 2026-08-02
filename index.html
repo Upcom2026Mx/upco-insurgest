@@ -119,16 +119,21 @@
   .subnota{font-size:13px;color:#9FB4CE;margin-top:14px}
   @media(max-width:600px){.hero{padding:48px 20px}}
 
-  /* Nubes ambientales del lado derecho del hero — drift lento, capa puramente decorativa entre
-     la foto/overlay y el texto. Pura CSS (sin video externo): más ligero, sin depender de que un
-     archivo cargue, y reusa el gancho ".blob{display:none}" que ya existía para prefers-reduced-motion. */
+  /* Nubes ambientales del hero — drift lento, capa puramente decorativa entre la foto/overlay y
+     el texto. Pura CSS (sin video externo). A diferencia de la primera versión (Sesión 41), aquí
+     cada nube vive ANCLADA a la franja de padding superior o inferior del hero (top:-Npx / bottom:-Npx
+     con la mayoría de su masa recortada por overflow:hidden) — esas franjas son las únicas zonas
+     del hero garantizadas libres de texto en cualquier ancho ≥600px, porque son padding real, nunca
+     contienen contenido. Así las nubes se aprecian como un resplandor suave entrando por arriba/abajo
+     del cuadro sin taparle contraste al texto. Opacidad baja + blur alto a propósito: se busca
+     atmósfera, no manchas de luz sólidas. Reusa el gancho ".blob{display:none}" para prefers-reduced-motion. */
   .hero-ambient{position:absolute!important;inset:0;z-index:1;pointer-events:none;overflow:hidden}
-  .blob{position:absolute;border-radius:50%;filter:blur(36px);animation:blobDrift ease-in-out infinite}
-  .blob.b1{width:300px;height:300px;top:-70px;right:2%;background:radial-gradient(circle at 32% 32%,rgba(255,255,255,.95),rgba(199,211,227,.3) 58%,transparent 72%);opacity:.85;animation-duration:16s}
-  .blob.b2{width:210px;height:210px;top:30%;right:24%;background:radial-gradient(circle at 32% 32%,rgba(255,255,255,.8),rgba(199,211,227,.24) 58%,transparent 72%);opacity:.65;animation-duration:13s;animation-delay:-4s}
-  .blob.b3{width:180px;height:180px;top:54%;right:-2%;background:radial-gradient(circle at 32% 32%,rgba(251,191,36,.85),rgba(251,191,36,.15) 58%,transparent 74%);opacity:.6;animation-duration:15s;animation-delay:-8s}
-  .blob.b4{width:130px;height:130px;top:12%;right:38%;background:radial-gradient(circle at 32% 32%,rgba(255,255,255,.7),rgba(199,211,227,.2) 58%,transparent 72%);opacity:.5;animation-duration:12s;animation-delay:-2s}
-  @keyframes blobDrift{0%{transform:translate(0,0) scale(1)}33%{transform:translate(-30px,22px) scale(1.12)}66%{transform:translate(18px,-16px) scale(.94)}100%{transform:translate(0,0) scale(1)}}
+  .blob{position:absolute;border-radius:50%;filter:blur(46px);animation:blobDrift ease-in-out infinite}
+  .blob.b1{width:260px;height:260px;top:-210px;right:6%;background:radial-gradient(circle at 32% 32%,rgba(255,255,255,.9),rgba(199,211,227,.26) 58%,transparent 74%);opacity:.5;animation-duration:18s}
+  .blob.b2{width:150px;height:150px;top:-95px;left:14%;background:radial-gradient(circle at 32% 32%,rgba(255,255,255,.85),rgba(199,211,227,.2) 58%,transparent 74%);opacity:.32;animation-duration:14s;animation-delay:-5s}
+  .blob.b3{width:210px;height:210px;bottom:-165px;right:4%;background:radial-gradient(circle at 32% 32%,rgba(251,191,36,.9),rgba(251,191,36,.16) 58%,transparent 76%);opacity:.34;animation-duration:16s;animation-delay:-8s}
+  .blob.b4{width:150px;height:150px;bottom:-105px;left:18%;background:radial-gradient(circle at 32% 32%,rgba(255,255,255,.8),rgba(199,211,227,.18) 58%,transparent 74%);opacity:.26;animation-duration:13s;animation-delay:-2s}
+  @keyframes blobDrift{0%{transform:translate(0,0) scale(1)}33%{transform:translate(-22px,14px) scale(1.08)}66%{transform:translate(14px,-12px) scale(.96)}100%{transform:translate(0,0) scale(1)}}
   @media(max-width:600px){.hero-ambient{display:none}}
   .features{max-width:1040px;margin:0 auto;padding:20px 20px 60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
   .fcard{background:#fff;border:1px solid rgba(16,40,74,.08);border-radius:16px;padding:24px;box-shadow:0 3px 12px rgba(16,28,53,.06)}
@@ -143,7 +148,12 @@
   .secheader p{font-size:14.5px;color:#6B7280;max-width:600px;margin:0 auto}
   .foto-banner{max-width:1040px;margin:26px auto 0;padding:0 20px}
   .fb-inner{position:relative;border-radius:18px;overflow:hidden;height:200px;box-shadow:0 10px 30px rgba(16,28,53,.14)}
-  .fb-inner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.9)}
+  .fb-inner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;filter:saturate(.9)}
+  /* La franja del hero es mucho más ancha que alta (~5:1) contra una foto de retrato (~1.5:1):
+     con object-position centrado por defecto el recorte deja fuera la cara y solo se ve el torso.
+     Se sube el punto de anclaje vertical para esta foto en particular (no se toca el default de
+     las otras dos, que sí encuadran bien centradas). */
+  .fb-bienvenida img{object-position:center 18%}
   .fb-overlay{position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,28,53,.82) 0%,rgba(10,28,53,.35) 55%,rgba(10,28,53,0) 100%)}
   .fb-cap{position:absolute;left:30px;top:50%;transform:translateY(-50%);color:#fff;font-size:17px;font-weight:700;max-width:340px;line-height:1.4}
   @media(max-width:640px){.fb-inner{height:240px}.fb-cap{left:20px;right:20px;max-width:none;font-size:15.5px}}
@@ -408,7 +418,7 @@
 </div>
 
 <div class="foto-banner reveal">
-  <div class="fb-inner">
+  <div class="fb-inner fb-bienvenida">
     <img src="img/bienvenida-cliente.jpg" alt=""/>
     <div class="fb-overlay"></div>
     <div class="fb-cap">Un cliente bien recibido es un cliente que se queda</div>
