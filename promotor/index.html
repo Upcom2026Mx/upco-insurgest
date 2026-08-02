@@ -1243,6 +1243,7 @@ function ClienteDetalle({cliente,promotoriaId,onVolver,onClienteCambiado}){
 
     <VehiculosList key={versionVehiculos} clienteId={cliente.id}/>
     <PolizasList clienteId={cliente.id} promotoriaId={promotoriaId} onPolizaCambiada={()=>setVersionVehiculos(v=>v+1)}/>
+    <SiniestrosList clienteId={cliente.id}/>
   </div>;
 }
 
@@ -1485,6 +1486,211 @@ function PolizasList({clienteId,promotoriaId,onPolizaCambiada}){
         </div>
       </div>
     </div>;
+    })}
+  </div>;
+}
+
+// ============ SINIESTROS Y RECLAMACIONES (mismos componentes que /app) ============
+const TIPOS_SINIESTRO=[
+  {value:"gmm",label:"Siniestro de Gastos Médicos Mayores"},
+  {value:"reembolso",label:"Reclamación de reembolso"},
+  {value:"cirugia",label:"Programación de cirugía"},
+  {value:"otro",label:"Otro"}
+];
+const ESTATUS_SINIESTRO=[
+  {value:"abierto",label:"Abierto",color:"#F59E0B"},
+  {value:"en_revision",label:"En revisión",color:"#2563eb"},
+  {value:"resuelto",label:"Resuelto",color:"#16a34a"},
+  {value:"rechazado",label:"Rechazado",color:"#dc2626"}
+];
+const etiquetaTipoSiniestro=(s)=>s.tipo==="otro"?(s.tipo_otro||"Otro"):(TIPOS_SINIESTRO.find(t=>t.value===s.tipo)||{}).label||s.tipo;
+const estatusSiniestroInfo=(v)=>ESTATUS_SINIESTRO.find(e=>e.value===v)||ESTATUS_SINIESTRO[0];
+
+function SiniestroForm({clienteId,siniestroExistente,onGuardado,onCancelar}){
+  const s=siniestroExistente;
+  const[tipo,setTipo]=useState(s?s.tipo:"gmm");
+  const[tipoOtro,setTipoOtro]=useState(s?s.tipo_otro||"":"");
+  const[descripcion,setDescripcion]=useState(s?s.descripcion||"":"");
+  const[montoReclamado,setMontoReclamado]=useState(s&&s.monto_reclamado!=null?String(s.monto_reclamado):"");
+  const[fechaEvento,setFechaEvento]=useState(s?s.fecha_evento||"":"");
+  const[estatus,setEstatus]=useState(s?s.estatus:"abierto");
+  const[guardando,setGuardando]=useState(false);
+  const[error,setError]=useState("");
+
+  const guardar=async(e)=>{
+    e.preventDefault();
+    if(tipo==="otro"&&!tipoOtro.trim()){setError("Descríbenos de qué tipo es este caso.");return;}
+    setError("");setGuardando(true);
+    const payload={
+      tipo, tipo_otro:tipo==="otro"?tipoOtro.trim():null,
+      descripcion:descripcion.trim()||null,
+      monto_reclamado:montoReclamado?parseFloat(montoReclamado):null,
+      fecha_evento:fechaEvento||null,
+      estatus,
+      updated_at:new Date().toISOString()
+    };
+    let resultado;
+    if(s){
+      resultado=await sb.from("siniestros").update(payload).eq("id",s.id).select().single();
+    }else{
+      resultado=await sb.from("siniestros").insert({...payload,cliente_id:clienteId,creado_por:"agente"}).select().single();
+    }
+    setGuardando(false);
+    if(resultado.error){setError(resultado.error.message);return;}
+    onGuardado(resultado.data);
+  };
+
+  return <form onSubmit={guardar} style={{...est.card,marginBottom:24}}>
+    <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>{s?"Editar caso":"Nuevo caso"}</div>
+    <Campo label="Tipo">
+      <select value={tipo} onChange={e=>setTipo(e.target.value)} style={est.input}>
+        {TIPOS_SINIESTRO.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+      </select>
+    </Campo>
+    {tipo==="otro"&&<Campo label="¿De qué tipo es?">
+      <input value={tipoOtro} onChange={e=>setTipoOtro(e.target.value)} style={est.input}/>
+    </Campo>}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <Campo label="Fecha del evento">
+        <input type="date" value={fechaEvento} onChange={e=>setFechaEvento(e.target.value)} style={est.input}/>
+      </Campo>
+      <Campo label="Monto reclamado (MXN)">
+        <input type="number" step="0.01" min="0" value={montoReclamado} onChange={e=>setMontoReclamado(e.target.value)} style={est.input}/>
+      </Campo>
+    </div>
+    <Campo label="Descripción">
+      <textarea value={descripcion} onChange={e=>setDescripcion(e.target.value)} rows={3} style={est.input}/>
+    </Campo>
+    {s&&<Campo label="Estatus">
+      <select value={estatus} onChange={e=>setEstatus(e.target.value)} style={est.input}>
+        {ESTATUS_SINIESTRO.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </Campo>}
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    <div style={{display:"flex",gap:10}}>
+      <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":"Guardar"}</Boton>
+      <button type="button" onClick={onCancelar} style={est.linkBtn}>Cancelar</button>
+    </div>
+  </form>;
+}
+
+function DocumentosSiniestro({siniestroId}){
+  const[documentos,setDocumentos]=useState(null);
+  const[subiendo,setSubiendo]=useState(false);
+  const[error,setError]=useState("");
+
+  const cargar=async()=>{
+    const{data,error}=await sb.from("siniestro_documentos").select("*").eq("siniestro_id",siniestroId).order("created_at");
+    if(error){setError(error.message);return;}
+    setDocumentos(data);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const subir=async(file)=>{
+    if(!file)return;
+    setSubiendo(true);setError("");
+    const path=`${siniestroId}/${crypto.randomUUID()}-${file.name}`;
+    const{error:errSubida}=await sb.storage.from("siniestros").upload(path,file);
+    if(errSubida){setSubiendo(false);setError("No se pudo subir: "+errSubida.message);return;}
+    const{error:errIns}=await sb.from("siniestro_documentos").insert({siniestro_id:siniestroId,path,nombre_archivo:file.name,subido_por:"agente"});
+    setSubiendo(false);
+    if(errIns){setError(errIns.message);return;}
+    cargar();
+  };
+
+  const ver=async(doc)=>{
+    const{data,error}=await sb.storage.from("siniestros").createSignedUrl(doc.path,60);
+    if(error){setError("No se pudo abrir: "+error.message);return;}
+    window.open(data.signedUrl,"_blank");
+  };
+
+  const eliminar=async(doc)=>{
+    if(!window.confirm(`¿Eliminar "${doc.nombre_archivo||"este documento"}"?`))return;
+    await sb.storage.from("siniestros").remove([doc.path]);
+    await sb.from("siniestro_documentos").delete().eq("id",doc.id);
+    cargar();
+  };
+
+  return <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #f1f5f9"}}>
+    <div style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:6}}>DOCUMENTOS {documentos?`(${documentos.length})`:""}</div>
+    {error&&<div style={{color:"#dc2626",fontSize:12,marginBottom:6}}>{error}</div>}
+    {documentos&&documentos.length===0&&<div style={{fontSize:12.5,color:"#8FA0B4",marginBottom:6}}>Todavía no hay documentos.</div>}
+    {documentos&&documentos.map(d=><div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",fontSize:12.5}}>
+      <span style={{color:"#374151",wordBreak:"break-all"}}>{d.nombre_archivo||"Documento"}{d.subido_por==="cliente"?" · subido por el cliente":""}</span>
+      <div style={{display:"flex",gap:6,flexShrink:0}}>
+        <button onClick={()=>ver(d)} style={{...est.linkBtn,padding:"2px 6px"}}>Ver</button>
+        <button onClick={()=>eliminar(d)} style={{...est.linkBtn,padding:"2px 6px",color:"#dc2626"}}>Eliminar</button>
+      </div>
+    </div>)}
+    <label style={{display:"inline-block",marginTop:6,fontSize:12,fontWeight:700,color:"#10284A",cursor:subiendo?"default":"pointer"}}>
+      {subiendo?"Subiendo...":"+ Agregar documento"}
+      <input type="file" onChange={e=>subir(e.target.files[0])} disabled={subiendo} style={{display:"none"}}/>
+    </label>
+  </div>;
+}
+
+function SiniestrosList({clienteId}){
+  const[siniestros,setSiniestros]=useState(null);
+  const[formAbierto,setFormAbierto]=useState(false);
+  const[editando,setEditando]=useState(null);
+  const[expandido,setExpandido]=useState(null);
+  const[error,setError]=useState("");
+
+  const cargar=async()=>{
+    const{data,error}=await sb.from("siniestros").select("*").eq("cliente_id",clienteId).order("created_at",{ascending:false});
+    if(error){setError(error.message);return;}
+    setSiniestros(data);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const eliminar=async(s)=>{
+    if(!window.confirm("¿Eliminar este caso y todos sus documentos?"))return;
+    const{data:docs}=await sb.from("siniestro_documentos").select("path").eq("siniestro_id",s.id);
+    if(docs&&docs.length>0)await sb.storage.from("siniestros").remove(docs.map(d=>d.path));
+    const{error}=await sb.from("siniestros").delete().eq("id",s.id);
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
+  return <div style={{marginBottom:32}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{fontSize:16,fontWeight:700}}>Siniestros y reclamaciones {siniestros?`(${siniestros.length})`:""}</div>
+      {!formAbierto&&!editando&&<Boton color="#53647D" onClick={()=>setFormAbierto(true)}>+ Nuevo caso</Boton>}
+    </div>
+
+    {formAbierto&&<SiniestroForm clienteId={clienteId}
+      onGuardado={()=>{setFormAbierto(false);cargar();}}
+      onCancelar={()=>setFormAbierto(false)}/>}
+
+    {editando&&<SiniestroForm clienteId={clienteId} siniestroExistente={editando}
+      onGuardado={()=>{setEditando(null);cargar();}}
+      onCancelar={()=>setEditando(null)}/>}
+
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    {!siniestros&&<div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>}
+    {siniestros&&siniestros.length===0&&!formAbierto&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
+      Este cliente todavía no tiene siniestros ni reclamaciones registradas.
+    </div>}
+    {siniestros&&siniestros.map(s=>{
+      const ei=estatusSiniestroInfo(s.estatus);
+      return <div key={s.id} style={{...est.card,marginBottom:10}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:14}}>{etiquetaTipoSiniestro(s)}{s.creado_por==="cliente"&&<span style={{...est.badge("#F59E0B"),marginLeft:6}}>iniciado por el cliente</span>}</div>
+            <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>
+              {s.fecha_evento?fecha(s.fecha_evento):""}{s.monto_reclamado?` · ${pesos(s.monto_reclamado)}`:""} · {new Date(s.created_at).toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"})}
+            </div>
+            {s.descripcion&&<div style={{fontSize:13,color:"#374151",marginTop:6}}>{s.descripcion}</div>}
+          </div>
+          <span style={est.badge(ei.color)}>{ei.label}</span>
+        </div>
+        <div style={{marginTop:10,display:"flex",gap:4}}>
+          <button onClick={()=>setEditando(s)} style={est.linkBtn}>Editar</button>
+          <button onClick={()=>setExpandido(expandido===s.id?null:s.id)} style={est.linkBtn}>{expandido===s.id?"Ocultar documentos":"Ver documentos"}</button>
+          <button onClick={()=>eliminar(s)} style={{...est.linkBtn,color:"#dc2626"}}>Eliminar</button>
+        </div>
+        {expandido===s.id&&<DocumentosSiniestro siniestroId={s.id}/>}
+      </div>;
     })}
   </div>;
 }

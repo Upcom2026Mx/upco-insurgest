@@ -557,6 +557,127 @@ const borrarDisp=(t)=>{try{localStorage.removeItem(dispKey(t));}catch(e){}};
 const campoNip={width:"100%",padding:"14px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:26,
   letterSpacing:"12px",textAlign:"center",fontFamily:"inherit",marginBottom:10};
 
+// ============ SINIESTROS Y RECLAMACIONES ============
+// El cliente puede levantar un caso (GMM, reembolso, cirugía, etc.) y subir varios documentos
+// directo desde su liga mágica — a su agente/promotoría le llega un aviso y ve todo desde su panel.
+const TIPOS_SINIESTRO=[
+  {value:"gmm",label:"Siniestro de Gastos Médicos Mayores"},
+  {value:"reembolso",label:"Reclamación de reembolso"},
+  {value:"cirugia",label:"Programación de cirugía"},
+  {value:"otro",label:"Otro"}
+];
+const ESTATUS_SINIESTRO_CLIENTE={
+  abierto:{label:"Recibido",color:"#F59E0B"},
+  en_revision:{label:"En revisión",color:"#2563eb"},
+  resuelto:{label:"Resuelto",color:"#16a34a"},
+  rechazado:{label:"Rechazado",color:"#dc2626"}
+};
+
+function TarjetaSiniestro({s}){
+  const info=ESTATUS_SINIESTRO_CLIENTE[s.estatus]||ESTATUS_SINIESTRO_CLIENTE.abierto;
+  const etiqueta=s.tipo==="otro"?(s.tipo_otro||"Otro"):(TIPOS_SINIESTRO.find(t=>t.value===s.tipo)||{}).label||s.tipo;
+  return <div style={{...card,marginBottom:10}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+      <div>
+        <div style={{fontWeight:700,fontSize:14}}>{etiqueta}</div>
+        <div style={{fontSize:12,color:"#8FA0B4",marginTop:2}}>
+          {new Date(s.created_at).toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"})}
+          {s.documentos>0?` · ${s.documentos} documento${s.documentos===1?"":"s"}`:""}
+        </div>
+        {s.descripcion&&<div style={{fontSize:13,color:"#374151",marginTop:6}}>{s.descripcion}</div>}
+      </div>
+      <span style={badge(info.color)}>{info.label}</span>
+    </div>
+  </div>;
+}
+
+function FormularioSiniestro({token,polizas,onEnviado,onCancelar}){
+  const[tipo,setTipo]=useState("gmm");
+  const[tipoOtro,setTipoOtro]=useState("");
+  const[polizaId,setPolizaId]=useState("");
+  const[fechaEvento,setFechaEvento]=useState("");
+  const[montoReclamado,setMontoReclamado]=useState("");
+  const[descripcion,setDescripcion]=useState("");
+  const[archivos,setArchivos]=useState([]);
+  const[enviando,setEnviando]=useState(false);
+  const[error,setError]=useState("");
+
+  const enviar=async(e)=>{
+    e.preventDefault();
+    if(tipo==="otro"&&!tipoOtro.trim()){setError("Cuéntanos de qué tipo es tu caso.");return;}
+    setError("");setEnviando(true);
+    const{data:siniestroId,error:errRpc}=await sb.rpc("portal_crear_siniestro",{
+      p_token:token,p_tipo:tipo,p_tipo_otro:tipo==="otro"?tipoOtro.trim():null,
+      p_descripcion:descripcion.trim()||null,
+      p_monto_reclamado:montoReclamado?parseFloat(montoReclamado):null,
+      p_fecha_evento:fechaEvento||null,
+      p_poliza_id:polizaId||null
+    });
+    if(errRpc||!siniestroId){setEnviando(false);setError("No se pudo enviar tu caso. Intenta de nuevo.");return;}
+
+    for(const archivo of archivos){
+      const path=`${token}/${siniestroId}/${crypto.randomUUID()}-${archivo.name}`;
+      const{error:errSubida}=await sb.storage.from("siniestros").upload(path,archivo,{contentType:archivo.type});
+      if(!errSubida){
+        await sb.rpc("portal_agregar_documento_siniestro",{p_token:token,p_siniestro_id:siniestroId,p_path:path,p_nombre_archivo:archivo.name});
+      }
+    }
+    setEnviando(false);
+    onEnviado();
+  };
+
+  return <form onSubmit={enviar} style={{...card,marginBottom:24}}>
+    <div style={{fontSize:15,fontWeight:700,marginBottom:14}}>Levantar un siniestro o reclamación</div>
+    <label style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"}}>¿Qué tipo de caso es?</label>
+    <select value={tipo} onChange={e=>setTipo(e.target.value)} style={campo}>
+      {TIPOS_SINIESTRO.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+    </select>
+    {tipo==="otro"&&<>
+      <label style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"}}>¿De qué tipo es?</label>
+      <input value={tipoOtro} onChange={e=>setTipoOtro(e.target.value)} style={campo}/>
+    </>}
+    {polizas&&polizas.length>0&&<>
+      <label style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"}}>¿Sobre cuál póliza? (opcional)</label>
+      <select value={polizaId} onChange={e=>setPolizaId(e.target.value)} style={campo}>
+        <option value="">No estoy seguro</option>
+        {polizas.map(p=><option key={p.id} value={p.id}>{p.ramo} — {p.aseguradora||"Sin aseguradora"}</option>)}
+      </select>
+    </>}
+    <label style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"}}>¿Cuándo pasó?</label>
+    <input type="date" value={fechaEvento} onChange={e=>setFechaEvento(e.target.value)} style={campo}/>
+    <label style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"}}>Monto que vas a reclamar (opcional)</label>
+    <input type="number" step="0.01" min="0" value={montoReclamado} onChange={e=>setMontoReclamado(e.target.value)} style={campo}/>
+    <label style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"}}>Cuéntanos qué pasó</label>
+    <textarea value={descripcion} onChange={e=>setDescripcion(e.target.value)} rows={3} style={campo}/>
+    <label style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:4,display:"block"}}>Documentos (facturas, recetas, estudios — puedes elegir varios)</label>
+    <input type="file" multiple onChange={e=>setArchivos(Array.from(e.target.files||[]))} style={{...campo,padding:"8px 10px"}}/>
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    <div style={{display:"flex",gap:10}}>
+      <Boton type="submit" disabled={enviando}>{enviando?"Enviando...":"Enviar caso"}</Boton>
+      <button type="button" onClick={onCancelar} style={{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer"}}>Cancelar</button>
+    </div>
+  </form>;
+}
+
+function SeccionSiniestros({token,siniestros,polizas,onCambio}){
+  const[vista,setVista]=useState("lista"); // lista | form | enviado
+  if(vista==="enviado")return <div style={{...card,textAlign:"center",marginBottom:24,background:"#F4F7FB"}}>
+    <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>¡Listo! Tu caso ya se registró.</div>
+    <div style={{fontSize:13,color:"#6B7280",marginBottom:14}}>Tu agente lo va a revisar y se pondrá en contacto contigo.</div>
+    <button onClick={()=>{setVista("lista");onCambio();}} style={{background:"none",border:"none",color:"#53647D",fontSize:13,cursor:"pointer"}}>Cerrar</button>
+  </div>;
+  if(vista==="form")return <FormularioSiniestro token={token} polizas={polizas} onEnviado={()=>setVista("enviado")} onCancelar={()=>setVista("lista")}/>;
+
+  return <div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"24px 0 10px"}}>
+      <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4"}}>TUS CASOS ({siniestros.length})</div>
+      <button onClick={()=>setVista("form")} style={{background:"none",border:"none",color:"#10284A",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Levantar un caso</button>
+    </div>
+    {siniestros.length===0&&<div style={{...card,textAlign:"center",color:"#6B7280"}}>Todavía no tienes siniestros ni reclamaciones registradas.</div>}
+    {siniestros.map(s=><TarjetaSiniestro key={s.id} s={s}/>)}
+  </div>;
+}
+
 function Caja({children}){
   return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
     <div style={{...card,maxWidth:380,width:"100%"}}>{children}</div>
@@ -793,7 +914,7 @@ function Portal(){
     </div>
   </div>;
 
-  const{cliente,agente,polizas,vehiculos}=datos;
+  const{cliente,agente,polizas,vehiculos,siniestros}=datos;
   const vehiculosPorId={};
   vehiculos.forEach(v=>vehiculosPorId[v.id]=v);
   const polizaPorVehiculo={};
@@ -844,6 +965,8 @@ function Portal(){
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:10}}>
       {vehiculos.map(v=><TarjetaVehiculo key={v.id} v={v} poliza={polizaPorVehiculo[v.id]} token={token} onCambio={()=>cargar(token)}/>)}
     </div>
+
+    <SeccionSiniestros token={token} siniestros={siniestros||[]} polizas={polizas} onCambio={()=>cargar(token)}/>
 
     <div style={{textAlign:"center",fontSize:12,color:"#8FA0B4",marginTop:32}}>Upco InsurGest</div>
   </div>;
