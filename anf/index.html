@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Análisis de Necesidades Financieras — Upco InsurGest</title>
+<meta name="description" content="Calcula gratis cuánta protección de vida necesita tu familia, con tu asesor de seguros independiente."/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Upco InsurGest"/>
+<meta property="og:locale" content="es_MX"/>
+<meta property="og:title" content="Análisis de Necesidades Financieras — Upco InsurGest"/>
+<meta property="og:description" content="Calcula gratis cuánta protección de vida necesita tu familia."/>
+<meta property="og:image" content="https://insurgest.upco.app/img/og-cover.png"/>
+<meta name="twitter:card" content="summary"/>
+<link rel="icon" href="../icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../estilos.css"/>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#F0F4F9 380px);color:#0a1c35;min-height:100vh}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../shared.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useMemo}=React;
+
+// Página pública igual que /r/{alias}: sin login, pensada para compartirse en WhatsApp o
+// redes. Vive bajo la identidad del mismo agente y usa las mismas funciones de la tarjeta
+// (tarjeta_publica para la identidad, tarjeta_contactar para el lead) — cero SQL nuevo.
+//
+// Versión "esencial" del Análisis de Necesidades Financieras (ANF): reemplazo de ingreso +
+// deudas + gastos finales, menos lo que la familia ya tiene disponible. Es el núcleo que de
+// verdad mueve la conversación de venta — se dejó fuera a propósito educación/invalidez/ahorro
+// (más largo de llenar, y el prospecto abandona el formulario) para una siguiente versión, si
+// hay demanda real de agregarlo.
+function leerAlias(){
+  const porQuery=new URLSearchParams(location.search).get("u");
+  if(porQuery)return porQuery;
+  const m=location.pathname.match(/^\/anf\/([^\/]+)\/?$/);
+  return m?decodeURIComponent(m[1]):null;
+}
+
+const card={background:"#fff",borderRadius:16,padding:22,border:"1px solid rgba(16,40,74,.08)",boxShadow:"0 3px 12px rgba(16,28,53,.07), 0 1px 3px rgba(16,28,53,.05)"};
+const campo={width:"100%",padding:"13px 15px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"};
+const ayuda={fontSize:12,color:"#8FA0B4",marginTop:-6,marginBottom:12,lineHeight:1.4};
+
+const VARIANTE_BOTON={"#10284A":"btn-navy","#F59E0B":"btn-amber","#53647D":"btn-neutral","#16a34a":"btn-good"};
+function Boton({children,onClick,disabled,color="#10284A",type="button"}){
+  return <button type={type} onClick={onClick} disabled={disabled} className={`btn ${VARIANTE_BOTON[color]||"btn-navy"}`} style={{width:"100%"}}>
+    {children}
+  </button>;
+}
+
+function Campo({label,children,ayudaTexto}){
+  return <div style={{marginBottom:4}}>
+    <div style={{fontSize:12,fontWeight:700,color:"#8FA0B4",marginBottom:5}}>{label}</div>
+    {children}
+    {ayudaTexto&&<div style={ayuda}>{ayudaTexto}</div>}
+  </div>;
+}
+
+function Simulador({datos,alias}){
+  const[ingresoMensual,setIngresoMensual]=useState("");
+  const[aniosReemplazo,setAniosReemplazo]=useState("10");
+  const[deudas,setDeudas]=useState("");
+  const[gastosFinales,setGastosFinales]=useState("80000");
+  const[proteccionActual,setProteccionActual]=useState("");
+
+  const[nombre,setNombre]=useState("");
+  const[correo,setCorreo]=useState("");
+  const[telefono,setTelefono]=useState("");
+  const[enviando,setEnviando]=useState(false);
+  const[enviado,setEnviado]=useState(false);
+  const[error,setError]=useState("");
+
+  const r=useMemo(()=>{
+    const ingreso=parseFloat(ingresoMensual)||0;
+    const anios=parseFloat(aniosReemplazo)||0;
+    const deuda=parseFloat(deudas)||0;
+    const finales=parseFloat(gastosFinales)||0;
+    const actual=parseFloat(proteccionActual)||0;
+
+    const reemplazoIngreso=ingreso*12*anios;
+    const necesidadTotal=reemplazoIngreso+deuda+finales;
+    const faltante=Math.max(0,necesidadTotal-actual);
+
+    return{reemplazoIngreso,necesidadTotal,faltante};
+  },[ingresoMensual,aniosReemplazo,deudas,gastosFinales,proteccionActual]);
+
+  const listo=parseFloat(ingresoMensual)>0;
+
+  const enviarLead=async(e)=>{
+    e.preventDefault();setError("");
+    if(!nombre.trim()){setError("Necesitamos tu nombre.");return;}
+    if(!correo.trim()&&!telefono.trim()){setError("Déjanos un correo o un teléfono para poder contactarte.");return;}
+    setEnviando(true);
+    const resumen=`Análisis de Necesidades Financieras — Ingreso mensual ${pesos(parseFloat(ingresoMensual)||0)}, `+
+      `reemplazo deseado ${aniosReemplazo} años. Deudas: ${pesos(parseFloat(deudas)||0)}. Gastos finales: ${pesos(parseFloat(gastosFinales)||0)}. `+
+      `Protección/ahorro actual: ${pesos(parseFloat(proteccionActual)||0)}. `+
+      (r.faltante>0
+        ? `Necesidad de protección sin cubrir: ${pesos(r.faltante)}.`
+        : `Según sus números, ya está cubierto — vale la pena revisarlo con detalle.`);
+    const{error:err}=await sb.rpc("tarjeta_contactar",{
+      p_alias:alias,p_nombre:nombre,p_correo:correo||null,p_telefono:telefono||null,
+      p_ramo_interes:"Vida",p_descripcion:resumen
+    });
+    setEnviando(false);
+    if(err){setError(err.message||"No se pudo enviar. Intenta de nuevo.");return;}
+    setEnviado(true);
+  };
+
+  return <div style={{maxWidth:560,margin:"0 auto",padding:16}}>
+
+    <div style={{...card,textAlign:"center",marginBottom:14}}>
+      {datos.foto_url
+        ? <img src={datos.foto_url} alt={datos.nombre||"Agente"} style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",border:"3px solid #fff",boxShadow:"0 0 0 3px #10284A"}}/>
+        : <div style={{width:64,height:64,borderRadius:"50%",background:"linear-gradient(160deg,#173863,#0a1c35)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:700,fontFamily:"var(--font-display)",margin:"0 auto"}}>
+            {(datos.nombre||"?").trim().charAt(0).toUpperCase()}
+          </div>}
+      <div style={{fontSize:12,color:"#8FA0B4",marginTop:10}}>Análisis de Necesidades Financieras de</div>
+      <div style={{fontSize:18,fontWeight:700,color:"#10284A",fontFamily:"var(--font-display)"}}>{datos.nombre||"tu agente"}</div>
+    </div>
+
+    <div style={{...card,marginBottom:14}}>
+      <div style={{fontSize:20,fontWeight:700,color:"#10284A",fontFamily:"var(--font-display)",marginBottom:4}}>¿Tu familia está protegida?</div>
+      <div style={{fontSize:13.5,color:"#6B7280",lineHeight:1.5,marginBottom:16}}>Contesta estas preguntas y te decimos cuánta protección de vida necesita tu familia si tú faltaras — gratis y sin compromiso.</div>
+
+      <Campo label="Tu ingreso mensual" ayudaTexto="Lo que tu familia dejaría de recibir si tú faltaras.">
+        <input type="number" value={ingresoMensual} onChange={e=>setIngresoMensual(e.target.value)} placeholder="20000" style={campo} name="ingreso_mensual"/>
+      </Campo>
+      <Campo label="¿Cuántos años quieres que tu familia reciba ese ingreso?" ayudaTexto="La mayoría de los asesores usa entre 5 y 15 años, mientras la familia se reorganiza.">
+        <input type="number" value={aniosReemplazo} onChange={e=>setAniosReemplazo(e.target.value)} style={campo} name="anios_reemplazo"/>
+      </Campo>
+      <Campo label="Deudas pendientes que no quieres dejarle a tu familia" ayudaTexto="Hipoteca, préstamos, tarjetas de crédito.">
+        <input type="number" value={deudas} onChange={e=>setDeudas(e.target.value)} placeholder="0" style={campo} name="deudas"/>
+      </Campo>
+      <Campo label="Gastos finales que tu familia tendría que cubrir" ayudaTexto="Funeral y trámites — 80,000 es un estimado común, ajústalo si quieres.">
+        <input type="number" value={gastosFinales} onChange={e=>setGastosFinales(e.target.value)} style={campo} name="gastos_finales"/>
+      </Campo>
+      <Campo label="Seguros de vida y ahorros que ya tienes para tu familia" ayudaTexto="Lo que ya tienen disponible hoy si tú faltaras — déjalo en 0 si no tienes nada.">
+        <input type="number" value={proteccionActual} onChange={e=>setProteccionActual(e.target.value)} placeholder="0" style={campo} name="proteccion_actual"/>
+      </Campo>
+    </div>
+
+    {listo&&<div style={{...card,marginBottom:14,background:"linear-gradient(160deg,#173863,#0a1c35)",color:"#fff"}}>
+      <div style={{fontSize:11,fontWeight:700,color:"#C7D3E3",textTransform:"uppercase",letterSpacing:".04em",marginBottom:6}}>
+        {r.faltante>0?"Necesidad de protección sin cubrir":"Según tus números"}
+      </div>
+      <div style={{fontSize:30,fontWeight:700,fontFamily:"var(--font-display)",marginBottom:10}}>
+        {r.faltante>0?pesos(r.faltante):"¡Tu familia ya está cubierta!"}
+      </div>
+      <div style={{fontSize:13,color:"#C7D3E3",lineHeight:1.6}}>
+        Reemplazo de ingreso: {pesos(r.reemplazoIngreso)}<br/>
+        + Deudas y gastos finales: {pesos((parseFloat(deudas)||0)+(parseFloat(gastosFinales)||0))}<br/>
+        − Lo que ya tienes: {pesos(parseFloat(proteccionActual)||0)}
+      </div>
+      <div style={{fontSize:11,color:"#8FA0B4",marginTop:12,lineHeight:1.5}}>
+        Estimación con lo esencial — reemplazo de ingreso, deudas y gastos finales. No sustituye un análisis personalizado con tu agente.
+      </div>
+    </div>}
+
+    {listo&&<div style={card}>
+      <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>¿Quieres revisarlo a detalle?</div>
+      {enviado
+        ? <div style={{fontSize:14,color:"#16a34a",marginTop:8}}>¡Listo! {datos.nombre||"Tu agente"} ya recibió tus datos y tu resultado, y te va a contactar pronto.</div>
+        : <form onSubmit={enviarLead}>
+            <div style={{fontSize:13,color:"#6B7280",marginBottom:12}}>Déjale tus datos a {datos.nombre||"tu agente"} y le llega tu resultado completo.</div>
+            <input style={campo} placeholder="Tu nombre *" value={nombre} onChange={e=>setNombre(e.target.value)} name="nombre"/>
+            <input style={campo} placeholder="Tu correo" type="email" value={correo} onChange={e=>setCorreo(e.target.value)} name="correo"/>
+            <input style={campo} placeholder="Tu teléfono" value={telefono} onChange={e=>setTelefono(e.target.value)} name="telefono"/>
+            {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+            <Boton type="submit" color="#F59E0B" disabled={enviando}>{enviando?"Enviando...":"Enviar mi resultado"}</Boton>
+          </form>}
+    </div>}
+
+    <div style={{textAlign:"center",fontSize:12,color:"#8FA0B4",padding:"18px 0 20px"}}>
+      Herramienta de estimación, no sustituye asesoría personalizada.<br/>
+      Hecho con <a href="/" style={{color:"#10284A",fontWeight:700,textDecoration:"none"}}>Upco InsurGest</a>
+    </div>
+  </div>;
+}
+
+function App(){
+  const[estado,setEstado]=useState("cargando");
+  const[datos,setDatos]=useState(null);
+  const alias=leerAlias();
+
+  useEffect(()=>{
+    if(!alias){setEstado("noexiste");return;}
+    if(location.search){history.replaceState(null,"","/anf/"+encodeURIComponent(alias));}
+    sb.rpc("tarjeta_publica",{p_alias:alias}).then(({data,error})=>{
+      if(error||!data){setEstado("noexiste");return;}
+      setDatos(data);
+      document.title=`Análisis de Necesidades Financieras de ${data.nombre||"tu agente"} — Upco InsurGest`;
+      const meta=document.querySelector('meta[name="description"]');
+      if(meta)meta.setAttribute("content",`Calcula gratis cuánta protección de vida necesita tu familia, con ${data.nombre||"tu agente"}.`);
+      setEstado("ok");
+    });
+  },[alias]);
+
+  if(estado==="cargando")return <div style={{padding:40,textAlign:"center",color:"#8FA0B4"}}>Cargando...</div>;
+  if(estado==="noexiste")return <div style={{maxWidth:420,margin:"60px auto",padding:20,textAlign:"center"}}>
+    <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:8}}>Este análisis no está disponible</div>
+    <div style={{fontSize:14,color:"#6B7280"}}>Puede que la liga esté mal escrita o que el agente haya desactivado su tarjeta.</div>
+    <div style={{marginTop:20}}><a href="/" style={{color:"#10284A",fontWeight:700}}>Ir a Upco InsurGest</a></div>
+  </div>;
+  return <Simulador datos={datos} alias={alias}/>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

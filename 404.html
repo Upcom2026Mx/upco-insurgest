@@ -10,6 +10,7 @@
 //   /p/{token} = liga privada del cliente (sus pólizas)
 //   /a/{alias} = tarjeta pública del agente (para prospectos)
 //   /r/{alias} = cotizador de retiro público del agente (para prospectos)
+//   /anf/{alias} = Análisis de Necesidades Financieras público del agente (para prospectos)
 //   /pr/{alias} = tarjeta pública de la promotoría (para prospectos)
 (function(){
   var p = location.pathname.match(/^\/p\/([^\/]+)\/?$/);
@@ -30,6 +31,11 @@
   var r = location.pathname.match(/^\/r\/([^\/]+)\/?$/);
   if (r) {
     location.replace("/r/index.html?u=" + encodeURIComponent(r[1]));
+    return;
+  }
+  var anf = location.pathname.match(/^\/anf\/([^\/]+)\/?$/);
+  if (anf) {
+    location.replace("/anf/index.html?u=" + encodeURIComponent(anf[1]));
     return;
   }
   location.replace("/");

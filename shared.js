@@ -7,6 +7,17 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 // Llave pública VAPID — no es secreta, va embebida en el cliente a propósito (la privada vive solo en Supabase Vault + la Edge Function).
 const VAPID_PUBLIC_KEY="BCYtFn7CJtQCso_ugc9IyzHvi_85U7yWCloYVqvayT0Ta8eFIjLv-DwIzH7f3IPPNTJPGwvISXS4tFG6s5uOsUo";
 
+// Data URL de un QR para `texto`, usando la libería global `qrcode` (qrcode-generator por CDN,
+// solo cargada en las páginas que la necesitan). typeNumber=0 deja que la librería elija el
+// tamaño mínimo según el largo del texto — nuestras ligas nunca son tan largas como para
+// necesitar fijarlo a mano.
+function qrDataUrl(texto,celda){
+  const qr=qrcode(0,"M");
+  qr.addData(texto);
+  qr.make();
+  return qr.createDataURL(celda||8);
+}
+
 function urlBase64ToUint8Array(base64String){
   const padding="=".repeat((4-base64String.length%4)%4);
   const base64=(base64String+padding).replace(/-/g,"+").replace(/_/g,"/");
