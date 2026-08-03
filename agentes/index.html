@@ -17,30 +17,36 @@
 <link rel="icon" href="../icon-192.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@100..900&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../estilos.css"/>
 <style>
   *{box-sizing:border-box}
-  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#EFF3F9 460px);color:#0a1c35}
+  body{margin:0;font-family:'Manrope',-apple-system,'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#EFF3F9 460px);color:#0a1c35}
   a{text-decoration:none}
+  h1,h2,h3,h4{font-family:'Archivo',sans-serif!important}
   .header{background:linear-gradient(135deg,#173863,#0a1c35);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 0;max-width:1040px;margin:0 auto;border-radius:0 0 16px 16px;box-shadow:0 4px 20px rgba(10,28,53,.18)}
   .header>div{display:flex;flex-wrap:wrap;justify-content:flex-end}
-  .brand{color:#fff;font-weight:700;font-size:19px;font-family:var(--font-display)}
+  .brand{color:#fff;font-weight:700;font-size:19px;font-family:'Archivo',sans-serif}
   .brand span{color:#F59E0B}
   .navlink{color:#DDE4EE;font-size:14px;font-weight:600;padding:8px 14px;transition:color .15s ease}
   .navlink:hover{color:#fff}
   @media(max-width:560px){.navlink{font-size:13px;padding:7px 9px}}
 
-  .hero{max-width:720px;margin:0 auto;padding:52px 20px 8px;text-align:center}
-  .hero-eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8FA0B4;margin:0 0 10px}
-  .hero h1{font-size:32px;font-weight:600;line-height:1.25;margin:0 0 14px;color:#10284A}
-  .hero p{font-size:15.5px;color:#374151;line-height:1.6;margin:0 0 26px}
-  .cta-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
-  .boton{display:inline-block;background:linear-gradient(180deg,#173863,#0d2140);color:#fff;border-radius:11px;padding:14px 26px;font-size:15px;font-weight:700;box-shadow:0 10px 26px rgba(16,40,74,.24);transition:transform .15s ease}
-  .boton:hover{transform:translateY(-2px)}
-  .boton-sec{display:inline-block;background:#fff;color:#10284A;border:1.5px solid #DDE4EE;border-radius:11px;padding:14px 26px;font-size:15px;font-weight:700;transition:transform .15s ease}
-  .boton-sec:hover{transform:translateY(-2px)}
-  @media(prefers-reduced-motion:reduce){.boton,.boton-sec{transition:none}.boton:hover,.boton-sec:hover{transform:none}}
+  .heroWrap{max-width:1040px;margin:20px auto 0;padding:0 20px}
+  .hero{position:relative;overflow:hidden;isolation:isolate;margin:0 auto;padding:76px 40px;text-align:left;border-radius:26px;box-shadow:0 24px 60px rgba(16,40,74,.24)}
+  .hero .hero-foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;z-index:0;filter:saturate(.85)}
+  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(170deg,rgba(9,20,38,.6) 0%,rgba(7,16,30,.93) 100%);z-index:0}
+  .hero>*{position:relative;z-index:1}
+  .hero-eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#B9C8DE;margin:0 0 22px}
+  .hero h1{font-weight:300;font-size:clamp(30px,4.6vw,50px);line-height:1.06;letter-spacing:-.02em;margin:0 0 20px;color:#fff;max-width:15ch;text-wrap:balance}
+  .hero p{font-size:15.5px;color:#C7D3E3;line-height:1.6;margin:0 0 28px;max-width:44ch}
+  .cta-row{display:flex;flex-wrap:wrap;gap:12px}
+  .boton{display:inline-block;background:#fff;color:#0a1c35;border-radius:99px;padding:15px 28px;font-size:14.5px;font-weight:800;transition:transform .18s ease,background .18s ease}
+  .boton:hover{transform:translateY(-2px);background:#FBBF24}
+  .boton-sec{display:inline-flex;align-items:center;color:#fff;font-size:14.5px;font-weight:700;padding:15px 4px;border-bottom:1.5px solid rgba(255,255,255,.35);transition:border-color .18s ease}
+  .boton-sec:hover{border-color:#fff}
+  @media(prefers-reduced-motion:reduce){.boton,.boton-sec{transition:none}.boton:hover{transform:none}}
+  @media(max-width:600px){.hero{padding:56px 24px;text-align:center}.hero p{margin-left:auto;margin-right:auto}.cta-row{justify-content:center}}
 
   .grupo{max-width:1040px;margin:0 auto;padding:40px 20px 0}
   .grupo-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
@@ -93,13 +99,16 @@
   </div>
 </div>
 
-<div class="hero">
-  <div class="hero-eyebrow">Para agentes de seguros independientes</div>
-  <h1>Todo lo que Upco InsurGest hace por ti, en una sola hoja</h1>
-  <p>Una herramienta, tres trabajos: organizar tu cartera, hacer que tus clientes se queden, y conseguir prospectos nuevos sin gastar en publicidad. Esto es todo lo que incluye tu cuenta.</p>
-  <div class="cta-row">
-    <a class="boton" href="../app/?registro=1">Crear mi cuenta gratis</a>
-    <a class="boton-sec" href="../precios/">Ver precios</a>
+<div class="heroWrap">
+  <div class="hero">
+    <img class="hero-foto" src="../img/organizado-cartera.jpg" alt="" loading="eager"/>
+    <div class="hero-eyebrow">Para agentes de seguros independientes</div>
+    <h1>Todo lo que Upco InsurGest hace por ti, en una sola hoja</h1>
+    <p>Una herramienta, tres trabajos: organizar tu cartera, hacer que tus clientes se queden, y conseguir prospectos nuevos sin gastar en publicidad. Esto es todo lo que incluye tu cuenta.</p>
+    <div class="cta-row">
+      <a class="boton" href="../app/?registro=1">Crear mi cuenta gratis</a>
+      <a class="boton-sec" href="../precios/">Ver precios →</a>
+    </div>
   </div>
 </div>
 

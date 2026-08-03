@@ -45,13 +45,17 @@
 <link rel="icon" href="icon-192.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@100..900&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="estilos.css"/>
 <style>
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#EFF3F9 620px);color:#0a1c35;overflow-x:hidden}
+  body{margin:0;font-family:'Manrope',-apple-system,'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#F8FAFC 0%,#EFF3F9 620px);color:#0a1c35;overflow-x:hidden}
   a{text-decoration:none}
+  /* Fraunces queda fuera (se sentía anticuada) — Archivo la sustituye en encabezados, solo en
+     esta página y en agentes/promotorias/precios (el resto del sitio, /app /promotor /admin
+     etc., no se toca: es el panel de trabajo, no la landing). */
+  h1,h2,h3,h4{font-family:'Archivo',sans-serif!important}
 
   /* ── Pantalla de bienvenida ──
      "Insurance" y "Gestor" caen desde arriba y se les colapsa la terminación hasta formar
@@ -91,50 +95,58 @@
     html{scroll-behavior:auto}
     .js .reveal{opacity:1;transform:none}
     .reveal{transition:none}
-    .blob{display:none}
   }
 
   .header{background:linear-gradient(135deg,#173863,#0a1c35);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 0;max-width:1040px;margin:0 auto;border-radius:0 0 16px 16px;box-shadow:0 4px 20px rgba(10,28,53,.18)}
   .header>div{display:flex;flex-wrap:wrap;justify-content:flex-end}
-  .brand{color:#fff;font-weight:700;font-size:19px;font-family:var(--font-display)}
+  .brand{color:#fff;font-weight:700;font-size:19px;font-family:'Archivo',sans-serif}
   .brand span{color:#F59E0B}
   .navlink{color:#DDE4EE;font-size:14px;font-weight:600;padding:8px 14px;transition:color .15s ease}
   @media(max-width:560px){.navlink{font-size:13px;padding:7px 9px}}
   .navlink:hover{color:#fff}
   .heroWrap{max-width:1040px;margin:20px auto 0;padding:0 20px}
-  .hero{position:relative;overflow:hidden;isolation:isolate;margin:0 auto;padding:64px 24px;text-align:center;border-radius:24px;box-shadow:0 20px 50px rgba(16,40,74,.22)}
+  .hero{position:relative;overflow:hidden;isolation:isolate;margin:0 auto;padding:88px 40px 76px;text-align:left;border-radius:26px;box-shadow:0 24px 60px rgba(16,40,74,.24)}
   .hero .hero-foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%;z-index:0;filter:saturate(.85)}
-  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(165deg,rgba(10,28,53,.7) 0%,rgba(8,20,38,.92) 100%);z-index:0}
+  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(170deg,rgba(9,20,38,.58) 0%,rgba(7,16,30,.93) 100%);z-index:0}
   .hero>*{position:relative;z-index:1}
-  .hero-categoria{font-size:12.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9FB4CE;margin:0 0 10px}
-  .hero-dolor{font-size:20px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:#FBBF24;margin:0 0 16px}
-  .hero h1{color:#fff;font-size:34px;font-weight:600;line-height:1.2;margin:0 0 18px}
-  .hero p{font-size:16.5px;color:#C7D3E3;line-height:1.65;margin:0 0 30px;max-width:52ch;margin-left:auto;margin-right:auto}
-  .cta-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:8px}
-  .boton{display:inline-block;background:linear-gradient(180deg,#173863,#0d2140);color:#fff;border-radius:11px;padding:15px 28px;font-size:16px;font-weight:700;box-shadow:0 10px 26px rgba(16,40,74,.24);transition:transform .15s ease,box-shadow .15s ease}
-  .boton:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(16,40,74,.3)}
-  .boton-sec{display:inline-block;background:#fff;color:#10284A;border:1.5px solid #DDE4EE;border-radius:11px;padding:15px 28px;font-size:16px;font-weight:700;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
-  .boton-sec:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(16,28,53,.08);border-color:#c7d3e3}
-  @media(prefers-reduced-motion:reduce){.boton,.boton-sec,.navlink{transition:none}.boton:hover,.boton-sec:hover{transform:none}}
-  .subnota{font-size:13px;color:#9FB4CE;margin-top:14px}
-  @media(max-width:600px){.hero{padding:48px 20px}}
+  .hero-categoria{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#B9C8DE;margin:0 0 24px}
+  .hero h1{color:#fff;font-weight:300;font-size:clamp(36px,5.6vw,66px);line-height:1;letter-spacing:-.02em;margin:0 0 26px;text-wrap:balance;max-width:16ch}
+  .hero h1 b{font-weight:800;color:var(--amber-400)}
+  .hero p{font-size:16.5px;color:#C7D3E3;line-height:1.6;margin:0 0 34px;max-width:46ch}
+  .cta-row{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:8px}
+  .boton{display:inline-block;background:#fff;color:#0a1c35;border-radius:99px;padding:16px 30px;font-size:15px;font-weight:800;transition:transform .18s ease,background .18s ease}
+  .boton:hover{transform:translateY(-2px);background:var(--amber-400)}
+  .boton-sec{display:inline-flex;align-items:center;color:#fff;font-size:15px;font-weight:700;padding:16px 4px;border-bottom:1.5px solid rgba(255,255,255,.35);border-radius:0;transition:border-color .18s ease}
+  .boton-sec:hover{border-color:#fff}
+  @media(prefers-reduced-motion:reduce){.boton,.boton-sec,.navlink{transition:none}.boton:hover{transform:none}}
+  .subnota{font-size:13px;color:#8FA0B4;margin-top:20px}
+  @media(max-width:600px){.hero{padding:60px 24px 44px;text-align:center}.hero p{margin-left:auto;margin-right:auto}.cta-row{justify-content:center}}
 
-  /* Nubes ambientales del hero — drift lento, capa puramente decorativa entre la foto/overlay y
-     el texto. Pura CSS (sin video externo). A diferencia de la primera versión (Sesión 41), aquí
-     cada nube vive ANCLADA a la franja de padding superior o inferior del hero (top:-Npx / bottom:-Npx
-     con la mayoría de su masa recortada por overflow:hidden) — esas franjas son las únicas zonas
-     del hero garantizadas libres de texto en cualquier ancho ≥600px, porque son padding real, nunca
-     contienen contenido. Así las nubes se aprecian como un resplandor suave entrando por arriba/abajo
-     del cuadro sin taparle contraste al texto. Opacidad baja + blur alto a propósito: se busca
-     atmósfera, no manchas de luz sólidas. Reusa el gancho ".blob{display:none}" para prefers-reduced-motion. */
-  .hero-ambient{position:absolute!important;inset:0;z-index:1;pointer-events:none;overflow:hidden}
-  .blob{position:absolute;border-radius:50%;filter:blur(46px);animation:blobDrift ease-in-out infinite}
-  .blob.b1{width:260px;height:260px;top:-210px;right:6%;background:radial-gradient(circle at 32% 32%,rgba(255,255,255,.9),rgba(199,211,227,.26) 58%,transparent 74%);opacity:.5;animation-duration:18s}
-  .blob.b2{width:150px;height:150px;top:-95px;left:14%;background:radial-gradient(circle at 32% 32%,rgba(255,255,255,.85),rgba(199,211,227,.2) 58%,transparent 74%);opacity:.32;animation-duration:14s;animation-delay:-5s}
-  .blob.b3{width:210px;height:210px;bottom:-165px;right:4%;background:radial-gradient(circle at 32% 32%,rgba(251,191,36,.9),rgba(251,191,36,.16) 58%,transparent 76%);opacity:.34;animation-duration:16s;animation-delay:-8s}
-  .blob.b4{width:150px;height:150px;bottom:-105px;left:18%;background:radial-gradient(circle at 32% 32%,rgba(255,255,255,.8),rgba(199,211,227,.18) 58%,transparent 74%);opacity:.26;animation-duration:13s;animation-delay:-2s}
-  @keyframes blobDrift{0%{transform:translate(0,0) scale(1)}33%{transform:translate(-22px,14px) scale(1.08)}66%{transform:translate(14px,-12px) scale(.96)}100%{transform:translate(0,0) scale(1)}}
-  @media(max-width:600px){.hero-ambient{display:none}}
+  /* ============ Todo lo que incluye tu cuenta — en círculo ============
+     Vista rápida de las 8 herramientas antes de entrar al detalle de cada sección de abajo.
+     Sin arrastre ni scroll que rastrear: cada punto es un botón fijo con su propio hover/clic. */
+  .orbit-seccion{max-width:1040px;margin:0 auto;padding:8px 20px 0;text-align:center}
+  .orbit-seccion h2{font-size:24px;font-weight:600;color:#10284A;margin:0 0 6px}
+  .orbit-seccion>p{font-size:14px;color:#8FA0B4;margin:0}
+  .orbit-wrap{position:relative;width:440px;height:440px;margin:32px auto 0}
+  .orbit-centro{position:absolute;inset:0;margin:auto;width:196px;height:196px;border-radius:50%;background:#fff;box-shadow:0 14px 34px rgba(16,40,74,.14);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px}
+  .orbit-centro-titulo{font-size:15px;font-weight:700;color:#10284A;margin:0 0 6px;text-wrap:balance}
+  .orbit-centro-texto{font-family:'Manrope',sans-serif;font-size:12px;color:#6b7a8d;line-height:1.5;margin:0}
+  .orbit-btn{position:absolute;top:50%;left:50%;width:66px;height:66px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(16,28,53,.18);animation:orbitPulse 4.5s ease-in-out infinite;transform:rotate(var(--ang)) translate(190px) rotate(calc(-1 * var(--ang))) translate(-50%,-50%);transition:transform .25s cubic-bezier(.2,.8,.3,1),box-shadow .25s ease}
+  .orbit-btn i{width:24px;height:24px;display:block;background:#fff;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+  .orbit-btn:hover,.orbit-btn.activo{transform:rotate(var(--ang)) translate(190px) rotate(calc(-1 * var(--ang))) translate(-50%,-50%) scale(1.2);box-shadow:0 14px 30px rgba(16,28,53,.28)}
+  @keyframes orbitPulse{0%,100%{box-shadow:0 8px 20px rgba(16,28,53,.18)}50%{box-shadow:0 8px 24px rgba(16,28,53,.26)}}
+  @media(max-width:640px){
+    .orbit-wrap{width:300px;height:300px}
+    .orbit-centro{width:140px;height:140px;padding:14px}
+    .orbit-centro-titulo{font-size:13px}
+    .orbit-centro-texto{font-size:10.5px}
+    .orbit-btn{width:50px;height:50px;transform:rotate(var(--ang)) translate(120px) rotate(calc(-1 * var(--ang))) translate(-50%,-50%)}
+    .orbit-btn i{width:18px;height:18px}
+    .orbit-btn:hover,.orbit-btn.activo{transform:rotate(var(--ang)) translate(120px) rotate(calc(-1 * var(--ang))) translate(-50%,-50%) scale(1.2)}
+  }
+  @media(prefers-reduced-motion:reduce){.orbit-btn{animation:none!important}}
+
   .features{max-width:1040px;margin:0 auto;padding:20px 20px 60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
   .fcard{background:#fff;border:1px solid rgba(16,40,74,.08);border-radius:16px;padding:24px;box-shadow:0 3px 12px rgba(16,28,53,.06)}
   .ficon{width:46px;height:46px;border-radius:12px;background:rgba(16,40,74,.06);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
@@ -302,14 +314,12 @@
 <div class="heroWrap">
   <div class="hero">
     <img class="hero-foto" src="img/hero-fondo.jpg" alt="" loading="eager"/>
-    <div class="hero-ambient" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="blob b4"></span></div>
     <div class="hero-categoria">Para agentes de seguros independientes en México</div>
-    <div class="hero-dolor">Los olvidos cuestan dinero</div>
-    <h1>Deja de perder clientes y comisiones por pólizas vencidas</h1>
+    <h1>Deja de perder clientes por pólizas <b>vencidas</b></h1>
     <p>Upco InsurGest ordena tu cartera, envía y recibe avisos automáticos sobre los próximos vencimientos, y te ayuda a captar clientes nuevos con un servicio que los hace quedarse — sin hojas de cálculo.</p>
     <div class="cta-row">
       <a class="boton" href="./app/?registro=1">Crear mi cuenta gratis</a>
-      <a class="boton-sec" href="./app/">Ya tengo cuenta</a>
+      <a class="boton-sec" href="./app/">Ya tengo cuenta →</a>
     </div>
     <div class="subnota">30 días gratis · Tu cuenta queda activa de inmediato, sin esperar aprobación.</div>
   </div>
@@ -334,6 +344,25 @@
     <p>Tu tarjeta digital capta prospectos por ti y te los manda directo a tu bandeja, mientras sigues atendiendo a quien ya confía en ti.</p>
     <span class="eje-mas">Ver cómo ↓</span>
   </a>
+</div>
+
+<div class="orbit-seccion reveal">
+  <h2>Todo lo que incluye tu cuenta</h2>
+  <p>Pasa el mouse o toca cada punto</p>
+  <div class="orbit-wrap" id="orbitInsurgest">
+    <div class="orbit-centro" id="orbitCentro">
+      <div class="orbit-centro-titulo">Todo en un solo lugar</div>
+      <div class="orbit-centro-texto">Explora cada punto del círculo.</div>
+    </div>
+    <button class="orbit-btn" style="--ang:0deg;background:linear-gradient(150deg,#4F7CFF,#7C6CE0)" data-t="Cartera organizada" data-d="Clientes, pólizas y vehículos en un solo lugar. La vigencia se calcula sola."><i style="-webkit-mask-image:url(img/ic-checklist.png);mask-image:url(img/ic-checklist.png)"></i></button>
+    <button class="orbit-btn" style="--ang:45deg;background:linear-gradient(150deg,#17B897,#0EA5A5)" data-t="Avisos automáticos" data-d="A ti de lo que vence, a tu cliente de su póliza y su verificación."><i style="-webkit-mask-image:url(img/ic-avisos.png);mask-image:url(img/ic-avisos.png)"></i></button>
+    <button class="orbit-btn" style="--ang:90deg;background:linear-gradient(150deg,var(--amber-400),#F97316)" data-t="Flotilla de hasta 5 autos" data-d="Tu cliente lleva su kilometraje y su servicio, sin que tú preguntes."><i style="-webkit-mask-image:url(img/ic-auto.png);mask-image:url(img/ic-auto.png)"></i></button>
+    <button class="orbit-btn" style="--ang:135deg;background:linear-gradient(150deg,#EC4899,#F43F5E)" data-t="Tarjeta digital" data-d="Con QR descargable para presentaciones y campañas."><i style="-webkit-mask-image:url(img/ic-agente.png);mask-image:url(img/ic-agente.png)"></i></button>
+    <button class="orbit-btn" style="--ang:180deg;background:linear-gradient(150deg,var(--navy-800),var(--navy-950))" data-t="Análisis de retiro y ANF" data-d="Ligas que capturan prospectos mientras les resuelven una duda real."><i style="-webkit-mask-image:url(img/ic-retiro.png);mask-image:url(img/ic-retiro.png)"></i></button>
+    <button class="orbit-btn" style="--ang:225deg;background:linear-gradient(150deg,#0EA5A5,#4F7CFF)" data-t="Dashboard de tu cartera" data-d="Prima total vigente y pólizas por estatus, se recalcula solo."><i style="-webkit-mask-image:url(img/ic-cartera.png);mask-image:url(img/ic-cartera.png)"></i></button>
+    <button class="orbit-btn" style="--ang:270deg;background:linear-gradient(150deg,#F43F5E,#EC4899)" data-t="Presupuesto familiar" data-d="Tus clientes de Vida ordenan su gasto con la regla 50/30/20."><i style="-webkit-mask-image:url(img/ic-familia.png);mask-image:url(img/ic-familia.png)"></i></button>
+    <button class="orbit-btn" style="--ang:315deg;background:linear-gradient(150deg,#7C6CE0,#4F7CFF)" data-t="Prospectos automáticos" data-d="El formulario de tu tarjeta te manda cada prospecto directo a tu bandeja."><i style="-webkit-mask-image:url(img/ic-prospectos.png);mask-image:url(img/ic-prospectos.png)"></i></button>
+  </div>
 </div>
 
 <div class="precio-banner reveal">
@@ -681,6 +710,27 @@ document.documentElement.classList.add("js");
       if (document.querySelector(".reveal.visible")) return;
       aparecer.forEach(function(el){ el.classList.add("visible"); });
     }, 1500);
+  }
+
+  // Círculo "Todo lo que incluye tu cuenta" — cada punto es un botón fijo con su propio
+  // clic/hover, sin arrastre ni scroll que rastrear (esa fue la versión que sí funcionó de
+  // forma confiable, después de que un carrusel arrastrable resultara frágil en las pruebas).
+  var orbit = document.getElementById("orbitInsurgest");
+  var orbitCentro = document.getElementById("orbitCentro");
+  if (orbit && orbitCentro) {
+    var tituloDefault = "Todo en un solo lugar", textoDefault = "Explora cada punto del círculo.";
+    var botonesOrbit = Array.prototype.slice.call(orbit.querySelectorAll(".orbit-btn"));
+    function mostrarOrbit(b){
+      botonesOrbit.forEach(function(x){ x.classList.toggle("activo", x===b); });
+      orbitCentro.querySelector(".orbit-centro-titulo").textContent = b ? b.dataset.t : tituloDefault;
+      orbitCentro.querySelector(".orbit-centro-texto").textContent = b ? b.dataset.d : textoDefault;
+    }
+    botonesOrbit.forEach(function(b){
+      b.addEventListener("mouseenter", function(){ mostrarOrbit(b); });
+      b.addEventListener("focus", function(){ mostrarOrbit(b); });
+      b.addEventListener("click", function(){ mostrarOrbit(b); });
+    });
+    orbit.addEventListener("mouseleave", function(){ mostrarOrbit(null); });
   }
 })();
 </script>
