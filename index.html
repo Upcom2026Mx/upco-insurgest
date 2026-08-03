@@ -120,7 +120,11 @@
      Es justo el síntoma reportado: "el blanco desaparece, quedan letras azules con fondo oscuro". */
   .boton{display:inline-block;background-color:#fff;color:#0a1c35;border-radius:99px;padding:16px 30px;font-size:15px;font-weight:800;transition:transform .18s ease,background-color .18s ease;forced-color-adjust:none}
   .boton:hover{transform:translateY(-2px);background-color:var(--amber-400)}
-  .boton-sec{display:inline-flex;align-items:center;color:#fff;font-size:15px;font-weight:700;padding:16px 4px;border-bottom:1.5px solid rgba(255,255,255,.35);border-radius:0;transition:border-color .18s ease;forced-color-adjust:none}
+  /* .boton-sec se usa tanto en <a> como en <button type="button"> (el de "Quiero más
+     información" del cierre) — un <button> real trae su propia apariencia nativa del
+     navegador (fondo gris, borde, relleno) que nada de lo de arriba pisaba, así que se veía
+     como un botón gris sólido en vez del texto transparente con línea que debía ser. */
+  .boton-sec{display:inline-flex;align-items:center;background:transparent;border:none;appearance:none;-webkit-appearance:none;font-family:inherit;cursor:pointer;color:#fff;font-size:15px;font-weight:700;padding:16px 4px;border-bottom:1.5px solid rgba(255,255,255,.35);border-radius:0;transition:border-color .18s ease;forced-color-adjust:none}
   .boton-sec:hover{border-color:#fff}
   @media(prefers-reduced-motion:reduce){.boton,.boton-sec,.navlink{transition:none}.boton:hover{transform:none}}
   .subnota{font-size:13px;color:#8FA0B4;margin-top:20px}
@@ -242,8 +246,8 @@
   .cta-final>*{position:relative;z-index:1}
   .cta-final h2{color:#fff;font-size:26px;font-weight:600;margin:0 0 10px}
   .cta-final p{color:#DDE4EE;font-size:14.5px;margin:0 0 26px}
-  .cta-final .boton{background:linear-gradient(180deg,#FBBF24,#F59E0B);color:#10284A;box-shadow:0 10px 26px rgba(245,158,11,.32)}
-  .cta-final .boton:hover{box-shadow:0 14px 32px rgba(245,158,11,.4)}
+  .cta-final .boton{background:linear-gradient(180deg,#FBBF24,#F59E0B);color:#10284A;box-shadow:0 12px 30px rgba(245,158,11,.35)}
+  .cta-final .boton:hover{box-shadow:0 16px 36px rgba(245,158,11,.42)}
   .modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(8,20,38,.6);display:flex;align-items:center;justify-content:center;padding:20px}
   .modal-overlay[hidden]{display:none}
   .modal-card{position:relative;background:#fff;border-radius:20px;max-width:420px;width:100%;padding:32px 28px;box-shadow:0 30px 70px rgba(8,20,38,.35);max-height:90vh;overflow-y:auto}
