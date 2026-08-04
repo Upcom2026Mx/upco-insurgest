@@ -1454,6 +1454,66 @@ function GraficaBarras({titulo,datos}){
   </div>;
 }
 
+// Indicadores oficiales de Banxico, actualizados a diario por un cron (ver
+// migracion_sesion46_indicadores_banxico.sql). Útiles para el agente que vende Vida, PPR y
+// AFORE, donde el tipo de cambio y las UDIS salen en la conversación con el cliente.
+// Cada indicador trae su propia fecha y su propia precisión: Banxico publica el FIX por día
+// hábil, la TIIE un día adelante y la UDI con semanas de anticipación. Por eso se lee la
+// vista indicadores_ultimos, que ya resuelve "el último valor vigente de cada uno" en vez
+// de una fila por fecha.
+const INDICADORES_BANXICO=[
+  {clave:"usd_fix", label:"Dólar (FIX)",  dec:4, prefijo:"$", sufijo:""},
+  {clave:"udis",    label:"UDI",          dec:6, prefijo:"$", sufijo:""},
+  {clave:"tiie28",  label:"TIIE 28 días", dec:4, prefijo:"",  sufijo:"%"},
+];
+
+function IndicadoresBanxico(){
+  const[datos,setDatos]=useState(null);
+
+  useEffect(()=>{
+    sb.from("indicadores_ultimos").select("*")
+      .then(({data})=>setDatos(data||[]));
+  },[]);
+
+  // Se degrada en silencio a propósito: si el cron todavía no ha corrido o la consulta
+  // falla, el panel simplemente no muestra esta sección. Es información complementaria,
+  // no vale la pena enseñarle un error al agente por ella.
+  if(!datos||datos.length===0)return null;
+
+  // Se recorre el catálogo (no los datos) para imponer el orden dólar → UDI → TIIE, que es
+  // el de relevancia para el agente; la vista los devuelve en orden alfabético.
+  const tarjetas=INDICADORES_BANXICO
+    .map(def=>({def, fila:datos.find(d=>d.indicador===def.clave)}))
+    .filter(t=>t.fila&&t.fila.valor!=null);
+
+  if(tarjetas.length===0)return null;
+
+  const num=(v,dec)=>Number(v).toLocaleString("es-MX",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+
+  return <div style={{marginBottom:24}}>
+    <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",marginBottom:10}}>INDICADORES BANXICO</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
+      {tarjetas.map(({def,fila})=>{
+        const dif=fila.variacion!=null?Number(fila.variacion):null;
+        const sube=dif!=null&&dif>0;
+        return <div key={def.clave} style={{...est.card,textAlign:"center"}}>
+          <div style={{fontSize:20,fontWeight:700,color:"#10284A"}}>
+            {def.prefijo}{num(fila.valor,def.dec)}{def.sufijo}
+          </div>
+          <div style={{fontSize:12,color:"#8FA0B4",marginTop:4}}>{def.label}</div>
+          <div style={{fontSize:11,marginTop:3,color:"#8FA0B4"}}>
+            {dif!=null&&dif!==0&&<span style={{fontWeight:600,color:sube?"#16a34a":"#dc2626"}}>
+              {sube?"▲":"▼"} {num(Math.abs(dif),def.dec)}{" · "}
+            </span>}
+            {fecha(fila.fecha)}
+          </div>
+        </div>;
+      })}
+    </div>
+    <div style={{fontSize:11,color:"#8FA0B4",marginTop:8}}>Fuente: Banco de México</div>
+  </div>;
+}
+
 function DashboardAgente(){
   const[polizas,setPolizas]=useState(null);
   const[error,setError]=useState("");
@@ -1465,7 +1525,12 @@ function DashboardAgente(){
 
   if(error)return <div style={{color:"#dc2626",fontSize:13}}>{error}</div>;
   if(!polizas)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
-  if(polizas.length===0)return <div style={{...est.card,textAlign:"center",color:"#6B7280"}}>Todavía no tienes pólizas registradas.</div>;
+  // Los indicadores se muestran aunque el agente todavía no tenga pólizas cargadas — no
+  // dependen de su cartera, y así la pestaña no se ve vacía en una cuenta recién creada.
+  if(polizas.length===0)return <div>
+    <IndicadoresBanxico/>
+    <div style={{...est.card,textAlign:"center",color:"#6B7280"}}>Todavía no tienes pólizas registradas.</div>
+  </div>;
 
   let vigentes=0,porVencer=0,vencidas=0,renovadas=0,canceladas=0,primaVigente=0;
   polizas.forEach(p=>{
@@ -1496,6 +1561,7 @@ function DashboardAgente(){
   };
 
   return <div>
+    <IndicadoresBanxico/>
     <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>Resumen ({polizas.length} pólizas)</div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10,marginBottom:canceladas>0?6:24}}>
       <TarjetaKPI label="Prima total vigente" valor={pesos(primaVigente)} grande/>
