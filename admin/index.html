@@ -18,6 +18,7 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="../shared.js"></script>
 </head>
 <body>
@@ -571,6 +572,337 @@ function Invitar(){
   </div>;
 }
 
+// ============ PROSPECCIÓN (campaña a agencias del directorio de la CNSF) ============
+// La secuencia la manda enviar_lote_prospectos() por cron; aquí solo se opera: importar la
+// lista, prender/apagar, marcar lo que llega al buzón y editar los textos.
+const COLOR_ESTATUS_PROSPECTO={activo:"#1f4a80",respondio:"#16a34a",baja:"#6b7280",rebotado:"#dc2626",queja:"#dc2626",completado:"#8593AA"};
+const ETIQUETA_ESTATUS_PROSPECTO={activo:"En secuencia",respondio:"Respondió",baja:"Baja",rebotado:"Rebotó",queja:"Marcó spam",completado:"Secuencia completa"};
+const ETIQUETA_RUTA={web:"Upco WEB",insurgest:"InsurGest"};
+
+const ALIAS_PROSPECTO={
+  agencia:["agencia","denominacion","denominación","nombre","empresa","razon social"],
+  correo:["correo","email","e-mail","correo electronico","correo electrónico"],
+  estado:["estado","entidad","entidad federativa"],
+  cp:["cp","codigo postal","código postal","c.p."],
+  ciudad:["ciudad","ciudad_raw","municipio","poblacion","población"]
+};
+function mapearColumnasProspecto(encabezados){
+  const norm=s=>(s||"").toString().trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const mapa={};
+  for(const campo in ALIAS_PROSPECTO){
+    const alias=ALIAS_PROSPECTO[campo].map(norm);
+    const hallado=encabezados.find(h=>alias.includes(norm(h)));
+    if(hallado)mapa[campo]=hallado;
+  }
+  return mapa;
+}
+
+function TarjetaCifra({valor,etiqueta,color}){
+  return <div style={{flex:"1 1 130px",background:"#fff",border:"1px solid rgba(16,40,74,.08)",borderRadius:12,padding:"14px 16px"}}>
+    <div style={{fontSize:26,fontWeight:700,color:color||"#10284A",fontVariantNumeric:"tabular-nums",lineHeight:1.1}}>{valor}</div>
+    <div style={{fontSize:12,color:"#6B7280",marginTop:4,lineHeight:1.35}}>{etiqueta}</div>
+  </div>;
+}
+
+function ImportarProspectos({onListo}){
+  const[filas,setFilas]=useState(null);
+  const[error,setError]=useState("");
+  const[importando,setImportando]=useState(false);
+  const[resultado,setResultado]=useState(null);
+
+  const elegirArchivo=(file)=>{
+    setError("");setFilas(null);setResultado(null);
+    if(!file)return;
+    Papa.parse(file,{
+      header:true,skipEmptyLines:true,
+      complete:(res)=>{
+        if(!res.data.length){setError("El archivo no tiene filas.");return;}
+        const m=mapearColumnasProspecto(res.meta.fields||[]);
+        if(!m.agencia||!m.correo){
+          setError('No encontramos las columnas de "agencia" y "correo" en el archivo. Revisa los encabezados.');
+          return;
+        }
+        setFilas(res.data.map(f=>({
+          agencia:(f[m.agencia]||"").trim(),
+          correo:(f[m.correo]||"").trim(),
+          estado:m.estado?(f[m.estado]||"").trim():null,
+          cp:m.cp?(f[m.cp]||"").trim():null,
+          ciudad:m.ciudad?(f[m.ciudad]||"").trim():null
+        })).filter(f=>f.agencia&&f.correo));
+      },
+      error:(err)=>setError("No se pudo leer el archivo: "+err.message)
+    });
+  };
+
+  const importar=async()=>{
+    setImportando(true);setError("");
+    // Se manda por lotes de 500: un solo RPC con 1,470 filas hace un JSON demasiado grande
+    // para la petición, y si truena hay que volver a empezar todo.
+    let acum={insertados:0,omitidos:0,invalidos:0};
+    for(let i=0;i<filas.length;i+=500){
+      const{data,error}=await sb.rpc("admin_importar_prospectos",{p_filas:filas.slice(i,i+500)});
+      if(error){setImportando(false);setError(error.message);return;}
+      acum={insertados:acum.insertados+data.insertados,omitidos:acum.omitidos+data.omitidos,invalidos:acum.invalidos+data.invalidos};
+    }
+    setImportando(false);setResultado(acum);setFilas(null);
+    onListo&&onListo();
+  };
+
+  return <div style={{...est.card,marginBottom:20}}>
+    <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>Importar lista</div>
+    <div style={{fontSize:13,color:"#6B7280",marginBottom:14}}>
+      El CSV necesita al menos las columnas <b>agencia</b> y <b>correo</b>. La ruta se deduce
+      sola del dominio del correo. Volver a importar el mismo archivo no duplica ni reinicia a
+      nadie que ya vaya a media secuencia.
+    </div>
+    <input type="file" accept=".csv,text/csv" onChange={e=>elegirArchivo(e.target.files[0])} style={{fontSize:14,marginBottom:12}}/>
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    {filas&&<div style={{marginBottom:10}}>
+      <div style={{fontSize:13,marginBottom:10}}>Se van a importar <b>{filas.length}</b> agencias.</div>
+      <Boton onClick={importar} disabled={importando}>{importando?"Importando...":"Confirmar importación"}</Boton>
+    </div>}
+    {resultado&&<div style={{color:"#16a34a",fontSize:13}}>
+      Listo: {resultado.insertados} nuevas, {resultado.omitidos} ya estaban, {resultado.invalidos} sin correo válido.
+    </div>}
+  </div>;
+}
+
+function AjustesProspeccion({ajustes,onGuardado}){
+  const[f,setF]=useState(ajustes);
+  const[guardando,setGuardando]=useState(false);
+  const[msg,setMsg]=useState("");
+  const[error,setError]=useState("");
+  useEffect(()=>{setF(ajustes)},[ajustes]);
+
+  const guardar=async(cambios)=>{
+    const nuevo={...f,...cambios};
+    setF(nuevo);setGuardando(true);setError("");setMsg("");
+    const{error}=await sb.rpc("admin_guardar_ajustes_prospeccion",{
+      p_activa:nuevo.activa,
+      p_envios_por_dia:Number(nuevo.envios_por_dia),
+      p_corridas_por_dia:Number(nuevo.corridas_por_dia),
+      p_dias_a_seguimiento:Number(nuevo.dias_a_seguimiento),
+      p_dias_a_cierre:Number(nuevo.dias_a_cierre),
+      p_remitente:nuevo.remitente,
+      p_responder_a:nuevo.responder_a,
+      p_pie_legal:nuevo.pie_legal
+    });
+    setGuardando(false);
+    if(error){setError(error.message);return;}
+    setMsg("Guardado.");onGuardado&&onGuardado();
+    setTimeout(()=>setMsg(""),2500);
+  };
+
+  if(!f)return null;
+  return <div style={{...est.card,marginBottom:20}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:14}}>
+      <div>
+        <div style={{fontSize:15,fontWeight:700}}>{f.activa?"Campaña activa":"Campaña pausada"}</div>
+        <div style={{fontSize:12.5,color:"#6B7280",marginTop:2}}>
+          {f.activa?"El sistema manda solo, cada hora entre 9am y 6pm.":"No se manda ningún correo hasta que la actives."}
+        </div>
+      </div>
+      <Boton color={f.activa?"#53647D":"#16a34a"} onClick={()=>guardar({activa:!f.activa})} disabled={guardando}>
+        {f.activa?"Pausar campaña":"Activar campaña"}
+      </Boton>
+    </div>
+
+    <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+      <label style={{flex:"1 1 150px",fontSize:12.5,color:"#6B7280"}}>
+        Correos por día
+        <input type="number" min="1" max="500" value={f.envios_por_dia}
+          onChange={e=>setF({...f,envios_por_dia:e.target.value})}
+          onBlur={e=>guardar({envios_por_dia:e.target.value})} style={{...est.input,marginTop:5,marginBottom:0}}/>
+      </label>
+      <label style={{flex:"1 1 150px",fontSize:12.5,color:"#6B7280"}}>
+        Días al 2º correo
+        <input type="number" min="1" max="30" value={f.dias_a_seguimiento}
+          onChange={e=>setF({...f,dias_a_seguimiento:e.target.value})}
+          onBlur={e=>guardar({dias_a_seguimiento:e.target.value})} style={{...est.input,marginTop:5,marginBottom:0}}/>
+      </label>
+      <label style={{flex:"1 1 150px",fontSize:12.5,color:"#6B7280"}}>
+        Días al 3º correo
+        <input type="number" min="1" max="30" value={f.dias_a_cierre}
+          onChange={e=>setF({...f,dias_a_cierre:e.target.value})}
+          onBlur={e=>guardar({dias_a_cierre:e.target.value})} style={{...est.input,marginTop:5,marginBottom:0}}/>
+      </label>
+    </div>
+    <div style={{fontSize:12,color:"#8FA0B4",marginTop:10,lineHeight:1.5}}>
+      Remitente: <b>{f.remitente}</b> · las respuestas llegan a <b>{f.responder_a}</b>.
+      Durante el calentamiento del dominio: 20 la primera semana, 40 la segunda, 70 la tercera, 100 de ahí en adelante.
+    </div>
+
+    <label style={{display:"block",fontSize:12.5,color:"#6B7280",marginTop:14}}>
+      Pie legal — se agrega al final de los seis correos
+      <textarea value={f.pie_legal||""} onChange={e=>setF({...f,pie_legal:e.target.value})}
+        onBlur={e=>guardar({pie_legal:e.target.value})} rows={3}
+        style={{...est.input,marginTop:5,marginBottom:0,fontFamily:"ui-monospace,Consolas,monospace",fontSize:12.5,lineHeight:1.55}}/>
+    </label>
+    <div style={{fontSize:11.5,color:"#8FA0B4",marginTop:6,lineHeight:1.5}}>
+      Enlaza al aviso de privacidad en vez de repetir tu nombre y domicilio en cada correo. Los datos completos
+      del responsable siguen ahí, a un clic — y un enlace al aviso cumple mejor que una línea con la dirección,
+      porque es la forma en que la ley contempla ponerlo a disposición.
+    </div>
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginTop:10}}>{error}</div>}
+    {msg&&<div style={{color:"#16a34a",fontSize:13,marginTop:10}}>{msg}</div>}
+  </div>;
+}
+
+function PlantillasProspeccion(){
+  const[filas,setFilas]=useState(null);
+  const[error,setError]=useState("");
+  const[msg,setMsg]=useState("");
+
+  const cargar=async()=>{
+    const{data,error}=await sb.rpc("admin_plantillas_prospeccion");
+    if(error){setError(error.message);return;}
+    setFilas(data||[]);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const guardar=async(p)=>{
+    setError("");setMsg("");
+    const{error}=await sb.rpc("admin_guardar_plantilla",{p_ruta:p.ruta,p_etapa:p.etapa,p_asunto:p.asunto,p_cuerpo_html:p.cuerpo_html});
+    if(error){setError(error.message);return;}
+    setMsg("Plantilla guardada.");setTimeout(()=>setMsg(""),2500);
+  };
+
+  if(!filas)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+  return <div>
+    <div style={{fontSize:13,color:"#6B7280",marginBottom:16,lineHeight:1.55}}>
+      Se escribe en HTML simple: <code>&lt;p&gt;</code> para cada párrafo y <code>&lt;a href="..."&gt;</code> para las ligas.
+      Donde escribas <code>{"{AGENCIA}"}</code> se sustituye el nombre real. El pie legal se agrega solo al final de los seis,
+      no hay que ponerlo aquí. Deliberadamente sin botones ni imágenes: un correo frío muy maquetado se clasifica como
+      promoción y baja la entrega.
+    </div>
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
+    {msg&&<div style={{color:"#16a34a",fontSize:13,marginBottom:10}}>{msg}</div>}
+    {filas.map((p,i)=><div key={p.ruta+p.etapa} style={{...est.card,marginBottom:14}}>
+      <div style={{fontSize:12,fontWeight:700,color:"#8FA0B4",textTransform:"uppercase",letterSpacing:".07em",marginBottom:8}}>
+        {ETIQUETA_RUTA[p.ruta]} · correo {p.etapa} de 3
+      </div>
+      <input value={p.asunto} onChange={e=>{const c=[...filas];c[i]={...p,asunto:e.target.value};setFilas(c);}} style={est.input}/>
+      <textarea value={p.cuerpo_html} onChange={e=>{const c=[...filas];c[i]={...p,cuerpo_html:e.target.value};setFilas(c);}}
+        rows={10} style={{...est.input,fontFamily:"ui-monospace,Consolas,monospace",fontSize:13,lineHeight:1.55}}/>
+      <Boton onClick={()=>guardar(filas[i])}>Guardar este correo</Boton>
+    </div>)}
+  </div>;
+}
+
+function Prospectos(){
+  const[resumen,setResumen]=useState(null);
+  const[lista,setLista]=useState(null);
+  const[filtro,setFiltro]=useState("");
+  const[busqueda,setBusqueda]=useState("");
+  const[subvista,setSubvista]=useState("panel");
+  const[error,setError]=useState("");
+  const[disparando,setDisparando]=useState(false);
+  const[avisoLote,setAvisoLote]=useState("");
+
+  const cargar=async()=>{
+    const[r1,r2]=await Promise.all([
+      sb.rpc("admin_prospeccion_resumen"),
+      sb.rpc("admin_prospectos",{p_estatus:filtro||null,p_ruta:null,p_busqueda:busqueda||null,p_limite:300})
+    ]);
+    if(r1.error){setError(r1.error.message);return;}
+    if(r2.error){setError(r2.error.message);return;}
+    setResumen(r1.data);setLista(r2.data||[]);
+  };
+  useEffect(()=>{cargar()},[filtro,busqueda]);
+
+  const marcar=async(id,estatus)=>{
+    const{error}=await sb.rpc("admin_marcar_prospecto",{p_id:id,p_estatus:estatus,p_notas:null});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
+  const dispararAhora=async()=>{
+    setDisparando(true);setAvisoLote("");
+    const{data,error}=await sb.rpc("admin_disparar_lote");
+    setDisparando(false);
+    if(error){setError(error.message);return;}
+    setAvisoLote(data.motivo?`No se mandó nada: ${data.motivo}.`:`Se mandaron ${data.enviados} correos.`);
+    cargar();
+  };
+
+  if(error)return <div style={{color:"#dc2626",fontSize:14}}>{error}</div>;
+  if(!resumen)return <div style={{color:"#6B7280",fontSize:14}}>Cargando...</div>;
+
+  const enviados=resumen.correos_enviados||0;
+  const pct=(n)=>enviados?Math.round((n/enviados)*100)+"%":"—";
+
+  return <div>
+    <div style={{display:"flex",gap:16,marginBottom:20,borderBottom:"1px solid #DDE4EE"}}>
+      <button onClick={()=>setSubvista("panel")} style={tabStyle(subvista==="panel")}>Campaña</button>
+      <button onClick={()=>setSubvista("plantillas")} style={tabStyle(subvista==="plantillas")}>Los 6 correos</button>
+    </div>
+
+    {subvista==="plantillas"?<PlantillasProspeccion/>:<div>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:20}}>
+        <TarjetaCifra valor={resumen.total} etiqueta="Agencias en la lista"/>
+        <TarjetaCifra valor={resumen.sin_contactar} etiqueta="Sin contactar"/>
+        <TarjetaCifra valor={resumen.en_secuencia} etiqueta="A media secuencia" color="#1f4a80"/>
+        <TarjetaCifra valor={resumen.respondieron} etiqueta="Respondieron" color="#16a34a"/>
+      </div>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:20}}>
+        <TarjetaCifra valor={enviados} etiqueta={`Correos enviados · ${resumen.enviados_hoy} hoy`}/>
+        <TarjetaCifra valor={pct(resumen.abrieron)} etiqueta={`Abrieron (${resumen.abrieron} agencias)`} color="#1f4a80"/>
+        <TarjetaCifra valor={pct(resumen.clicaron)} etiqueta={`Hicieron clic (${resumen.clicaron} agencias)`} color="#F59E0B"/>
+        <TarjetaCifra valor={resumen.rebotados+resumen.quejas} etiqueta={`Rebotes y quejas de spam`} color={(resumen.rebotados+resumen.quejas)>0?"#dc2626":"#8593AA"}/>
+      </div>
+
+      {enviados>=300&&resumen.respondieron<3&&<div style={{background:"#FDF2DC",border:"1px solid #E8B04B",borderLeft:"4px solid #E8B04B",borderRadius:10,padding:"14px 18px",marginBottom:20,fontSize:13.5,color:"#6B3D07",lineHeight:1.55}}>
+        Van {enviados} correos y solo {resumen.respondieron} respuestas. Antes de seguir gastando lista,
+        conviene cambiar el primer párrafo o el asunto en "Los 6 correos".
+      </div>}
+
+      <AjustesProspeccion ajustes={resumen.ajustes} onGuardado={cargar}/>
+      <ImportarProspectos onListo={cargar}/>
+
+      <div style={{...est.card,marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        <div style={{fontSize:13,color:"#6B7280",flex:"1 1 220px"}}>
+          Manda el lote de esta hora sin esperar al reloj. Respeta el tope del día.
+        </div>
+        <Boton color="#53647D" onClick={dispararAhora} disabled={disparando}>{disparando?"Mandando...":"Mandar lote ahora"}</Boton>
+      </div>
+      {avisoLote&&<div style={{fontSize:13,color:"#1f4a80",marginBottom:16}}>{avisoLote}</div>}
+
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+        {[["","Todos"],["activo","En secuencia"],["respondio","Respondieron"],["completado","Completos"],["baja","Bajas"],["rebotado","Rebotes"]]
+          .map(([v,t])=><button key={v} onClick={()=>setFiltro(v)}
+            style={{...est.linkBtn,fontWeight:filtro===v?700:400,color:filtro===v?"#10284A":"#53647D"}}>{t}</button>)}
+      </div>
+      <input placeholder="Buscar por agencia, correo o estado" value={busqueda}
+        onChange={e=>setBusqueda(e.target.value)} style={est.input}/>
+
+      {lista&&lista.length===0&&<div style={{...est.card,textAlign:"center",color:"#6B7280"}}>
+        No hay agencias con ese filtro. Importa el CSV para empezar.
+      </div>}
+      {lista&&lista.length>0&&<div style={{...est.card,padding:0,overflow:"hidden"}}>
+        {lista.map(p=><div key={p.id} style={{...est.fila,alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
+          <div style={{flex:"1 1 240px",minWidth:0}}>
+            <div style={{fontWeight:700,fontSize:14,wordBreak:"break-word"}}>{p.agencia}</div>
+            <div style={{fontSize:12,color:"#8FA0B4",marginTop:2,wordBreak:"break-all"}}>{p.correo}</div>
+            <div style={{marginTop:6,display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+              <span style={est.badge(COLOR_ESTATUS_PROSPECTO[p.estatus]||"#8593AA")}>{ETIQUETA_ESTATUS_PROSPECTO[p.estatus]||p.estatus}</span>
+              <span style={{fontSize:11.5,color:"#8FA0B4"}}>{ETIQUETA_RUTA[p.ruta]} · correo {p.etapa} de 3{p.estado?` · ${p.estado}`:""}</span>
+              {p.aperturas>0&&<span style={{fontSize:11.5,color:"#1f4a80",fontWeight:600}}>abrió</span>}
+              {p.clics>0&&<span style={{fontSize:11.5,color:"#B45309",fontWeight:600}}>hizo clic</span>}
+            </div>
+          </div>
+          {(p.estatus==="activo"||p.estatus==="completado")&&<div style={{display:"flex",gap:4,flexShrink:0}}>
+            <button onClick={()=>marcar(p.id,"respondio")} style={{...est.linkBtn,color:"#16a34a",fontWeight:600}}>Respondió</button>
+            <button onClick={()=>marcar(p.id,"baja")} style={{...est.linkBtn,color:"#dc2626"}}>Baja</button>
+          </div>}
+        </div>)}
+      </div>}
+      {lista&&lista.length>=300&&<div style={{fontSize:12,color:"#8FA0B4",marginTop:10}}>
+        Se muestran las primeras 300. Usa el buscador o los filtros para acotar.
+      </div>}
+    </div>}
+  </div>;
+}
+
 function PanelAdmin({session,onSalir}){
   const[vista,setVista]=useState("resumen"); // resumen | agentes | promotorias | servicios
   const[filtroAgentes,setFiltroAgentes]=useState("red_pendiente");
@@ -610,9 +942,10 @@ function PanelAdmin({session,onSalir}){
       <button onClick={()=>irA("comisiones")} style={tabStyle(vista==="comisiones")}>Comisiones</button>
       <button onClick={()=>irA("servicios")} style={tabStyle(vista==="servicios")}>Servicios</button>
       <button onClick={()=>irA("invitar")} style={tabStyle(vista==="invitar")}>Invitar</button>
+      <button onClick={()=>irA("prospectos")} style={tabStyle(vista==="prospectos")}>Prospectos</button>
     </div>
 
-    {vista==="resumen"?<Resumen onIrA={irA}/>:vista==="promotorias"?<Promotorias initFiltro={filtroPromotorias}/>:vista==="agencias"?<Agencias/>:vista==="comisiones"?<Comisiones/>:vista==="servicios"?<SolicitudesServicio/>:vista==="invitar"?<Invitar/>:<Agentes initFiltro={filtroAgentes}/>}
+    {vista==="resumen"?<Resumen onIrA={irA}/>:vista==="promotorias"?<Promotorias initFiltro={filtroPromotorias}/>:vista==="agencias"?<Agencias/>:vista==="comisiones"?<Comisiones/>:vista==="servicios"?<SolicitudesServicio/>:vista==="invitar"?<Invitar/>:vista==="prospectos"?<Prospectos/>:<Agentes initFiltro={filtroAgentes}/>}
   </div>;
 }
 
