@@ -1809,7 +1809,7 @@ function MiPerfil({agente,onAgenteCambiado}){
       <Campo label="Correo">
         <input value={agente.correo||""} disabled style={{...est.input,background:"#F4F7FB",color:"#8FA0B4"}}/>
       </Campo>
-      <div style={{fontSize:12,color:"#8FA0B4",marginBottom:14}}>Tu nombre y teléfono son los que ve tu cliente en su liga mágica.</div>
+      <div style={{fontSize:12,color:"#8FA0B4",marginBottom:14}}>Tu nombre y teléfono son los que ve tu cliente en su portal.</div>
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
       <Boton type="submit" disabled={guardando}>{guardando?"Guardando...":guardado?"¡Guardado!":"Guardar"}</Boton>
     </form>
