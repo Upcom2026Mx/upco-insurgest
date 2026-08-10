@@ -24,7 +24,7 @@
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const{useState,useEffect}=React;
+const{useState,useEffect,useRef}=React;
 
 const est={
   input:{width:"100%",padding:"13px 15px",border:"1.5px solid #DDE4EE",borderRadius:10,fontSize:15,marginBottom:10,fontFamily:"inherit"},
@@ -597,11 +597,28 @@ function mapearColumnasProspecto(encabezados){
   return mapa;
 }
 
-function TarjetaCifra({valor,etiqueta,color}){
-  return <div style={{flex:"1 1 130px",background:"#fff",border:"1px solid rgba(16,40,74,.08)",borderRadius:12,padding:"14px 16px"}}>
+function TarjetaCifra({valor,etiqueta,color,onClick,activa}){
+  const[hover,setHover]=useState(false);
+  const base={flex:"1 1 130px",background:"#fff",borderRadius:12,padding:"14px 16px",
+    border:"1px solid "+(activa?"#F59E0B":"rgba(16,40,74,.08)"),
+    boxShadow:activa?"0 0 0 2px rgba(245,158,11,.18)":(hover&&onClick?"0 4px 14px rgba(16,40,74,.10)":"none"),
+    transition:"box-shadow .14s ease, border-color .14s ease, transform .14s ease",
+    transform:hover&&onClick?"translateY(-1px)":"none"};
+  if(!onClick) return <div style={base}>
     <div style={{fontSize:26,fontWeight:700,color:color||"#10284A",fontVariantNumeric:"tabular-nums",lineHeight:1.1}}>{valor}</div>
     <div style={{fontSize:12,color:"#6B7280",marginTop:4,lineHeight:1.35}}>{etiqueta}</div>
   </div>;
+  // Con onClick la tarjeta es un botón: lleva a la lista filtrada de abajo.
+  return <button type="button" onClick={onClick}
+    onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
+    title={"Ver estas agencias en la lista"}
+    style={{...base,textAlign:"left",cursor:"pointer",font:"inherit"}}>
+    <div style={{fontSize:26,fontWeight:700,color:color||"#10284A",fontVariantNumeric:"tabular-nums",lineHeight:1.1}}>{valor}</div>
+    <div style={{fontSize:12,color:"#6B7280",marginTop:4,lineHeight:1.35}}>{etiqueta}</div>
+    <div style={{fontSize:11,color:activa?"#B45309":"#A9B4C4",marginTop:6,fontWeight:activa?700:400}}>
+      {activa?"● mostrando abajo":"ver lista →"}
+    </div>
+  </button>;
 }
 
 function ImportarProspectos({onListo}){
@@ -792,23 +809,43 @@ function PlantillasProspeccion(){
 function Prospectos(){
   const[resumen,setResumen]=useState(null);
   const[lista,setLista]=useState(null);
-  const[filtro,setFiltro]=useState("");
+  // El filtro tiene dos partes: e = estatus, v = vista (combinaciones de estatus y etapa)
+  const[filtro,setFiltro]=useState({e:"",v:""});
   const[busqueda,setBusqueda]=useState("");
   const[subvista,setSubvista]=useState("panel");
   const[error,setError]=useState("");
   const[disparando,setDisparando]=useState(false);
   const[avisoLote,setAvisoLote]=useState("");
+  const refLista=useRef(null);
 
   const cargar=async()=>{
+    const args={p_estatus:filtro.e||null,p_ruta:null,p_busqueda:busqueda||null,p_limite:300};
+    // p_vista solo se manda cuando hace falta: así el panel sigue funcionando
+    // aunque todavía no se haya corrido la migración de la sesión 48.
+    if(filtro.v) args.p_vista=filtro.v;
     const[r1,r2]=await Promise.all([
       sb.rpc("admin_prospeccion_resumen"),
-      sb.rpc("admin_prospectos",{p_estatus:filtro||null,p_ruta:null,p_busqueda:busqueda||null,p_limite:300})
+      sb.rpc("admin_prospectos",args)
     ]);
     if(r1.error){setError(r1.error.message);return;}
-    if(r2.error){setError(r2.error.message);return;}
-    setResumen(r1.data);setLista(r2.data||[]);
+    if(r2.error){
+      const m=r2.error.message||"";
+      setError(/p_vista|does not exist|schema cache/i.test(m)
+        ? "Falta correr la migración de la sesión 48 en Supabase para que las tarjetas filtren. Mientras tanto usa las pestañas de abajo."
+        : m);
+      return;
+    }
+    setError("");setResumen(r1.data);setLista(r2.data||[]);
   };
-  useEffect(()=>{cargar()},[filtro,busqueda]);
+  useEffect(()=>{cargar()},[filtro.e,filtro.v,busqueda]);
+
+  /** Aplica un filtro desde una tarjeta y baja la vista hasta la lista. */
+  const verFiltro=(e,v)=>{
+    const igual=filtro.e===(e||"")&&filtro.v===(v||"");
+    setFiltro(igual?{e:"",v:""}:{e:e||"",v:v||""});
+    setTimeout(()=>{if(refLista.current)refLista.current.scrollIntoView({behavior:"smooth",block:"start"})},120);
+  };
+  const activa=(e,v)=>filtro.e===(e||"")&&filtro.v===(v||"");
 
   const marcar=async(id,estatus)=>{
     const{error}=await sb.rpc("admin_marcar_prospecto",{p_id:id,p_estatus:estatus,p_notas:null});
@@ -839,16 +876,24 @@ function Prospectos(){
 
     {subvista==="plantillas"?<PlantillasProspeccion/>:<div>
       <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:20}}>
-        <TarjetaCifra valor={resumen.total} etiqueta="Agencias en la lista"/>
-        <TarjetaCifra valor={resumen.sin_contactar} etiqueta="Sin contactar"/>
-        <TarjetaCifra valor={resumen.en_secuencia} etiqueta="A media secuencia" color="#1f4a80"/>
-        <TarjetaCifra valor={resumen.respondieron} etiqueta="Respondieron" color="#16a34a"/>
+        <TarjetaCifra valor={resumen.total} etiqueta="Agencias en la lista"
+          onClick={()=>verFiltro("","")} activa={activa("","")}/>
+        <TarjetaCifra valor={resumen.sin_contactar} etiqueta="Sin contactar"
+          onClick={()=>verFiltro("","sin_contactar")} activa={activa("","sin_contactar")}/>
+        <TarjetaCifra valor={resumen.en_secuencia} etiqueta="A media secuencia" color="#1f4a80"
+          onClick={()=>verFiltro("","en_secuencia")} activa={activa("","en_secuencia")}/>
+        <TarjetaCifra valor={resumen.respondieron} etiqueta="Respondieron" color="#16a34a"
+          onClick={()=>verFiltro("respondio","")} activa={activa("respondio","")}/>
       </div>
       <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:20}}>
-        <TarjetaCifra valor={enviados} etiqueta={`Correos enviados · ${resumen.enviados_hoy} hoy`}/>
+        <TarjetaCifra valor={enviados} etiqueta={`Correos enviados · ${resumen.enviados_hoy} hoy`}
+          onClick={()=>verFiltro("","contactados")} activa={activa("","contactados")}/>
+        {/* Aperturas y clics son eventos, no estatus: no hay lista que filtrar todavía. */}
         <TarjetaCifra valor={pct(resumen.abrieron)} etiqueta={`Abrieron (${resumen.abrieron} agencias)`} color="#1f4a80"/>
         <TarjetaCifra valor={pct(resumen.clicaron)} etiqueta={`Hicieron clic (${resumen.clicaron} agencias)`} color="#F59E0B"/>
-        <TarjetaCifra valor={resumen.rebotados+resumen.quejas} etiqueta={`Rebotes y quejas de spam`} color={(resumen.rebotados+resumen.quejas)>0?"#dc2626":"#8593AA"}/>
+        <TarjetaCifra valor={resumen.rebotados+resumen.quejas} etiqueta={`Rebotes y quejas de spam`}
+          color={(resumen.rebotados+resumen.quejas)>0?"#dc2626":"#8593AA"}
+          onClick={()=>verFiltro("","problema")} activa={activa("","problema")}/>
       </div>
 
       {enviados>=300&&resumen.respondieron<3&&<div style={{background:"#FDF2DC",border:"1px solid #E8B04B",borderLeft:"4px solid #E8B04B",borderRadius:10,padding:"14px 18px",marginBottom:20,fontSize:13.5,color:"#6B3D07",lineHeight:1.55}}>
@@ -867,10 +912,11 @@ function Prospectos(){
       </div>
       {avisoLote&&<div style={{fontSize:13,color:"#1f4a80",marginBottom:16}}>{avisoLote}</div>}
 
-      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
-        {[["","Todos"],["activo","En secuencia"],["respondio","Respondieron"],["completado","Completos"],["baja","Bajas"],["rebotado","Rebotes"]]
-          .map(([v,t])=><button key={v} onClick={()=>setFiltro(v)}
-            style={{...est.linkBtn,fontWeight:filtro===v?700:400,color:filtro===v?"#10284A":"#53647D"}}>{t}</button>)}
+      <div ref={refLista} style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+        {[["","Todos"],["activo","En secuencia"],["respondio","Respondieron"],["completado","Completos"],
+          ["baja","Bajas"],["rebotado","Rebotes"],["queja","Marcaron spam"]]
+          .map(([v,t])=><button key={v} onClick={()=>setFiltro({e:v,v:""})}
+            style={{...est.linkBtn,fontWeight:activa(v,"")?700:400,color:activa(v,"")?"#10284A":"#53647D"}}>{t}</button>)}
       </div>
       <input placeholder="Buscar por agencia, correo o estado" value={busqueda}
         onChange={e=>setBusqueda(e.target.value)} style={est.input}/>
