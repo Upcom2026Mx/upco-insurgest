@@ -64,6 +64,17 @@ function Boton({children,onClick,disabled,color="#10284A",type="button"}){
   </button>;
 }
 
+// Botón "ver/ocultar" para campos de contraseña — se coloca dentro de un contenedor
+// position:relative junto al <input>, con paddingRight en el input para no taparlo.
+function BotonVerClave({mostrar,onClick}){
+  return <button type="button" onClick={onClick} aria-label={mostrar?"Ocultar contraseña":"Mostrar contraseña"} tabIndex={-1}
+    style={{position:"absolute",right:2,top:0,bottom:0,width:38,background:"none",border:"none",cursor:"pointer",color:"#8FA0B4",display:"flex",alignItems:"center",justifyContent:"center"}}>
+    {mostrar
+      ? <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.77 21.77 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.77 21.77 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      : <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>}
+  </button>;
+}
+
 const ALTO_HEADER=54;
 function HeaderBar(){
   return <div style={{background:"linear-gradient(135deg,#173863,#0a1c35)",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:10,height:ALTO_HEADER,boxShadow:"0 2px 14px rgba(10,28,53,.25)"}}>
@@ -75,6 +86,7 @@ function HeaderBar(){
 function Login(){
   const[email,setEmail]=useState("");
   const[password,setPassword]=useState("");
+  const[mostrarClave,setMostrarClave]=useState(false);
   const[error,setError]=useState("");
   const[cargando,setCargando]=useState(false);
 
@@ -99,7 +111,10 @@ function Login(){
     <form onSubmit={entrar} style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 30px rgba(0,0,0,.08)"}}>
       <div style={{fontSize:18,fontWeight:800,marginBottom:20,color:"#10284A"}}>Iniciar sesión</div>
       <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username" style={est.input}/>
-      <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="tu contraseña" type="password" autoComplete="current-password" style={{...est.input,marginBottom:12}}/>
+      <div style={{position:"relative"}}>
+        <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="tu contraseña" type={mostrarClave?"text":"password"} autoComplete="current-password" style={{...est.input,paddingRight:42,marginBottom:12}}/>
+        <BotonVerClave mostrar={mostrarClave} onClick={()=>setMostrarClave(m=>!m)}/>
+      </div>
       {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:10}}>{error}</div>}
       <div style={{width:"100%"}}><Boton type="submit" disabled={cargando}>{cargando?"Entrando...":"Iniciar sesión"}</Boton></div>
     </form>
@@ -657,7 +672,7 @@ function ImportarProspectos({onListo}){
     // para la petición, y si truena hay que volver a empezar todo.
     let acum={insertados:0,omitidos:0,invalidos:0};
     for(let i=0;i<filas.length;i+=500){
-      const{data,error}=await sb.rpc("admin_importar_prospectos",{p_filas:filas.slice(i,i+500)});
+      const{data,error}=await sb.rpc("admin_importar_prospectos",{p_filas:filas.slice(i,i+500),p_segmento:"agencias_seguros"});
       if(error){setImportando(false);setError(error.message);return;}
       acum={insertados:acum.insertados+data.insertados,omitidos:acum.omitidos+data.omitidos,invalidos:acum.invalidos+data.invalidos};
     }
@@ -695,6 +710,7 @@ function AjustesProspeccion({ajustes,onGuardado}){
     const nuevo={...f,...cambios};
     setF(nuevo);setGuardando(true);setError("");setMsg("");
     const{error}=await sb.rpc("admin_guardar_ajustes_prospeccion",{
+      p_segmento:"agencias_seguros",
       p_activa:nuevo.activa,
       p_envios_por_dia:Number(nuevo.envios_por_dia),
       p_corridas_por_dia:Number(nuevo.corridas_por_dia),
@@ -771,7 +787,7 @@ function PlantillasProspeccion(){
   const[msg,setMsg]=useState("");
 
   const cargar=async()=>{
-    const{data,error}=await sb.rpc("admin_plantillas_prospeccion");
+    const{data,error}=await sb.rpc("admin_plantillas_prospeccion",{p_segmento:"agencias_seguros"});
     if(error){setError(error.message);return;}
     setFilas(data||[]);
   };
@@ -779,7 +795,7 @@ function PlantillasProspeccion(){
 
   const guardar=async(p)=>{
     setError("");setMsg("");
-    const{error}=await sb.rpc("admin_guardar_plantilla",{p_ruta:p.ruta,p_etapa:p.etapa,p_asunto:p.asunto,p_cuerpo_html:p.cuerpo_html});
+    const{error}=await sb.rpc("admin_guardar_plantilla",{p_ruta:p.ruta,p_etapa:p.etapa,p_asunto:p.asunto,p_cuerpo_html:p.cuerpo_html,p_segmento:"agencias_seguros"});
     if(error){setError(error.message);return;}
     setMsg("Plantilla guardada.");setTimeout(()=>setMsg(""),2500);
   };
@@ -819,12 +835,15 @@ function Prospectos(){
   const refLista=useRef(null);
 
   const cargar=async()=>{
-    const args={p_estatus:filtro.e||null,p_ruta:null,p_busqueda:busqueda||null,p_limite:300};
+    // p_segmento explícito desde la Sesión 51: la máquina ahora sirve varios públicos
+    // (agencias de seguros aquí, escuelas desde el admin de Upco Web) y cada función pide
+    // el segmento para no mezclar campañas.
+    const args={p_estatus:filtro.e||null,p_ruta:null,p_busqueda:busqueda||null,p_limite:300,p_segmento:"agencias_seguros"};
     // p_vista solo se manda cuando hace falta: así el panel sigue funcionando
     // aunque todavía no se haya corrido la migración de la sesión 48.
     if(filtro.v) args.p_vista=filtro.v;
     const[r1,r2]=await Promise.all([
-      sb.rpc("admin_prospeccion_resumen"),
+      sb.rpc("admin_prospeccion_resumen",{p_segmento:"agencias_seguros"}),
       sb.rpc("admin_prospectos",args)
     ]);
     if(r1.error){setError(r1.error.message);return;}
