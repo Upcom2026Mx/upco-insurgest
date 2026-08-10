@@ -52,7 +52,9 @@
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
   .card{background:#fff;border:1px solid rgba(16,40,74,.08);border-radius:16px;padding:24px;box-shadow:0 3px 12px rgba(16,28,53,.06)}
   .card.destacada{border:1.5px solid #FBBF24;box-shadow:0 10px 32px rgba(245,158,11,.14)}
-  .card-icono{width:46px;height:46px;border-radius:12px;background:rgba(16,40,74,.06);display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:22px}
+  .card-icono{width:56px;height:56px;border-radius:50%;background:#10284A;display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 6px 16px rgba(16,40,74,.2)}
+  .card-icono i{width:24px;height:24px;display:block;background:#fff;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+  @media(max-width:600px){.card-icono{width:48px;height:48px}.card-icono i{width:20px;height:20px}}
   .card h3{font-size:15.5px;margin:0 0 8px;color:#10284A;font-weight:700}
   .card p{font-size:13.5px;color:#6B7280;line-height:1.6;margin:0}
 
@@ -120,32 +122,32 @@
 <div class="wrap">
   <div class="grid">
     <div class="card destacada">
-      <div class="card-icono">📊</div>
+      <div class="card-icono"><i style="-webkit-mask-image:url(../img/ic-cartera.png);mask-image:url(../img/ic-cartera.png)"></i></div>
       <h3>Toda tu red, en un panel</h3>
-      <p>Agentes, clientes, pólizas y prima total de cada uno de tus agentes — sin pedirle a nadie un reporte. Sabes exactamente quién produce y quién necesita empuje.</p>
+      <p>Agentes, clientes, pólizas y prima total de cada uno de tus agentes — sin pedirle a nadie un reporte. Cada agente lleva su propia comisión y producción por periodo, así que sabes exactamente quién produce y quién necesita empuje.</p>
     </div>
     <div class="card destacada">
-      <div class="card-icono">🤝</div>
+      <div class="card-icono"><i style="-webkit-mask-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='90' cy='62' r='32' fill='none' stroke='%23000' stroke-width='14'/%3E%3Cpath d='M38,176 C38,124 142,124 142,176' fill='none' stroke='%23000' stroke-width='14' stroke-linecap='round'/%3E%3Cpath d='M164,50 V96 M141,73 H187' stroke='%23000' stroke-width='14' stroke-linecap='round'/%3E%3C/svg%3E&quot;);mask-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='90' cy='62' r='32' fill='none' stroke='%23000' stroke-width='14'/%3E%3Cpath d='M38,176 C38,124 142,124 142,176' fill='none' stroke='%23000' stroke-width='14' stroke-linecap='round'/%3E%3Cpath d='M164,50 V96 M141,73 H187' stroke='%23000' stroke-width='14' stroke-linecap='round'/%3E%3C/svg%3E&quot;)"></i></div>
       <h3>Tu mejor argumento para reclutar</h3>
       <p>Cuando invitas a un agente a tu red, no solo le ofreces tu experiencia — le das una herramienta profesional que ya trae incluida, sin que él tenga que buscar ni pagar por su cuenta.</p>
     </div>
     <div class="card destacada">
-      <div class="card-icono">💳</div>
+      <div class="card-icono"><i style="-webkit-mask-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M26,108 L108,26 H176 V94 L94,176 Z' fill='none' stroke='%23000' stroke-width='13' stroke-linejoin='round' stroke-linecap='round'/%3E%3Ccircle cx='128' cy='58' r='15' fill='%23000'/%3E%3C/svg%3E&quot;);mask-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M26,108 L108,26 H176 V94 L94,176 Z' fill='none' stroke='%23000' stroke-width='13' stroke-linejoin='round' stroke-linecap='round'/%3E%3Ccircle cx='128' cy='58' r='15' fill='%23000'/%3E%3C/svg%3E&quot;)"></i></div>
       <h3>Descuento real en el software</h3>
       <p>Tus primeros 5 agentes vienen incluidos en tu cuota base — sin costo individual mientras tu promotoría esté vigente. Del sexto en adelante, tarifa preferencial frente al precio de agente independiente.</p>
     </div>
     <div class="card">
-      <div class="card-icono">🔔</div>
+      <div class="card-icono"><i style="-webkit-mask-image:url(../img/ic-avisos.png);mask-image:url(../img/ic-avisos.png)"></i></div>
       <h3>Avisos automáticos para toda tu red</h3>
       <p>Cada agente recibe solo sus propios avisos de vencimiento, y cada cliente los suyos — sin que tú operes nada. Y desde tu panel puedes escribirle tú misma a agentes o clientes cuando lo necesites.</p>
     </div>
     <div class="card">
-      <div class="card-icono">💰</div>
+      <div class="card-icono"><i style="-webkit-mask-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect x='30' y='120' width='34' height='58' rx='4' fill='%23000'/%3E%3Crect x='83' y='80' width='34' height='98' rx='4' fill='%23000'/%3E%3Crect x='136' y='40' width='34' height='138' rx='4' fill='%23000'/%3E%3C/svg%3E&quot;);mask-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect x='30' y='120' width='34' height='58' rx='4' fill='%23000'/%3E%3Crect x='83' y='80' width='34' height='98' rx='4' fill='%23000'/%3E%3Crect x='136' y='40' width='34' height='138' rx='4' fill='%23000'/%3E%3C/svg%3E&quot;)"></i></div>
       <h3>Gana comisión por tu red</h3>
       <p>Con la tasa que negocies con Upco, ganas sobre lo que facturan tus agentes adicionales. La ves acumular en tu panel y la solicitas cuando quieras — sin esperar a fin de año.</p>
     </div>
     <div class="card">
-      <div class="card-icono">🪪</div>
+      <div class="card-icono"><i style="-webkit-mask-image:url(../img/ic-agente.png);mask-image:url(../img/ic-agente.png)"></i></div>
       <h3>Tu propia tarjeta de promotoría</h3>
       <p>Una página pública con tu marca para captar prospectos y agentes interesados en unirse a tu red — la misma herramienta que le das a cada uno de tus agentes.</p>
     </div>
