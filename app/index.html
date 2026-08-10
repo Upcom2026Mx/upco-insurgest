@@ -928,7 +928,7 @@ function PolizaForm({clienteId,clientesDisponibles,agenteId,polizaExistente,onGu
 
   useEffect(()=>{
     if(!clienteSel){setVehiculos([]);return;}
-    sb.from("vehiculos").select("id,placas,marca,modelo").eq("cliente_id",clienteSel).order("created_at")
+    sb.from("vehiculos").select("id,placas,marca,modelo,tipo_vehiculo").eq("cliente_id",clienteSel).order("created_at")
       .then(({data})=>setVehiculos(data||[]));
   },[clienteSel]);
   const[fechaInicio,setFechaInicio]=useState(p?p.fecha_inicio||"":"");
@@ -938,7 +938,38 @@ function PolizaForm({clienteId,clientesDisponibles,agenteId,polizaExistente,onGu
     if(duracion==="custom"||!fechaInicio)return;
     setFechaFin(sumarAnios(fechaInicio,parseInt(duracion,10)));
   },[duracion,fechaInicio]);
+  const[primaNeta,setPrimaNeta]=useState(p&&p.prima_neta!=null?String(p.prima_neta):"");
+  const[derechos,setDerechos]=useState(p&&p.derechos!=null?String(p.derechos):"");
+  const[iva,setIva]=useState(p&&p.iva!=null?String(p.iva):"");
   const[prima,setPrima]=useState(p&&p.prima!=null?String(p.prima):"");
+  // Una vez que el agente teclea el gran total a mano, se deja de recalcular solo: puede
+  // haber recargo por pago fraccionado u otros conceptos que no capturamos por separado,
+  // y pelearle al usuario su propio número sería peor que no sumar nada.
+  const[totalManual,setTotalManual]=useState(!!(p&&p.prima!=null));
+  const[llevaComision,setLlevaComision]=useState(!!(p&&p.comision_pct!=null));
+  const[comisionPct,setComisionPct]=useState(p&&p.comision_pct!=null?String(p.comision_pct):"");
+
+  // El gran total se sugiere sumando los componentes, pero queda editable.
+  useEffect(()=>{
+    if(totalManual)return;
+    const suma=(parseFloat(primaNeta)||0)+(parseFloat(derechos)||0)+(parseFloat(iva)||0);
+    setPrima(suma>0?String(Number(suma.toFixed(2))):"");
+  },[primaNeta,derechos,iva,totalManual]);
+
+  // Comisión sugerida sólo para Auto, que es donde el porcentaje es razonablemente estable:
+  // 8% en carga (incluye flotillas), 10% en auto y moto. En el resto de los ramos el rango
+  // es tan amplio (Vida va de 20% a 70% según aseguradora y año) que sugerir un número
+  // sería adivinar — ahí lo captura el agente. Siempre es editable.
+  const comisionSugerida=()=>{
+    if(ramo!=="Auto")return "";
+    const v=(vehiculos||[]).find(x=>x.id===vehiculoId);
+    return v&&v.tipo_vehiculo==="carga"?"8":"10";
+  };
+  const alternarComision=(activo)=>{
+    setLlevaComision(activo);
+    if(activo&&!comisionPct)setComisionPct(comisionSugerida());
+    if(!activo)setComisionPct("");
+  };
   const[formaPago,setFormaPago]=useState(p?p.forma_pago||"anual":"anual");
   const[estatus,setEstatus]=useState(p?p.estatus:"vigente");
   const[notas,setNotas]=useState(p?p.notas||"":"");
@@ -958,7 +989,13 @@ function PolizaForm({clienteId,clientesDisponibles,agenteId,polizaExistente,onGu
       ramo:ramoFinal,
       fecha_inicio:fechaInicio||null,
       fecha_fin:fechaFin||null,
+      prima_neta:primaNeta?parseFloat(primaNeta):null,
+      derechos:derechos?parseFloat(derechos):null,
+      iva:iva?parseFloat(iva):null,
       prima:prima?parseFloat(prima):null,
+      // Nulo cuando el agente apaga el control de comisión: así la póliza no cuenta en los
+      // totales en vez de contar como cero, que falsearía el reporte hacia abajo.
+      comision_pct:llevaComision&&comisionPct?parseFloat(comisionPct):null,
       forma_pago:formaPago||null,
       estatus,
       notas:notas.trim()||null,
@@ -1049,15 +1086,62 @@ function PolizaForm({clienteId,clientesDisponibles,agenteId,polizaExistente,onGu
     </Campo>
 
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-      <Campo label="Prima total (MXN)">
-        <input name="prima" value={prima} onChange={e=>setPrima(e.target.value)} type="number" step="0.01" min="0" style={est.input}/>
+      <Campo label="Prima neta (MXN)">
+        <input name="prima_neta" value={primaNeta} onChange={e=>setPrimaNeta(e.target.value)} type="number" step="0.01" min="0" style={est.input}/>
       </Campo>
+      <Campo label="Derechos de póliza">
+        <input name="derechos" value={derechos} onChange={e=>setDerechos(e.target.value)} type="number" step="0.01" min="0" style={est.input}/>
+      </Campo>
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <Campo label="IVA">
+        <input name="iva" value={iva} onChange={e=>setIva(e.target.value)} type="number" step="0.01" min="0" style={est.input}/>
+      </Campo>
+      <Campo label="Prima total (lo que paga el cliente)">
+        <input name="prima" value={prima} onChange={e=>{setTotalManual(true);setPrima(e.target.value);}}
+          type="number" step="0.01" min="0" style={est.input}/>
+      </Campo>
+    </div>
+    <div style={{fontSize:11.5,color:"#8FA0B4",marginTop:-6,marginBottom:12}}>
+      El total se suma solo; puedes editarlo si la póliza trae recargo por pago fraccionado u otro concepto.
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
       <Campo label="Forma de pago">
         <select name="forma_pago" value={formaPago} onChange={e=>setFormaPago(e.target.value)} style={est.input}>
           {FORMAS_PAGO.map(f=><option key={f} value={f}>{f}</option>)}
         </select>
       </Campo>
+      <Campo label="Comisión">
+        <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13.5,color:"#374151",padding:"11px 0"}}>
+          <input name="lleva_comision" type="checkbox" checked={llevaComision}
+            onChange={e=>alternarComision(e.target.checked)} style={{width:16,height:16}}/>
+          Llevar control de comisión
+        </label>
+      </Campo>
     </div>
+
+    {llevaComision&&<div style={{background:"#F4F7FB",borderRadius:10,padding:"14px 16px",marginBottom:12}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,alignItems:"end"}}>
+        <Campo label="% de comisión">
+          <input name="comision_pct" value={comisionPct} onChange={e=>setComisionPct(e.target.value)}
+            type="number" step="0.01" min="0" max="100" placeholder={comisionSugerida()||"Ej. 25"} style={est.input}/>
+        </Campo>
+        <div style={{paddingBottom:10}}>
+          <div style={{fontSize:11.5,color:"#8FA0B4"}}>Comisión estimada</div>
+          <div style={{fontSize:19,fontWeight:700,color:"#10284A"}}>
+            {primaNeta&&comisionPct
+              ? pesos((parseFloat(primaNeta)||0)*(parseFloat(comisionPct)||0)/100)
+              : "—"}
+          </div>
+        </div>
+      </div>
+      <div style={{fontSize:11.5,color:"#8FA0B4",marginTop:8}}>
+        Se calcula sobre la prima neta, que es como la pagan las aseguradoras — nunca sobre el IVA ni los derechos.
+        {ramo==="Auto"&&" Para Auto se sugiere 10% (8% en carga), pero puedes cambiarlo."}
+      </div>
+    </div>}
 
     <Campo label="Estatus">
       <select name="estatus" value={estatus} onChange={e=>setEstatus(e.target.value)} style={est.input}>
@@ -1145,7 +1229,10 @@ function PolizasList({clienteId,agenteId,onPolizaCambiada}){
         <span style={est.badge(colorEstatus[vig.label]||"#6b7280")}>{vig.label}</span>
       </div>
       <div style={{marginTop:10,fontSize:13,color:"#374151",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span>{pesos(p.prima)} {p.forma_pago?`· ${p.forma_pago}`:""}</span>
+        <span>
+          {pesos(p.prima)} {p.forma_pago?`· ${p.forma_pago}`:""}
+          {p.comision_monto!=null&&<span style={{color:"#16a34a",fontWeight:600}}>{" · "}{pesos(p.comision_monto)} de comisión</span>}
+        </span>
         <div style={{display:"flex",gap:4}}>
           {p.pdf_url&&<button onClick={()=>descargar(p)} style={est.linkBtn}>Descargar PDF</button>}
           <button onClick={()=>setEditando(p)} style={est.linkBtn}>Editar</button>
@@ -1532,7 +1619,7 @@ function DashboardAgente(){
     <div style={{...est.card,textAlign:"center",color:"#6B7280"}}>Todavía no tienes pólizas registradas.</div>
   </div>;
 
-  let vigentes=0,porVencer=0,vencidas=0,renovadas=0,canceladas=0,primaVigente=0;
+  let vigentes=0,porVencer=0,vencidas=0,renovadas=0,canceladas=0,primaVigente=0,comisionVigente=0,conComision=0;
   polizas.forEach(p=>{
     const vig=vigenciaCalculada(p);
     if(vig.label==="renovada")renovadas++;
@@ -1541,8 +1628,13 @@ function DashboardAgente(){
     else{
       if(vig.dias!=null&&vig.dias<=15)porVencer++;else vigentes++;
       primaVigente+=Number(p.prima)||0;
+      // Solo suman las pólizas donde el agente sí capturó su porcentaje. Las demás no se
+      // cuentan como cero: se informa aparte cuántas quedaron fuera, para que el total no
+      // se lea como "esto es todo lo que gano" cuando en realidad está incompleto.
+      if(p.comision_monto!=null){comisionVigente+=Number(p.comision_monto)||0;conComision++;}
     }
   });
+  const vigentesTotales=vigentes+porVencer;
 
   const porCampo=(campo)=>{
     const mapa={};
@@ -1572,10 +1664,90 @@ function DashboardAgente(){
     </div>
     {canceladas>0&&<div style={{fontSize:12,color:"#8FA0B4",marginBottom:24}}>+ {canceladas} canceladas</div>}
 
+    {conComision>0&&<div style={{marginBottom:24}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
+        <TarjetaKPI label="Comisión estimada de tu cartera vigente" valor={pesos(comisionVigente)} color="#16a34a" grande/>
+      </div>
+      <div style={{fontSize:11.5,color:"#8FA0B4",marginTop:8}}>
+        Calculada sobre prima neta en {conComision} de {vigentesTotales} pólizas vigentes.
+        {conComision<vigentesTotales&&" Las demás no tienen porcentaje capturado."}
+        {" "}Es lo devengado por lo colocado, no lo que ya te depositaron.
+      </div>
+    </div>}
+
+    <ReporteProduccion polizas={polizas}/>
+
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:16}}>
       <GraficaBarras titulo="PÓLIZAS POR ASEGURADORA" datos={porCampo("aseguradora")}/>
       <GraficaBarras titulo="PÓLIZAS POR RAMO" datos={porCampo("ramo")}/>
     </div>
+  </div>;
+}
+
+// Producción: cuánto se colocó en cada periodo. Se agrupa por fecha_inicio (cuándo se emitió
+// la póliza), no por vencimiento — es la diferencia entre "cuánto vendí" y "qué tengo vivo".
+function ReporteProduccion({polizas}){
+  const[periodo,setPeriodo]=useState("mes");
+
+  const conFecha=polizas.filter(p=>p.fecha_inicio);
+  if(conFecha.length===0)return null;
+
+  const claveDe=(iso)=>{
+    const[a,m]=iso.split("-");
+    if(periodo==="anio")return a;
+    if(periodo==="trimestre")return `${a}-T${Math.floor((parseInt(m,10)-1)/3)+1}`;
+    return `${a}-${m}`;
+  };
+  const etiquetaDe=(clave)=>{
+    if(periodo==="anio")return clave;
+    if(periodo==="trimestre")return clave.replace("-"," ");
+    const[a,m]=clave.split("-");
+    const meses=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    return `${meses[parseInt(m,10)-1]} ${a}`;
+  };
+
+  const mapa={};
+  conFecha.forEach(p=>{
+    const k=claveDe(p.fecha_inicio);
+    mapa[k]=mapa[k]||{polizas:0,neta:0,comision:0};
+    mapa[k].polizas++;
+    mapa[k].neta+=Number(p.prima_neta)||0;
+    mapa[k].comision+=Number(p.comision_monto)||0;
+  });
+  // Más reciente arriba, acotado a 12 periodos para que no crezca sin fin.
+  const filas=Object.entries(mapa).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,12);
+  const hayComision=filas.some(([,v])=>v.comision>0);
+
+  return <div style={{...est.card,marginBottom:24}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8,marginBottom:14}}>
+      <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4"}}>PRIMA COLOCADA</div>
+      <div style={{display:"flex",gap:4}}>
+        {[["mes","Mes"],["trimestre","Trimestre"],["anio","Año"]].map(([v,etq])=>
+          <button key={v} onClick={()=>setPeriodo(v)} style={{
+            background:periodo===v?"#10284A":"#F4F7FB",color:periodo===v?"#fff":"#53647D",
+            border:"none",borderRadius:7,padding:"6px 12px",fontSize:12,fontWeight:600,cursor:"pointer"
+          }}>{etq}</button>)}
+      </div>
+    </div>
+    <div style={{overflowX:"auto"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",minWidth:hayComision?420:320}}>
+        <thead><tr style={{fontSize:11,color:"#8FA0B4",textTransform:"uppercase",letterSpacing:".04em"}}>
+          <th style={{textAlign:"left",padding:"6px 8px",borderBottom:"1.5px solid #DDE4EE"}}>Periodo</th>
+          <th style={{textAlign:"right",padding:"6px 8px",borderBottom:"1.5px solid #DDE4EE"}}>Pólizas</th>
+          <th style={{textAlign:"right",padding:"6px 8px",borderBottom:"1.5px solid #DDE4EE"}}>Prima neta</th>
+          {hayComision&&<th style={{textAlign:"right",padding:"6px 8px",borderBottom:"1.5px solid #DDE4EE"}}>Comisión</th>}
+        </tr></thead>
+        <tbody>
+          {filas.map(([clave,v])=><tr key={clave} style={{fontSize:13}}>
+            <td style={{padding:"9px 8px",borderBottom:"1px solid #EEF2F8",fontWeight:600,color:"#10284A"}}>{etiquetaDe(clave)}</td>
+            <td style={{padding:"9px 8px",borderBottom:"1px solid #EEF2F8",textAlign:"right",color:"#6B7280",fontVariantNumeric:"tabular-nums"}}>{v.polizas}</td>
+            <td style={{padding:"9px 8px",borderBottom:"1px solid #EEF2F8",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>{v.neta>0?pesos(v.neta):"—"}</td>
+            {hayComision&&<td style={{padding:"9px 8px",borderBottom:"1px solid #EEF2F8",textAlign:"right",color:"#16a34a",fontWeight:600,fontVariantNumeric:"tabular-nums"}}>{v.comision>0?pesos(v.comision):"—"}</td>}
+          </tr>)}
+        </tbody>
+      </table>
+    </div>
+    <div style={{fontSize:11.5,color:"#8FA0B4",marginTop:10}}>Por fecha de inicio de vigencia. Solo cuenta lo que tiene prima neta capturada.</div>
   </div>;
 }
 
