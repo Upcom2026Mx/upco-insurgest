@@ -257,9 +257,14 @@ begin
     return json_build_object('enviados', 0, 'motivo', 'campaña pausada');
   end if;
 
-  select decrypted_secret into v_key from vault.decrypted_secrets where name = 'resend_api_key';
+  -- Llave PROPIA de la campaña, no la de InsurGest. Las API keys de Resend se pueden restringir
+  -- a un dominio, y la de InsurGest está limitada a upco.app: usarla aquí devuelve
+  -- 403 "This API key is not authorized to send emails from theupgradecompany.mx".
+  -- Tenerlas separadas además permite rotar la de campaña sin tocar los correos de sistema.
+  -- Se guarda con: select vault.create_secret('<llave>', 'resend_api_key_campana');
+  select decrypted_secret into v_key from vault.decrypted_secrets where name = 'resend_api_key_campana';
   if v_key is null then
-    return json_build_object('enviados', 0, 'motivo', 'falta resend_api_key en Vault');
+    return json_build_object('enviados', 0, 'motivo', 'falta resend_api_key_campana en Vault');
   end if;
 
   -- Cupo del día en horario de México (el servidor corre en UTC). México no tiene horario de
