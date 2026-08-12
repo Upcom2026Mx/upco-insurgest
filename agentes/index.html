@@ -43,7 +43,11 @@
   .cta-row{display:flex;flex-wrap:wrap;gap:12px}
   .boton{display:inline-block;background:#fff;color:#0a1c35;border-radius:99px;padding:15px 28px;font-size:14.5px;font-weight:800;transition:transform .18s ease,background .18s ease}
   .boton:hover{transform:translateY(-2px);background:#FBBF24}
-  .boton-sec{display:inline-flex;align-items:center;color:#fff;font-size:14.5px;font-weight:700;padding:15px 4px;border-bottom:1.5px solid rgba(255,255,255,.35);transition:border-color .18s ease}
+  /* .boton-sec se usa tanto en <a> como en <button type="button"> (el de "Quiero más
+     información" del cierre) — un <button> real trae su propia apariencia nativa del
+     navegador (fondo gris, borde, relleno) que nada de lo de arriba pisaba, así que se veía
+     como un botón gris sólido en vez del texto transparente con línea que debía ser. */
+  .boton-sec{display:inline-flex;align-items:center;background:transparent;border:none;appearance:none;-webkit-appearance:none;font-family:inherit;cursor:pointer;color:#fff;font-size:14.5px;font-weight:700;padding:15px 4px;border-bottom:1.5px solid rgba(255,255,255,.35);border-radius:0;transition:border-color .18s ease;forced-color-adjust:none}
   .boton-sec:hover{border-color:#fff}
   @media(prefers-reduced-motion:reduce){.boton,.boton-sec{transition:none}.boton:hover{transform:none}}
   @media(max-width:600px){.hero{padding:56px 24px;text-align:center}.hero p{margin-left:auto;margin-right:auto}.cta-row{justify-content:center}}
