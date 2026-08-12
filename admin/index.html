@@ -908,8 +908,10 @@ function Prospectos(){
         <TarjetaCifra valor={enviados} etiqueta={`Correos enviados · ${resumen.enviados_hoy} hoy`}
           onClick={()=>verFiltro("","contactados")} activa={activa("","contactados")}/>
         {/* Aperturas y clics son eventos, no estatus: no hay lista que filtrar todavía. */}
-        <TarjetaCifra valor={pct(resumen.abrieron)} etiqueta={`Abrieron (${resumen.abrieron} agencias)`} color="#1f4a80"/>
-        <TarjetaCifra valor={pct(resumen.clicaron)} etiqueta={`Hicieron clic (${resumen.clicaron} agencias)`} color="#F59E0B"/>
+        <TarjetaCifra valor={pct(resumen.abrieron)} etiqueta={`Abrieron (${resumen.abrieron} agencias)`} color="#1f4a80"
+          onClick={()=>verFiltro("","abrieron")} activa={activa("","abrieron")}/>
+        <TarjetaCifra valor={pct(resumen.clicaron)} etiqueta={`Hicieron clic (${resumen.clicaron} agencias)`} color="#F59E0B"
+          onClick={()=>verFiltro("","clicaron")} activa={activa("","clicaron")}/>
         <TarjetaCifra valor={resumen.rebotados+resumen.quejas} etiqueta={`Rebotes y quejas de spam`}
           color={(resumen.rebotados+resumen.quejas)>0?"#dc2626":"#8593AA"}
           onClick={()=>verFiltro("","problema")} activa={activa("","problema")}/>
