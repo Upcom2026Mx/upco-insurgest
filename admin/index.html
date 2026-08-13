@@ -822,6 +822,57 @@ function PlantillasProspeccion(){
   </div>;
 }
 
+function TopeDominio(){
+  const[d,setD]=useState(null);
+  const[msg,setMsg]=useState("");
+  const[error,setError]=useState("");
+
+  const cargar=async()=>{
+    const{data,error}=await sb.rpc("admin_tope_dominio");
+    if(error){setError(error.message);return;}
+    setError("");setD(data);
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const guardarTope=async(tope)=>{
+    const{error}=await sb.rpc("admin_guardar_tope_dominio",{p_tope_diario:Number(tope)});
+    if(error){setError(error.message);return;}
+    cargar();
+  };
+
+  const reactivar=async(segmento)=>{
+    const{error}=await sb.rpc("admin_reactivar_segmento",{p_segmento:segmento});
+    if(error){setError(error.message);return;}
+    setMsg(segmento+" reactivado.");setTimeout(()=>setMsg(""),2500);
+    cargar();
+  };
+
+  if(!d)return null;
+  const etiquetas={agencias_seguros:"Agencias de seguros",escuelas:"Escuelas",academias:"Academias"};
+  return <div style={{...est.card,marginBottom:20,background:"#FAFCFE"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:12}}>
+      <div>
+        <div style={{fontSize:13,fontWeight:700,color:"#10284A"}}>Tope del dominio · compartido entre las 3 campañas</div>
+        <div style={{fontSize:12,color:"#6B7280",marginTop:2}}>{d.enviados_hoy_dominio} de {d.tope_diario} enviados hoy en total</div>
+      </div>
+      <input type="number" min="1" max="500" defaultValue={d.tope_diario} key={d.tope_diario}
+        onBlur={e=>{if(Number(e.target.value)!==d.tope_diario)guardarTope(e.target.value)}}
+        style={{width:80,padding:"6px 8px",borderRadius:8,border:"1px solid #DDE4EE",fontSize:14,textAlign:"center"}}/>
+    </div>
+    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+      {(d.segmentos||[]).map(s=>
+        <div key={s.segmento} style={{display:"flex",alignItems:"center",gap:6,fontSize:12.5,padding:"5px 10px",borderRadius:20,
+          background:s.activa?"#E8F5EC":"#FDECEC",color:s.activa?"#16a34a":"#dc2626"}}>
+          <b>{etiquetas[s.segmento]||s.segmento}</b> · {s.activa?"activa":"pausada"}
+          {!s.activa&&<button onClick={()=>reactivar(s.segmento)}
+            style={{marginLeft:4,fontSize:11.5,fontWeight:700,background:"none",border:"none",color:"#10284A",cursor:"pointer",textDecoration:"underline"}}>reactivar</button>}
+        </div>)}
+    </div>
+    {msg&&<div style={{color:"#16a34a",fontSize:12.5,marginTop:8}}>{msg}</div>}
+    {error&&<div style={{color:"#dc2626",fontSize:12.5,marginTop:8}}>{error}</div>}
+  </div>;
+}
+
 function Prospectos(){
   const[resumen,setResumen]=useState(null);
   const[lista,setLista]=useState(null);
@@ -894,6 +945,7 @@ function Prospectos(){
     </div>
 
     {subvista==="plantillas"?<PlantillasProspeccion/>:<div>
+      <TopeDominio/>
       <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:20}}>
         <TarjetaCifra valor={resumen.total} etiqueta="Agencias en la lista"
           onClick={()=>verFiltro("","")} activa={activa("","")}/>
