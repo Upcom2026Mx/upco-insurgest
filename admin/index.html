@@ -940,6 +940,7 @@ function LeadsCalientes(){
           <div style={{fontSize:12.5,color:"#53647D",wordBreak:"break-all",marginBottom:4}}>{l.correo}</div>
           <div style={{fontSize:11.5,color:"#8FA0B4"}}>
             <span style={{color:COLOR_SEGMENTO[l.segmento]||"#8FA0B4",fontWeight:600}}>{ETIQUETA_SEGMENTO[l.segmento]||l.segmento}</span>
+            {" → "}<span style={{fontWeight:600}}>{ETIQUETA_RUTA[l.ruta]||l.ruta}</span>
             {" · "}{l.clics} {l.clics===1?"clic":"clics"}{l.aperturas>0?` · ${l.aperturas} apertura${l.aperturas===1?"":"s"}`:""}
           </div>
         </div>
