@@ -897,7 +897,9 @@ function LeadsCalientes(){
   const[copiadoId,setCopiadoId]=useState(null);
 
   useEffect(()=>{
-    sb.rpc("admin_leads_calientes",{p_limite:20}).then(({data,error})=>{
+    // p_segmento fijo: este panel es de InsurGest, no debe mezclar leads de
+    // escuelas/academias (esas se administran desde el admin de Upco WEB).
+    sb.rpc("admin_leads_calientes",{p_limite:20,p_segmento:"agencias_seguros"}).then(({data,error})=>{
       if(error){setError(error.message);return;}
       setLeads(data||[]);
     });
