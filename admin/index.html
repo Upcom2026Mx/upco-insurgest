@@ -593,6 +593,8 @@ function Invitar(){
 const COLOR_ESTATUS_PROSPECTO={activo:"#1f4a80",respondio:"#16a34a",baja:"#6b7280",rebotado:"#dc2626",queja:"#dc2626",completado:"#8593AA"};
 const ETIQUETA_ESTATUS_PROSPECTO={activo:"En secuencia",respondio:"Respondió",baja:"Baja",rebotado:"Rebotó",queja:"Marcó spam",completado:"Secuencia completa"};
 const ETIQUETA_RUTA={web:"Upco WEB",insurgest:"InsurGest"};
+const ETIQUETA_SEGMENTO={agencias_seguros:"Agencias de seguros",escuelas:"Escuelas",academias:"Academias"};
+const COLOR_SEGMENTO={agencias_seguros:"#1f4a80",escuelas:"#8B5CF6",academias:"#B45309"};
 
 const ALIAS_PROSPECTO={
   agencia:["agencia","denominacion","denominación","nombre","empresa","razon social"],
@@ -876,6 +878,82 @@ function TopeDominio(){
   </div>;
 }
 
+// ============ LEADS CALIENTES ============
+// "Caliente" = al menos un clic real (las aperturas se inflan solas, sobre todo en
+// iPhone, así que no cuentan como señal por sí solas — ver admin_leads_calientes).
+// Cubre los 3 segmentos aunque hoy solo agencias_seguros se administre desde aquí:
+// un lead de Upco WEB (ej. Goethe-Institut) es igual de accionable que uno de InsurGest.
+function respaldoCopiarTexto(texto,listo){
+  const ta=document.createElement("textarea");
+  ta.value=texto;ta.style.position="fixed";ta.style.opacity="0";
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand("copy");listo();}catch(e){/* sin portapapeles disponible */}
+  document.body.removeChild(ta);
+}
+
+function LeadsCalientes(){
+  const[leads,setLeads]=useState(null);
+  const[error,setError]=useState("");
+  const[copiadoId,setCopiadoId]=useState(null);
+
+  useEffect(()=>{
+    sb.rpc("admin_leads_calientes",{p_limite:20}).then(({data,error})=>{
+      if(error){setError(error.message);return;}
+      setLeads(data||[]);
+    });
+  },[]);
+
+  const copiar=(correo,id)=>{
+    const listo=()=>{setCopiadoId(id);setTimeout(()=>setCopiadoId(c=>c===id?null:c),1800);};
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(correo).then(listo,()=>respaldoCopiarTexto(correo,listo));
+    }else{
+      respaldoCopiarTexto(correo,listo);
+    }
+  };
+
+  if(error)return null; // falla en silencio: es un apartado secundario, no debe tumbar la pestaña.
+  if(!leads)return null; // cargando
+
+  return <div style={{...est.card,marginBottom:20,borderLeft:"4px solid #F59E0B"}}>
+    <div style={{fontSize:15,fontWeight:700,marginBottom:2}}>🔥 Leads calientes</div>
+    <div style={{fontSize:12.5,color:"#6B7280",marginBottom:14,lineHeight:1.5}}>
+      Hicieron clic de verdad — no solo abrieron — y todavía nadie les ha escrito un mensaje
+      personal. Copia el correo y escríbeles directo, fuera de la secuencia automática.
+    </div>
+
+    {leads.length===0&&<div style={{fontSize:13,color:"#8FA0B4",padding:"8px 2px"}}>
+      Todavía no hay ninguno. En cuanto alguien haga clic en un correo de la campaña, aparece aquí.
+    </div>}
+
+    {leads.length>0&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {leads.map(l=><div key={l.id} style={{
+          background:"#fff",border:"1px solid #F0E0C0",borderRadius:10,
+          padding:"12px 14px",display:"flex",justifyContent:"space-between",
+          alignItems:"flex-start",gap:10,flexWrap:"wrap"
+        }}>
+        <div style={{flex:"1 1 220px",minWidth:0}}>
+          <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:4}}>
+            <span style={{fontWeight:700,fontSize:14,wordBreak:"break-word"}}>{l.agencia}</span>
+            {l.vio_terminos&&<span style={est.badge("#B45309")}>vio términos</span>}
+          </div>
+          <div style={{fontSize:12.5,color:"#53647D",wordBreak:"break-all",marginBottom:4}}>{l.correo}</div>
+          <div style={{fontSize:11.5,color:"#8FA0B4"}}>
+            <span style={{color:COLOR_SEGMENTO[l.segmento]||"#8FA0B4",fontWeight:600}}>{ETIQUETA_SEGMENTO[l.segmento]||l.segmento}</span>
+            {" · "}{l.clics} {l.clics===1?"clic":"clics"}{l.aperturas>0?` · ${l.aperturas} apertura${l.aperturas===1?"":"s"}`:""}
+          </div>
+        </div>
+        <div style={{display:"flex",gap:6,flexShrink:0}}>
+          <button onClick={()=>copiar(l.correo,l.id)} className={`btn ${copiadoId===l.id?"btn-good":"btn-neutral"}`} style={{fontSize:12.5,padding:"7px 12px"}}>
+            {copiadoId===l.id?"Copiado":"Copiar correo"}
+          </button>
+          <a href={`mailto:${l.correo}`} className="btn btn-navy" style={{fontSize:12.5,padding:"7px 12px",textDecoration:"none"}}>Escribir</a>
+        </div>
+      </div>)}
+    </div>}
+  </div>;
+}
+
 function Prospectos(){
   const[resumen,setResumen]=useState(null);
   const[lista,setLista]=useState(null);
@@ -971,6 +1049,8 @@ function Prospectos(){
           color={(resumen.rebotados+resumen.quejas)>0?"#dc2626":"#8593AA"}
           onClick={()=>verFiltro("","problema")} activa={activa("","problema")}/>
       </div>
+
+      <LeadsCalientes/>
 
       {enviados>=300&&resumen.respondieron<3&&<div style={{background:"#FDF2DC",border:"1px solid #E8B04B",borderLeft:"4px solid #E8B04B",borderRadius:10,padding:"14px 18px",marginBottom:20,fontSize:13.5,color:"#6B3D07",lineHeight:1.55}}>
         Van {enviados} correos y solo {resumen.respondieron} respuestas. Antes de seguir gastando lista,
