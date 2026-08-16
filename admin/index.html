@@ -881,8 +881,9 @@ function TopeDominio(){
 // ============ LEADS CALIENTES ============
 // "Caliente" = al menos un clic real (las aperturas se inflan solas, sobre todo en
 // iPhone, así que no cuentan como señal por sí solas — ver admin_leads_calientes).
-// Cubre los 3 segmentos aunque hoy solo agencias_seguros se administre desde aquí:
-// un lead de Upco WEB (ej. Goethe-Institut) es igual de accionable que uno de InsurGest.
+// Sesión 66: filtra por p_segmento fijo en "agencias_seguros" — este panel es de
+// InsurGest. Los leads de escuelas/academias tienen su propio apartado igual en
+// el admin de Upco WEB, no se mezclan aquí (ver Sesión 67).
 function respaldoCopiarTexto(texto,listo){
   const ta=document.createElement("textarea");
   ta.value=texto;ta.style.position="fixed";ta.style.opacity="0";
@@ -968,6 +969,8 @@ function Prospectos(){
   const[disparando,setDisparando]=useState(false);
   const[avisoLote,setAvisoLote]=useState("");
   const refLista=useRef(null);
+  const refLeadsCalientes=useRef(null);
+  const irALeadsCalientes=()=>refLeadsCalientes.current&&refLeadsCalientes.current.scrollIntoView({behavior:"smooth",block:"start"});
 
   const cargar=async()=>{
     // p_segmento explícito desde la Sesión 51: la máquina ahora sirve varios públicos
@@ -1048,12 +1051,17 @@ function Prospectos(){
           onClick={()=>verFiltro("","abrieron")} activa={activa("","abrieron")}/>
         <TarjetaCifra valor={pct(resumen.clicaron)} etiqueta={`Hicieron clic (${resumen.clicaron} agencias)`} color="#F59E0B"
           onClick={()=>verFiltro("","clicaron")} activa={activa("","clicaron")}/>
+        {/* Distinto de "Hicieron clic": ahí filtra la lista de abajo; aquí baja
+            directo a la tarjeta de Leads calientes, que es una curaduría más
+            chica (clic real + estatus contactable) pensada para actuar hoy. */}
+        <TarjetaCifra valor={resumen.leads_calientes||0} etiqueta="🔥 Leads calientes" color="#B45309"
+          onClick={irALeadsCalientes}/>
         <TarjetaCifra valor={resumen.rebotados+resumen.quejas} etiqueta={`Rebotes y quejas de spam`}
           color={(resumen.rebotados+resumen.quejas)>0?"#dc2626":"#8593AA"}
           onClick={()=>verFiltro("","problema")} activa={activa("","problema")}/>
       </div>
 
-      <LeadsCalientes/>
+      <div ref={refLeadsCalientes}><LeadsCalientes/></div>
 
       {enviados>=300&&resumen.respondieron<3&&<div style={{background:"#FDF2DC",border:"1px solid #E8B04B",borderLeft:"4px solid #E8B04B",borderRadius:10,padding:"14px 18px",marginBottom:20,fontSize:13.5,color:"#6B3D07",lineHeight:1.55}}>
         Van {enviados} correos y solo {resumen.respondieron} respuestas. Antes de seguir gastando lista,
