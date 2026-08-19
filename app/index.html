@@ -235,7 +235,7 @@ function Login(){
           <input value={numeroCedula} onChange={e=>setNumeroCedula(e.target.value)} placeholder="Número de cédula" style={est.input}/>
         </div>}
 
-        <input value={codigoPromotoria} onChange={e=>setCodigoPromotoria(e.target.value.toUpperCase())} placeholder="Código de promotoría (opcional)" style={est.input}/>
+        <input value={codigoPromotoria} onChange={e=>setCodigoPromotoria(e.target.value.toUpperCase())} placeholder="Código de invitación (opcional)" style={est.input}/>
       </>}
       <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username" style={est.input}/>
       <div style={{position:"relative"}}>
@@ -2555,9 +2555,17 @@ function Panel({session,onSalir}){
       if(data){setAgente(data);return;}
       const meta=session.user.user_metadata||{};
       let promotoriaId=null;
+      let agenteLibreId=null;
       if(meta.codigo_promotoria){
         const{data:idResuelto}=await sb.rpc("resolver_codigo_promotoria",{p_codigo:meta.codigo_promotoria});
-        promotoriaId=idResuelto||null;
+        if(idResuelto){
+          promotoriaId=idResuelto;
+        }else{
+          // No es código de promotoría — probamos si es de un Agente Libre (referido directo,
+          // sin afiliación a ninguna red, sin exención de "primeros 5 gratis").
+          const{data:idLibre}=await sb.rpc("resolver_codigo_agente_libre",{p_codigo:meta.codigo_promotoria});
+          agenteLibreId=idLibre||null;
+        }
       }
       const{data:nuevo,error:errIns}=await sb.from("agentes")
         .insert({
@@ -2565,7 +2573,7 @@ function Panel({session,onSalir}){
           nombre:meta.nombre||null,nombre_negocio:meta.nombre_negocio||null,telefono:meta.telefono||null,
           rfc:meta.rfc||null,tiene_cedula:meta.tiene_cedula||false,tipos_cedula:meta.tipos_cedula||null,numero_cedula:meta.numero_cedula||null,
           acepto_terminos:meta.acepto_terminos||false,acepto_terminos_version:meta.acepto_terminos_version||null,acepto_terminos_fecha:meta.acepto_terminos_fecha||null,
-          promotoria_id:promotoriaId
+          promotoria_id:promotoriaId,agente_libre_id:agenteLibreId
         })
         .select().single();
       if(errIns){

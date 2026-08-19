@@ -138,6 +138,7 @@ function Login(){
   const[nombreNegocio,setNombreNegocio]=useState("");
   const[rfc,setRfc]=useState("");
   const[codigoAgencia,setCodigoAgencia]=useState("");
+  const[codigoLibre,setCodigoLibre]=useState("");
   const[aceptoTerminos,setAceptoTerminos]=useState(false);
   const[error,setError]=useState("");
   const[cargando,setCargando]=useState(false);
@@ -168,6 +169,7 @@ function Login(){
         nombre_negocio:nombreNegocio.trim(),
         rfc:rfc.trim()||null,
         codigo_agencia:codigoAgencia.trim()||null,
+        codigo_libre:codigoLibre.trim()||null,
         acepto_terminos:true,
         acepto_terminos_version:VERSION_TERMINOS,
         acepto_terminos_fecha:new Date().toISOString()
@@ -194,6 +196,7 @@ function Login(){
         <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="nombre de contacto (opcional)" style={est.input}/>
         <input value={rfc} onChange={e=>setRfc(e.target.value.toUpperCase())} placeholder="RFC (opcional)" style={est.input}/>
         <input value={codigoAgencia} onChange={e=>setCodigoAgencia(e.target.value.toUpperCase())} placeholder="Código de agencia máster (opcional)" style={est.input}/>
+        <input value={codigoLibre} onChange={e=>setCodigoLibre(e.target.value.toUpperCase())} placeholder="¿Alguien te invitó? Su código (opcional)" style={est.input}/>
       </>}
       <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username" style={est.input}/>
       <div style={{position:"relative"}}>
@@ -2015,16 +2018,21 @@ function PanelPromotoria({session,onSalir}){
       if(data){setPromotoria(data);return;}
       const meta=session.user.user_metadata||{};
       let agenciaId=null;
+      let agenteLibreId=null;
       if(meta.codigo_agencia){
         const{data:idResuelto}=await sb.rpc("resolver_codigo_agencia",{p_codigo:meta.codigo_agencia});
         agenciaId=idResuelto||null;
+      }
+      if(meta.codigo_libre){
+        const{data:idLibre}=await sb.rpc("resolver_codigo_agente_libre",{p_codigo:meta.codigo_libre});
+        agenteLibreId=idLibre||null;
       }
       const{data:nueva,error:errIns}=await sb.from("promotorias")
         .insert({
           id:session.user.id,correo:session.user.email,
           nombre:meta.nombre||null,nombre_negocio:meta.nombre_negocio||null,rfc:meta.rfc||null,
           acepto_terminos:meta.acepto_terminos||false,acepto_terminos_version:meta.acepto_terminos_version||null,acepto_terminos_fecha:meta.acepto_terminos_fecha||null,
-          agencia_maestra_id:agenciaId
+          agencia_maestra_id:agenciaId,agente_libre_id:agenteLibreId
         })
         .select().single();
       if(errIns){

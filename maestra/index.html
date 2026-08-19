@@ -70,6 +70,7 @@ function Login(){
   const[nombre,setNombre]=useState("");
   const[nombreNegocio,setNombreNegocio]=useState("");
   const[rfc,setRfc]=useState("");
+  const[codigoLibre,setCodigoLibre]=useState("");
   const[aceptoTerminos,setAceptoTerminos]=useState(false);
   const[error,setError]=useState("");
   const[cargando,setCargando]=useState(false);
@@ -99,6 +100,7 @@ function Login(){
         nombre:nombre.trim()||null,
         nombre_negocio:nombreNegocio.trim(),
         rfc:rfc.trim()||null,
+        codigo_libre:codigoLibre.trim()||null,
         acepto_terminos:true,
         acepto_terminos_version:VERSION_TERMINOS,
         acepto_terminos_fecha:new Date().toISOString()
@@ -124,6 +126,7 @@ function Login(){
         <input value={nombreNegocio} onChange={e=>setNombreNegocio(e.target.value)} placeholder="nombre de tu agencia" style={est.input}/>
         <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="nombre de contacto (opcional)" style={est.input}/>
         <input value={rfc} onChange={e=>setRfc(e.target.value.toUpperCase())} placeholder="RFC (opcional)" style={est.input}/>
+        <input value={codigoLibre} onChange={e=>setCodigoLibre(e.target.value.toUpperCase())} placeholder="¿Alguien te invitó? Su código (opcional)" style={est.input}/>
       </>}
       <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu correo" type="email" autoComplete="username" style={est.input}/>
       <div style={{position:"relative"}}>
@@ -484,11 +487,17 @@ function PanelAgenciaMaestra({session,onSalir}){
       if(errSel){setError(errSel.message);return;}
       if(data){setAgencia(data);return;}
       const meta=session.user.user_metadata||{};
+      let agenteLibreId=null;
+      if(meta.codigo_libre){
+        const{data:idLibre}=await sb.rpc("resolver_codigo_agente_libre",{p_codigo:meta.codigo_libre});
+        agenteLibreId=idLibre||null;
+      }
       const{data:nueva,error:errIns}=await sb.from("agencias_maestras")
         .insert({
           id:session.user.id,correo:session.user.email,
           nombre:meta.nombre||null,nombre_negocio:meta.nombre_negocio||null,rfc:meta.rfc||null,
-          acepto_terminos:meta.acepto_terminos||false,acepto_terminos_version:meta.acepto_terminos_version||null,acepto_terminos_fecha:meta.acepto_terminos_fecha||null
+          acepto_terminos:meta.acepto_terminos||false,acepto_terminos_version:meta.acepto_terminos_version||null,acepto_terminos_fecha:meta.acepto_terminos_fecha||null,
+          agente_libre_id:agenteLibreId
         })
         .select().single();
       if(errIns){
