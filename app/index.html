@@ -2482,7 +2482,7 @@ function PantallaSuscripcion({cuenta,bloqueado,estadoRed,onAgenteCambiado,onSali
     {error&&<div style={{color:"#dc2626",fontSize:13,marginTop:14,textAlign:"center"}}>{error}</div>}
     {!suscripcionActiva&&!accesoGratisPorRed&&<div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Se cobra por Stripe, cancela cuando quieras.</div>}
 
-    <ExportarYEliminarCuenta cuenta={cuenta} onAgenteCambiado={onAgenteCambiado} onSalir={onSalir}/>
+    {bloqueado&&<ExportarYEliminarCuenta cuenta={cuenta} onAgenteCambiado={onAgenteCambiado} onSalir={onSalir}/>}
   </div>;
 
   if(!bloqueado)return contenido;
