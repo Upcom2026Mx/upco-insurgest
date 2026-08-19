@@ -2301,7 +2301,98 @@ const PLANES_AGENTE_AFILIADO=[
   {periodo:"anual",label:"Anual",monto:"$2,490 MXN/año"}
 ];
 
-function PantallaSuscripcion({cuenta,bloqueado,estadoRed}){
+const descargarCSV=(nombreArchivo,filas)=>{
+  if(!filas||filas.length===0)return;
+  const csv=Papa.unparse(filas);
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download=nombreArchivo;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+function ExportarYEliminarCuenta({cuenta,onAgenteCambiado,onSalir}){
+  const[exportando,setExportando]=useState(false);
+  const[eliminando,setEliminando]=useState(false);
+  const[modalAbierto,setModalAbierto]=useState(false);
+  const[textoConfirma,setTextoConfirma]=useState("");
+  const[resultado,setResultado]=useState(null);
+  const[error,setError]=useState("");
+
+  const exportar=async()=>{
+    setError("");setExportando(true);
+    const{data:clientes}=await sb.from("clientes").select("*").eq("agente_id",cuenta.id);
+    const idsClientes=(clientes||[]).map(c=>c.id);
+    const[{data:polizas},{data:vehiculos},{data:siniestros},{data:solicitudes}]=await Promise.all([
+      idsClientes.length?sb.from("polizas").select("*").in("cliente_id",idsClientes):Promise.resolve({data:[]}),
+      idsClientes.length?sb.from("vehiculos").select("*").in("cliente_id",idsClientes):Promise.resolve({data:[]}),
+      idsClientes.length?sb.from("siniestros").select("*").in("cliente_id",idsClientes):Promise.resolve({data:[]}),
+      sb.from("solicitudes").select("*").eq("agente_id",cuenta.id)
+    ]);
+    descargarCSV("mis-clientes.csv",clientes);
+    descargarCSV("mis-polizas.csv",polizas);
+    descargarCSV("mis-vehiculos.csv",vehiculos);
+    descargarCSV("mis-siniestros.csv",siniestros);
+    descargarCSV("mis-solicitudes.csv",solicitudes);
+    const{error:errConf}=await sb.rpc("agente_confirmar_exportacion");
+    setExportando(false);
+    if(errConf){setError(errConf.message);return;}
+    if(onAgenteCambiado)onAgenteCambiado({...cuenta,datos_exportados_en:new Date().toISOString()});
+  };
+
+  const eliminarCuenta=async()=>{
+    setError("");setEliminando(true);
+    const{data:clientes}=await sb.from("clientes").select("id").eq("agente_id",cuenta.id);
+    const idsClientes=(clientes||[]).map(c=>c.id);
+    if(idsClientes.length){
+      const{data:polizas}=await sb.from("polizas").select("pdf_path").in("cliente_id",idsClientes).not("pdf_path","is",null);
+      if(polizas&&polizas.length)await sb.storage.from("polizas").remove(polizas.map(p=>p.pdf_path));
+    }
+    const{data:solicitudesConFoto}=await sb.from("solicitudes").select("foto_path").eq("agente_id",cuenta.id).not("foto_path","is",null);
+    if(solicitudesConFoto&&solicitudesConFoto.length)await sb.storage.from("solicitudes").remove(solicitudesConFoto.map(s=>s.foto_path));
+    if(cuenta.tarjeta_foto_path)await sb.storage.from("tarjetas").remove([cuenta.tarjeta_foto_path]);
+    const{data,error:errDel}=await sb.rpc("agente_eliminar_cuenta");
+    setEliminando(false);
+    if(errDel){setError(errDel.message);setModalAbierto(false);return;}
+    setResultado(data);
+    setModalAbierto(false);
+  };
+
+  if(resultado)return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420,boxShadow:"0 8px 30px rgba(0,0,0,.08)",textAlign:"center"}}>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:12,color:"#10284A"}}>Tu cuenta fue eliminada</div>
+      <div style={{fontSize:14,color:"#374151",lineHeight:1.6,marginBottom:16}}>Se eliminó de forma permanente: {resultado.clientes} clientes, {resultado.polizas} pólizas, {resultado.vehiculos} vehículos, {resultado.siniestros} siniestros y {resultado.solicitudes} solicitudes. Te mandamos la confirmación a tu correo.</div>
+      <Boton onClick={onSalir}>Cerrar</Boton>
+    </div>
+  </div>;
+
+  return <div style={{...est.card,marginTop:20}}>
+    <div style={{fontSize:14,fontWeight:700,marginBottom:6,color:"#10284A"}}>Exportar y cancelar mi cuenta</div>
+    <div style={{fontSize:13,color:"#6B7280",marginBottom:14,lineHeight:1.55}}>Puedes descargar toda tu información —clientes, pólizas, vehículos, siniestros y solicitudes— cuando quieras. Una vez exportada, puedes eliminar tu cuenta de forma permanente.</div>
+    <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+      <Boton color="#53647D" onClick={exportar} disabled={exportando}>{exportando?"Exportando...":"Exportar toda mi información"}</Boton>
+      <Boton color="#dc2626" onClick={()=>setModalAbierto(true)} disabled={!cuenta.datos_exportados_en}>Eliminar mi cuenta</Boton>
+    </div>
+    {!cuenta.datos_exportados_en&&<div style={{fontSize:12,color:"#8FA0B4",marginTop:8}}>Exporta tu información primero para poder eliminar tu cuenta.</div>}
+    {cuenta.datos_exportados_en&&<div style={{fontSize:12,color:"#8FA0B4",marginTop:8}}>Última exportación: {new Date(cuenta.datos_exportados_en).toLocaleString("es-MX")}</div>}
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginTop:10}}>{error}</div>}
+
+    {modalAbierto&&<div className="modal-overlay" style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(8,20,38,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{position:"relative",background:"#fff",borderRadius:20,maxWidth:420,width:"100%",padding:"32px 28px",boxShadow:"0 30px 70px rgba(8,20,38,.35)"}}>
+        <div style={{fontSize:18,fontWeight:700,color:"#dc2626",marginBottom:8}}>Eliminar mi cuenta</div>
+        <div style={{fontSize:13.5,color:"#374151",marginBottom:16,lineHeight:1.55}}>Esto borra tu cuenta y todos tus clientes, pólizas, vehículos, siniestros y solicitudes de forma <strong>permanente e irreversible</strong>. Escribe <strong>ELIMINAR</strong> para confirmar.</div>
+        <input value={textoConfirma} onChange={e=>setTextoConfirma(e.target.value)} placeholder="ELIMINAR" style={est.input}/>
+        <div style={{display:"flex",gap:10,marginTop:6}}>
+          <Boton color="#6B7280" onClick={()=>{setModalAbierto(false);setTextoConfirma("");}}>Cancelar</Boton>
+          <Boton color="#dc2626" onClick={eliminarCuenta} disabled={textoConfirma!=="ELIMINAR"||eliminando}>{eliminando?"Eliminando...":"Eliminar para siempre"}</Boton>
+        </div>
+      </div>
+    </div>}
+  </div>;
+}
+
+function PantallaSuscripcion({cuenta,bloqueado,estadoRed,onAgenteCambiado,onSalir}){
   const[cargando,setCargando]=useState(null);
   const[error,setError]=useState("");
 
@@ -2390,6 +2481,8 @@ function PantallaSuscripcion({cuenta,bloqueado,estadoRed}){
 
     {error&&<div style={{color:"#dc2626",fontSize:13,marginTop:14,textAlign:"center"}}>{error}</div>}
     {!suscripcionActiva&&!accesoGratisPorRed&&<div style={{fontSize:11,color:"#8FA0B4",marginTop:14,textAlign:"center"}}>Se cobra por Stripe, cancela cuando quieras.</div>}
+
+    <ExportarYEliminarCuenta cuenta={cuenta} onAgenteCambiado={onAgenteCambiado} onSalir={onSalir}/>
   </div>;
 
   if(!bloqueado)return contenido;
@@ -2617,7 +2710,7 @@ function Panel({session,onSalir}){
     <div style={{maxWidth:760,margin:"0 auto",padding:"16px 16px 0",display:"flex",justifyContent:"flex-end"}}>
       <button onClick={onSalir} style={{background:"none",border:"none",color:"#6B7280",fontSize:14,cursor:"pointer"}}>Salir ({agente.correo})</button>
     </div>
-    <PantallaSuscripcion cuenta={agente} bloqueado={true} estadoRed={estadoRed}/>
+    <PantallaSuscripcion cuenta={agente} bloqueado={true} estadoRed={estadoRed} onAgenteCambiado={actualizarAgente} onSalir={onSalir}/>
   </div>;
 
   return <div style={{maxWidth:760,margin:"0 auto",padding:"24px 16px 60px"}}>
@@ -2650,7 +2743,7 @@ function Panel({session,onSalir}){
           :vista==="resumen"
             ?<DashboardAgente/>
             :vista==="suscripcion"
-              ?<PantallaSuscripcion cuenta={agente} bloqueado={false} estadoRed={estadoRed}/>
+              ?<PantallaSuscripcion cuenta={agente} bloqueado={false} estadoRed={estadoRed} onAgenteCambiado={actualizarAgente} onSalir={onSalir}/>
               :vista==="perfil"
                 ?<MiPerfil agente={agente} onAgenteCambiado={actualizarAgente}/>
                 :<ClientesList agenteId={agente.id} onAbrirCliente={setClienteActivo}/>}
