@@ -2005,18 +2005,102 @@ function ProspectosPromotoria(){
   </div>;
 }
 
+function PanelAgenteLibreVista({agenteLibre,onSalir}){
+  const[pendiente,setPendiente]=useState(null);
+  const[acumulado,setAcumulado]=useState(null);
+  const[copiado,setCopiado]=useState(false);
+  const[solicitando,setSolicitando]=useState(false);
+  const[mensaje,setMensaje]=useState("");
+  const[error,setError]=useState("");
+
+  const cargar=()=>{
+    sb.rpc("mi_residual_pendiente").then(({data})=>setPendiente(data));
+    sb.rpc("mi_residual_acumulado_anio").then(({data})=>setAcumulado(data));
+  };
+  useEffect(()=>{cargar()},[]);
+
+  const copiar=async()=>{
+    try{await navigator.clipboard.writeText(agenteLibre.codigo_invitacion);setCopiado(true);setTimeout(()=>setCopiado(false),2000);}catch(e){}
+  };
+
+  const solicitar=async()=>{
+    setError("");setMensaje("");setSolicitando(true);
+    const{data,error:err}=await sb.rpc("solicitar_residual");
+    setSolicitando(false);
+    if(err){setError(err.message);return;}
+    setMensaje(`Listo, solicitaste ${pesos(data.monto)}. Te avisamos en cuanto quede pagada.`);
+    cargar();
+  };
+
+  const hayPendiente=pendiente&&pendiente.pendiente_por_solicitar>0;
+
+  return <div style={{maxWidth:520,margin:"0 auto",padding:"24px 16px 60px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+      <div style={{fontSize:16,fontWeight:700,color:"#10284A"}}>Hola, {agenteLibre.nombre_negocio||agenteLibre.nombre||agenteLibre.correo}</div>
+      <button onClick={onSalir} style={{background:"none",border:"none",color:"#6B7280",fontSize:14,cursor:"pointer"}}>Salir ({agenteLibre.correo})</button>
+    </div>
+
+    <div style={{...est.card,marginBottom:20,background:"#F4F7FB"}}>
+      <div style={{fontSize:13,fontWeight:700,color:"#8FA0B4",marginBottom:8}}>TU CÓDIGO</div>
+      <div style={{fontSize:13,color:"#374151",marginBottom:10,lineHeight:1.5}}>Compártelo con agentes, promotorías o agencias máster — al registrarse y capturarlo, quedan ligados a tu red.</div>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <div style={{background:"#fff",border:"1px solid #DDE4EE",borderRadius:10,padding:"10px 16px",fontSize:20,fontWeight:800,letterSpacing:2,color:"#10284A"}}>{agenteLibre.codigo_invitacion}</div>
+        <Boton color="#53647D" onClick={copiar}>{copiado?"¡Copiado!":"Copiar"}</Boton>
+      </div>
+    </div>
+
+    <div style={{...est.card,background:"linear-gradient(160deg,#173863,#0a1c35)"}}>
+      <div style={{fontSize:13,fontWeight:700,color:"#F59E0B",marginBottom:6}}>🎁 TU COMISIÓN</div>
+      <div style={{fontSize:12.5,color:"#C7D3E3",lineHeight:1.5,marginBottom:14}}>17% sobre cada agente que refieras directamente, 3% sobre la cuota de cada promotoría o agencia máster que refieras. Se acumula y la solicitas cuando quieras.</div>
+      <div style={{marginBottom:hayPendiente?16:0}}>
+        <div style={{fontSize:22,fontWeight:700,color:"#fff"}}>{acumulado==null?"—":pesos(acumulado)}</div>
+        <div style={{fontSize:11,color:"#8FA0B4"}}>ACUMULADO ESTE AÑO</div>
+      </div>
+      {hayPendiente&&<div style={{borderTop:"1px solid rgba(255,255,255,.15)",paddingTop:14}}>
+        <div style={{fontSize:13,color:"#C7D3E3",marginBottom:10}}>Tienes <b style={{color:"#fff"}}>{pesos(pendiente.pendiente_por_solicitar)}</b> sin solicitar.</div>
+        {mensaje&&<div style={{color:"#86efac",fontSize:13,marginBottom:10}}>{mensaje}</div>}
+        {error&&<div style={{color:"#fca5a5",fontSize:13,marginBottom:10}}>{error}</div>}
+        {!pendiente.solicitud_abierta&&<Boton onClick={solicitar} disabled={solicitando}>{solicitando?"Solicitando...":"Solicitar pago"}</Boton>}
+        {pendiente.solicitud_abierta&&<div style={{fontSize:12.5,color:"#C7D3E3"}}>Ya tienes una solicitud en proceso.</div>}
+      </div>}
+    </div>
+  </div>;
+}
+
 function PanelPromotoria({session,onSalir}){
   const[promotoria,setPromotoria]=useState(null);
+  const[agenteLibre,setAgenteLibre]=useState(null);
   const[vista,setVista]=useState("resumen");
   const[clienteActivo,setClienteActivo]=useState(null);
   const[error,setError]=useState("");
 
   useEffect(()=>{
     (async()=>{
+      // Si ya es Agente Libre (reclamado en un login anterior), ese es su panel — nunca
+      // llega a crear/leer una fila de promotorías.
+      const{data:libreExistente}=await sb.from("agentes_libres").select("*").eq("id",session.user.id).maybeSingle();
+      if(libreExistente){setAgenteLibre(libreExistente);return;}
+
       const{data,error:errSel}=await sb.from("promotorias").select("*").eq("id",session.user.id).maybeSingle();
       if(errSel){setError(errSel.message);return;}
       if(data){setPromotoria(data);return;}
       const meta=session.user.user_metadata||{};
+
+      // Primer login tras el registro: si el código capturado es una semilla de Agente Libre
+      // sin reclamar, esta persona SE CONVIERTE en Agente Libre — no se crea promotoría.
+      if(meta.codigo_libre){
+        const{data:reclamo}=await sb.rpc("reclamar_agente_libre",{
+          p_codigo:meta.codigo_libre,p_nombre:meta.nombre||null,p_nombre_negocio:meta.nombre_negocio||null,
+          p_rfc:meta.rfc||null,p_acepto_terminos:meta.acepto_terminos||false,
+          p_acepto_terminos_version:meta.acepto_terminos_version||null,p_acepto_terminos_fecha:meta.acepto_terminos_fecha||null
+        });
+        if(reclamo&&reclamo.reclamado){
+          const{data:nuevoLibre}=await sb.from("agentes_libres").select("*").eq("id",session.user.id).maybeSingle();
+          setAgenteLibre(nuevoLibre);
+          return;
+        }
+      }
+
       let agenciaId=null;
       let agenteLibreId=null;
       if(meta.codigo_agencia){
@@ -2048,6 +2132,7 @@ function PanelPromotoria({session,onSalir}){
   },[]);
 
   if(error)return <div style={{padding:40,textAlign:"center",color:"#dc2626"}}>Ocurrió un error: {error}</div>;
+  if(agenteLibre)return <PanelAgenteLibreVista agenteLibre={agenteLibre} onSalir={onSalir}/>;
   if(!promotoria)return <div style={{padding:40,textAlign:"center",color:"#6B7280"}}>Cargando tu panel...</div>;
 
   if(promotoria.estatus_aprobacion==="pendiente")return <div style={{minHeight:`calc(100vh - ${ALTO_HEADER}px)`,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
