@@ -63,10 +63,14 @@
   <ul>
     <li>Sustituye, valida ni verifica la información oficial de la póliza emitida por la aseguradora. Los datos capturados (fechas de vigencia, prima, estatus, y demás) son responsabilidad exclusiva de quien los ingresa; ante cualquier discrepancia, siempre prevalece el documento oficial de la aseguradora sobre lo mostrado en la Plataforma.</li>
     <li>Ofrece asesoría, recomendación o cotización de productos de seguros, ni evalúa la conveniencia de un producto para un cliente determinado. Esa es, en todo momento, responsabilidad profesional exclusiva del Agente.</li>
-    <li>Garantiza que los avisos automáticos (correo electrónico, notificación push u otros medios que la Plataforma ofrezca) lleguen, se muestren o se lean a tiempo. Su entrega depende de factores fuera del control de Upco — filtros de spam, permisos de notificación del dispositivo, conectividad del destinatario, entre otros. Estos avisos son una ayuda operativa de cortesía, no un mecanismo de cumplimiento regulatorio ni un sustituto del propio seguimiento que el Agente debe dar a sus clientes y a sus vencimientos.</li>
     <li>Presta servicios de asesoría legal, fiscal o contable. Cualquier información relacionada con impuestos, facturación o régimen fiscal que se muestre en la Plataforma tiene carácter informativo y no constituye asesoría profesional; para eso, el Agente debe consultar a su propio contador o abogado.</li>
     <li>Garantiza resultados de negocio (por ejemplo, retención de clientes, renovaciones o comisiones) — la Plataforma es una herramienta de apoyo, el resultado del negocio del Agente depende de su propia gestión.</li>
   </ul>
+
+  <h3>3.1 Cómo funcionan los avisos automáticos</h3>
+  <p>Los avisos de vencimiento y las notificaciones se envían a través de proveedores especializados y certificados, desde un dominio verificado y con los registros de autenticación de correo debidamente configurados — que es precisamente lo que hace que un mensaje llegue a la bandeja de entrada y no a la carpeta de correo no deseado. Cada envío queda registrado del lado de Upco, de modo que siempre es posible verificar que el aviso salió, cuándo salió y a qué destinatario.</p>
+  <p>Dicho eso, entre que un mensaje sale de nuestros servidores y aparece frente a los ojos de una persona hay tramos que no dependen de Upco ni de ningún proveedor: el filtro de correo no deseado del destinatario, los permisos de notificación que tenga configurados en su teléfono, que su dispositivo esté encendido y con señal, o simplemente que abra el mensaje. Son límites técnicos del correo electrónico y de las notificaciones móviles como tecnologías, no una carencia de la Plataforma.</p>
+  <p>Por eso conviene entender los avisos por lo que son: <b>una ayuda operativa diseñada para que nada se te pase</b>, y muy eficaz en la práctica — pero no un mecanismo de cumplimiento regulatorio ni un sustituto del seguimiento profesional que el Agente da a sus clientes y a sus vencimientos, que sigue siendo responsabilidad suya.</p>
 
   <h2>4. Registro y aprobación de la cuenta</h2>
   <p>El registro como Agente está sujeto a revisión y aprobación por parte de Upco. Podemos solicitar información adicional para verificar tu identidad y actividad profesional (incluyendo, si aplica, tu cédula de agente ante la CNSF y tu RFC), y podemos aprobar, rechazar o suspender una cuenta a nuestra discreción, particularmente si la información proporcionada resulta falsa, incompleta o no verificable.</p>
@@ -89,7 +93,19 @@
   <h2>7. Propiedad intelectual</h2>
   <p>El software, diseño, marca y contenidos de la Plataforma son propiedad de Upco. Los datos que el Agente cargue (clientes, pólizas, documentos) siguen siendo propiedad del Agente; Upco los procesa únicamente para prestar el servicio.</p>
 
-  <h2>8. Disponibilidad del servicio y fallas técnicas</h2>
+  <h2>8. Seguridad, disponibilidad y fallas técnicas</h2>
+
+  <h3>8.1 Seguridad de la información</h3>
+  <p>Upco no opera servidores propios. La Plataforma se apoya deliberadamente en proveedores de infraestructura que sostienen auditorías de seguridad independientes y recurrentes, porque ese nivel de escrutinio es superior al que podría sostener por su cuenta una empresa del tamaño de Upco:</p>
+  <ul>
+    <li>La base de datos, el sistema de cuentas y el almacenamiento de documentos operan sobre <b>Supabase</b>, certificado <b>SOC 2 Tipo II</b> e <b>ISO/IEC 27001</b>, con auditoría anual, cifrado de la información en tránsito y en reposo, y protección perimetral contra ataques de denegación de servicio.</li>
+    <li>El envío de correos opera sobre <b>Resend</b>, certificado <b>SOC 2 Tipo II</b>.</li>
+    <li>Los cobros los procesa <b>Stripe</b>, certificado <b>PCI DSS Nivel 1</b>, el estándar más alto de la industria de pagos. <b>Upco nunca recibe, ve ni almacena los datos de la tarjeta del Agente</b>: esa información viaja directamente del navegador del Agente a Stripe, sin pasar por la Plataforma.</li>
+  </ul>
+  <p>Sobre esa base, la Plataforma aplica además medidas propias: aislamiento de datos a nivel de base de datos, de modo que cada Agente solo puede leer y escribir su propia información, aunque intentara consultarla por otros medios; los documentos de pólizas, siniestros y solicitudes se guardan en almacenamiento privado, accesible únicamente mediante enlaces firmados de vigencia limitada; las contraseñas se almacenan cifradas de forma irreversible, por lo que ni siquiera Upco puede leerlas; y el Agente puede activar verificación en dos pasos, así como un bloqueo por NIP para el dispositivo desde el que trabaja.</p>
+  <p>Ninguna medida de seguridad es infalible y Upco no garantiza que la Plataforma sea inmune a accesos no autorizados. Lo que sí asume es el compromiso de <b>notificar al Agente sin demora injustificada</b> cualquier vulneración de seguridad ocurrida en cualquier fase del tratamiento que afecte de forma significativa sus datos o los de sus clientes, con la información necesaria para que pueda tomar medidas, conforme al artículo 20 de la LFPDPPP.</p>
+
+  <h3>8.2 Disponibilidad del servicio</h3>
   <p>Upco procura mantener la Plataforma disponible de forma continua, pero no garantiza un porcentaje de disponibilidad (uptime) determinado ni un servicio libre de errores o interrupciones. La Plataforma depende de proveedores de infraestructura de terceros (entre otros, para almacenamiento y base de datos, envío de correos, cobro de suscripciones y hospedaje); Upco no es responsable de interrupciones, pérdidas o fallas originadas en dichos proveedores, ni de causas de fuerza mayor o caso fortuito (fallas de conectividad a Internet, cortes de energía, desastres naturales, actos de autoridad, entre otros).</p>
   <p>Podemos realizar mantenimientos programados o no programados que interrumpan temporalmente el acceso a la Plataforma, procurando avisar con anticipación cuando el mantenimiento sea programado.</p>
   <p>El Agente es responsable de mantener, fuera de la Plataforma, respaldos propios de la información que considere crítica para su actividad profesional, particularmente si depende de dicha información para cumplir con obligaciones regulatorias o contractuales frente a terceros.</p>
@@ -154,10 +170,15 @@
   <p>En congruencia con el principio de calidad previsto en la Ley, <strong>no conservamos de forma indefinida la información de cuentas inactivas</strong>: cumplidos seis meses continuos sin acceso vigente, la cuenta y toda la información asociada se eliminan de forma automática y permanente, previo envío de tres avisos al correo registrado (al tercer mes, al quinto y quince días antes de la eliminación), cada uno con el enlace para descargar la información. El detalle de este proceso está en la sección 10.1 de los Términos y Condiciones. Una vez eliminada, la información no es recuperable, ya que no conservamos copias de respaldo de cuentas dadas de baja.</p>
   <p>De la baja únicamente conservamos un registro mínimo —correo, nombre del negocio, fecha y número de registros eliminados— con la finalidad de acreditar que la eliminación se realizó y en qué términos.</p>
 
-  <h2>8. Cambios a este aviso</h2>
+  <h2>8. Medidas de seguridad</h2>
+  <p>Conforme al artículo 19 de la LFPDPPP, mantenemos medidas de seguridad administrativas, técnicas y físicas para proteger tus datos personales contra daño, pérdida, alteración, destrucción o uso, acceso o tratamiento no autorizado.</p>
+  <p>En concreto: la información se aloja en <b>Supabase</b> (certificado SOC 2 Tipo II e ISO/IEC 27001, con auditoría anual y cifrado en tránsito y en reposo); los correos se envían mediante <b>Resend</b> (certificado SOC 2 Tipo II); y los pagos los procesa <b>Stripe</b> (certificado PCI DSS Nivel 1), sin que los datos de tu tarjeta pasen en ningún momento por nuestros sistemas. A eso se suman las medidas propias de la Plataforma: aislamiento de la información por cuenta a nivel de base de datos, almacenamiento privado con enlaces firmados de vigencia limitada para los documentos, contraseñas cifradas de forma irreversible, y la posibilidad de activar verificación en dos pasos. El detalle está en la sección 8.1 de los Términos y Condiciones.</p>
+  <p>Si ocurriera una vulneración de seguridad que afecte de forma significativa tus derechos patrimoniales o morales, te lo notificaremos sin demora injustificada, conforme al artículo 20 de la Ley, para que puedas tomar las medidas que correspondan.</p>
+
+  <h2>9. Cambios a este aviso</h2>
   <p>Cualquier modificación a este Aviso de Privacidad se publicará en esta misma página, indicando la fecha de la última actualización.</p>
 
-  <h2>9. Autoridad</h2>
+  <h2>10. Autoridad</h2>
   <p>Si consideras que tus derechos de protección de datos personales no han sido atendidos correctamente, puedes presentar una queja ante la Secretaría Anticorrupción y Buen Gobierno, autoridad que a partir de la reforma de 2025 asumió las funciones que antes correspondían al INAI en materia de protección de datos personales en posesión de particulares.</p>
 </div>
 </body>
