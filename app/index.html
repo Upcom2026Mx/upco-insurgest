@@ -2330,11 +2330,15 @@ function ExportarYEliminarCuenta({cuenta,onAgenteCambiado,onSalir}){
       idsClientes.length?sb.from("siniestros").select("*").in("cliente_id",idsClientes):Promise.resolve({data:[]}),
       sb.from("solicitudes").select("*").eq("agente_id",cuenta.id)
     ]);
+    // Su lista del Proyecto 100 también es suya: es de lo primero que construyó y de lo que
+    // más le dolería perder, aunque nunca haya llegado a convertirse en clientes.
+    const{data:prospectos}=await sb.from("prospectos_agente").select("*").eq("agente_id",cuenta.id);
     descargarCSV("mis-clientes.csv",clientes);
     descargarCSV("mis-polizas.csv",polizas);
     descargarCSV("mis-vehiculos.csv",vehiculos);
     descargarCSV("mis-siniestros.csv",siniestros);
     descargarCSV("mis-solicitudes.csv",solicitudes);
+    if((prospectos||[]).length)descargarCSV("mi-proyecto-100.csv",prospectos);
     const{error:errConf}=await sb.rpc("agente_confirmar_exportacion");
     setExportando(false);
     if(errConf){setError(errConf.message);return;}
@@ -2642,6 +2646,360 @@ function AvisosAgente({agenteId}){
   </div>;
 }
 
+// ============ PROYECTO 100 ============
+// El ejercicio de arranque de todo agente nuevo: listar 100/200/300 conocidos y llamarlos uno
+// por uno buscando sus primeras pólizas. Vive aquí porque un agente recién reclutado abre
+// InsurGest y no tiene nada — ni pólizas ni clientes ni renovaciones. Esto le da algo que hacer
+// desde el día uno, antes de haber vendido su primera póliza.
+
+const ETAPAS=[
+  {k:"por_llamar",label:"Por llamar",color:"#8FA0B4"},
+  {k:"contactado",label:"Contactado",color:"#2563eb"},
+  {k:"cotizando", label:"Cotizando", color:"#F59E0B"},
+  {k:"cerrado",   label:"Cerrado",   color:"#16a34a"},
+  {k:"descartado",label:"Descartado",color:"#6b7280"}
+];
+const etapaInfo=(k)=>ETAPAS.find(e=>e.k===k)||ETAPAS[0];
+const hoyISO=()=>new Date().toISOString().slice(0,10);
+// `fecha` de shared.js espera columnas DATE (le concatena "T00:00:00"), así que con un
+// timestamptz completo devuelve "Invalid Date". La bitácora sí guarda hora, por eso su
+// propio formateador — y `fecha` se sigue usando tal cual para proximo_seguimiento, que
+// sí es una columna date.
+const fechaHora=(t)=>t?new Date(t).toLocaleDateString("es-MX",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
+
+function ImportarProspectos({onCerrar,onImportado,agenteId}){
+  const[filas,setFilas]=useState(null);
+  const[error,setError]=useState("");
+  const[importando,setImportando]=useState(false);
+
+  const plantilla=()=>{
+    const csv=[["nombre","telefono","correo","origen"],
+               ["María López Reyes","5512345678","maria@example.com","Compañera de la prepa"]]
+      .map(f=>f.join(",")).join("\r\n");
+    const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download="plantilla-proyecto-100.csv";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const elegirArchivo=(file)=>{
+    setError("");setFilas(null);
+    if(!file)return;
+    Papa.parse(file,{
+      header:true,skipEmptyLines:true,
+      complete:(res)=>{
+        const campos=(res.meta.fields||[]).map(f=>f.toLowerCase().trim());
+        const col=(...nombres)=>{
+          const i=campos.findIndex(c=>nombres.includes(c));
+          return i>-1?(res.meta.fields||[])[i]:null;
+        };
+        const cNombre=col("nombre","nombres","contacto");
+        if(!cNombre){setError('No encontramos una columna "nombre" en tu archivo. Descarga la plantilla para ver cómo deben llamarse las columnas.');return;}
+        const cTel=col("telefono","teléfono","celular","tel");
+        const cCorreo=col("correo","email","e-mail");
+        const cOrigen=col("origen","como lo conozco","cómo lo conozco","relacion","relación");
+        // Celda vacía se guarda como null, no como "" — si no, el CSV de exportación y las
+        // pantallas acaban llenos de cadenas vacías que parecen datos.
+        const val=(f,col)=>{const v=col?(f[col]||"").trim():"";return v||null;};
+        const datos=res.data.map(f=>({
+          nombre:(f[cNombre]||"").trim(),
+          telefono:val(f,cTel), correo:val(f,cCorreo), origen:val(f,cOrigen)
+        })).filter(f=>f.nombre);
+        if(!datos.length){setError("No encontramos ninguna fila con nombre.");return;}
+        if(datos.length>500){setError(`Tu archivo tiene ${datos.length} contactos — el máximo por importación es 500.`);return;}
+        setFilas(datos);
+      },
+      error:(err)=>setError("No se pudo leer el archivo: "+err.message)
+    });
+  };
+
+  const importar=async()=>{
+    if(!filas||!filas.length)return;
+    setImportando(true);setError("");
+    const{error:err}=await sb.from("prospectos_agente").insert(filas.map(f=>({...f,agente_id:agenteId})));
+    setImportando(false);
+    if(err){setError(err.message);return;}
+    onImportado(filas.length);
+  };
+
+  return <div style={{...est.card,marginBottom:16}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+      <div style={{fontSize:16,fontWeight:700,color:"#10284A"}}>Importar mi lista</div>
+      <button onClick={onCerrar} style={est.linkBtn}>Cerrar</button>
+    </div>
+    <div style={{fontSize:13,color:"#6B7280",lineHeight:1.6,marginBottom:14}}>
+      Si ya tienes tu lista en Excel, súbela de una vez en vez de capturarla a mano. Solo el nombre es obligatorio.
+    </div>
+    <button onClick={plantilla} style={{...est.linkBtn,padding:0,marginBottom:12,fontWeight:700,color:"#10284A"}}>Descargar plantilla de ejemplo</button>
+    <input type="file" name="archivo_prospectos" accept=".csv,text/csv" onChange={e=>elegirArchivo(e.target.files[0])}
+      style={{display:"block",marginBottom:12,fontSize:13}}/>
+    {filas&&<div style={{fontSize:13,color:"#16a34a",fontWeight:700,marginBottom:12}}>
+      Listos para importar: {filas.length} contactos
+    </div>}
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:12}}>{error}</div>}
+    <Boton onClick={importar} disabled={!filas||importando}>{importando?"Importando...":"Importar"}</Boton>
+  </div>;
+}
+
+function ProspectoDetalle({prospecto,onCerrar,onCambiado,onAbrirCliente}){
+  const[p,setP]=useState(prospecto);
+  const[bitacora,setBitacora]=useState([]);
+  const[nota,setNota]=useState("");
+  const[guardando,setGuardando]=useState(false);
+  const[error,setError]=useState("");
+  const[confirmarBorrar,setConfirmarBorrar]=useState(false);
+
+  const cargarBitacora=()=>{
+    sb.from("prospecto_agente_bitacora").select("*").eq("prospecto_id",prospecto.id)
+      .order("created_at",{ascending:false}).then(({data})=>setBitacora(data||[]));
+  };
+  useEffect(cargarBitacora,[prospecto.id]);
+
+  const guardar=async(cambios)=>{
+    setGuardando(true);setError("");
+    const{data,error:err}=await sb.from("prospectos_agente").update(cambios).eq("id",p.id).select().single();
+    setGuardando(false);
+    if(err){setError(err.message);return;}
+    setP(data);onCambiado();
+  };
+
+  const agregarNota=async()=>{
+    if(!nota.trim())return;
+    const{error:err}=await sb.from("prospecto_agente_bitacora").insert({prospecto_id:p.id,nota:nota.trim()});
+    if(err){setError(err.message);return;}
+    setNota("");cargarBitacora();
+  };
+
+  const convertir=async()=>{
+    setGuardando(true);setError("");
+    const{data,error:err}=await sb.rpc("prospecto_convertir_en_cliente",{p_prospecto_id:p.id});
+    setGuardando(false);
+    if(err){setError(err.message);return;}
+    const{data:cliente}=await sb.from("clientes").select("*").eq("id",data.cliente_id).single();
+    onCambiado();
+    if(cliente)onAbrirCliente(cliente);
+  };
+
+  const borrar=async()=>{
+    const{error:err}=await sb.from("prospectos_agente").delete().eq("id",p.id);
+    if(err){setError(err.message);return;}
+    onCambiado();onCerrar();
+  };
+
+  return <div style={{...est.card,marginBottom:16}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+      <div>
+        <div style={{fontSize:17,fontWeight:700,color:"#10284A"}}>{p.nombre}</div>
+        {p.origen&&<div style={{fontSize:13,color:"#8FA0B4",marginTop:2}}>{p.origen}</div>}
+      </div>
+      <button onClick={onCerrar} style={est.linkBtn}>Cerrar</button>
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:10,marginBottom:6}}>
+      <Campo label="Teléfono">
+        <input style={est.input} name="telefono" value={p.telefono||""} onChange={e=>setP({...p,telefono:e.target.value})}
+          onBlur={()=>guardar({telefono:p.telefono})}/>
+      </Campo>
+      <Campo label="Correo">
+        <input style={est.input} name="correo" value={p.correo||""} onChange={e=>setP({...p,correo:e.target.value})}
+          onBlur={()=>guardar({correo:p.correo})}/>
+      </Campo>
+    </div>
+
+    <label style={est.label}>¿En qué va?</label>
+    <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:14}}>
+      {ETAPAS.map(e=><button key={e.k} onClick={()=>guardar({etapa:e.k})} disabled={guardando}
+        style={{border:p.etapa===e.k?`2px solid ${e.color}`:"1.5px solid #DDE4EE",background:p.etapa===e.k?e.color+"14":"#fff",
+          color:p.etapa===e.k?e.color:"#53647D",fontWeight:700,fontSize:12.5,borderRadius:99,padding:"7px 14px",cursor:"pointer",fontFamily:"inherit"}}>
+        {e.label}
+      </button>)}
+    </div>
+
+    <Campo label="¿Cuándo le vuelvo a marcar?">
+      <input style={est.input} type="date" name="proximo_seguimiento" value={p.proximo_seguimiento||""}
+        onChange={e=>{setP({...p,proximo_seguimiento:e.target.value||null});guardar({proximo_seguimiento:e.target.value||null});}}/>
+    </Campo>
+
+    {p.telefono&&<div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:16}}>
+      <a href={`tel:${p.telefono}`} style={{fontSize:13,fontWeight:700,color:"#10284A",textDecoration:"none",border:"1.5px solid #DDE4EE",borderRadius:8,padding:"9px 14px"}}>Llamar</a>
+      <a href={`https://wa.me/52${(p.telefono||"").replace(/\D/g,"").slice(-10)}`} target="_blank" rel="noopener"
+        style={{fontSize:13,fontWeight:700,color:"#10284A",textDecoration:"none",border:"1.5px solid #DDE4EE",borderRadius:8,padding:"9px 14px"}}>WhatsApp</a>
+    </div>}
+
+    <label style={est.label}>Bitácora</label>
+    <div style={{display:"flex",gap:8,marginBottom:10}}>
+      <input style={{...est.input,marginBottom:0}} name="nota" placeholder="¿Qué pasó en esta llamada?" value={nota}
+        onChange={e=>setNota(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")agregarNota();}}/>
+      <Boton onClick={agregarNota} disabled={!nota.trim()} color="#53647D">Anotar</Boton>
+    </div>
+    {bitacora.length>0&&<div style={{marginBottom:16}}>
+      {bitacora.map(b=><div key={b.id} style={{fontSize:13,color:"#374151",padding:"9px 0",borderBottom:"1px solid #f1f5f9"}}>
+        <span style={{color:"#8FA0B4",fontSize:12,marginRight:8}}>{fechaHora(b.created_at)}</span>{b.nota}
+      </div>)}
+    </div>}
+
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:12}}>{error}</div>}
+
+    <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center",borderTop:"1px solid #f1f5f9",paddingTop:16}}>
+      {p.cliente_id
+        ?<span style={est.badge("#16a34a")}>Ya es tu cliente</span>
+        :<Boton onClick={convertir} disabled={guardando} color="#16a34a">Convertir en cliente</Boton>}
+      {confirmarBorrar
+        ?<React.Fragment>
+            <span style={{fontSize:13,color:"#dc2626"}}>¿Quitarlo de tu lista?</span>
+            <Boton onClick={borrar} color="#53647D">Sí, quitar</Boton>
+            <button onClick={()=>setConfirmarBorrar(false)} style={est.linkBtn}>Cancelar</button>
+          </React.Fragment>
+        :<button onClick={()=>setConfirmarBorrar(true)} style={{...est.linkBtn,marginLeft:"auto"}}>Quitar de la lista</button>}
+    </div>
+  </div>;
+}
+
+function ProyectoCien({agente,onAgenteCambiado,onAbrirCliente}){
+  const[lista,setLista]=useState(null);
+  const[resumen,setResumen]=useState(null);
+  const[filtro,setFiltro]=useState("todos");
+  const[activo,setActivo]=useState(null);
+  const[importando,setImportando]=useState(false);
+  const[nuevo,setNuevo]=useState(null);
+  const[error,setError]=useState("");
+
+  const cargar=()=>{
+    sb.from("prospectos_agente").select("*").eq("agente_id",agente.id)
+      .order("proximo_seguimiento",{ascending:true,nullsFirst:false}).order("created_at")
+      .then(({data,error:err})=>{ if(err)setError(err.message); setLista(data||[]); });
+    sb.rpc("proyecto_cien_resumen").then(({data})=>setResumen(data));
+  };
+  useEffect(cargar,[agente.id]);
+
+  const cambiarMeta=async(meta)=>{
+    const{data}=await sb.from("agentes").update({meta_proyecto:meta}).eq("id",agente.id).select().single();
+    if(data)onAgenteCambiado(data);
+    cargar();
+  };
+
+  const agregar=async()=>{
+    if(!nuevo||!nuevo.nombre.trim())return;
+    const{error:err}=await sb.from("prospectos_agente").insert({
+      agente_id:agente.id,nombre:nuevo.nombre.trim(),
+      telefono:nuevo.telefono||null,correo:nuevo.correo||null,origen:nuevo.origen||null
+    });
+    if(err){setError(err.message);return;}
+    setNuevo(null);cargar();
+  };
+
+  if(lista===null)return <div style={{color:"#8FA0B4",fontSize:14}}>Cargando...</div>;
+
+  const meta=agente.meta_proyecto||100;
+  const trabajados=resumen?(resumen.total-resumen.por_llamar):0;
+  const avance=Math.min(100,Math.round((lista.length/meta)*100));
+  const visibles=filtro==="todos"?lista:lista.filter(p=>p.etapa===filtro);
+  const vencidos=lista.filter(p=>p.proximo_seguimiento&&p.proximo_seguimiento<=hoyISO()&&p.etapa!=="cerrado"&&p.etapa!=="descartado");
+
+  if(activo)return <ProspectoDetalle prospecto={activo} onCerrar={()=>setActivo(null)}
+    onCambiado={cargar} onAbrirCliente={onAbrirCliente}/>;
+
+  return <div>
+    <div style={{...est.card,marginBottom:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:8,marginBottom:10}}>
+        <div>
+          <div style={{fontSize:12,fontWeight:700,color:"#8FA0B4",letterSpacing:".08em",textTransform:"uppercase"}}>Mi Proyecto {meta}</div>
+          <div style={{fontSize:26,fontWeight:800,color:"#10284A",fontFamily:"'Archivo',sans-serif"}}>
+            {lista.length} <span style={{fontSize:16,fontWeight:600,color:"#8FA0B4"}}>de {meta} contactos</span>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          {[100,200,300].map(m=><button key={m} onClick={()=>cambiarMeta(m)}
+            style={{border:meta===m?"2px solid #10284A":"1.5px solid #DDE4EE",background:meta===m?"#10284A":"#fff",
+              color:meta===m?"#fff":"#53647D",fontWeight:700,fontSize:12.5,borderRadius:8,padding:"6px 12px",cursor:"pointer",fontFamily:"inherit"}}>{m}</button>)}
+        </div>
+      </div>
+      <div style={{height:8,background:"#EFF3F9",borderRadius:99,overflow:"hidden",marginBottom:14}}>
+        <div style={{height:"100%",width:`${avance}%`,background:"linear-gradient(90deg,#173863,#F59E0B)",borderRadius:99,transition:"width .3s ease"}}/>
+      </div>
+      {resumen&&<div style={{display:"flex",gap:18,flexWrap:"wrap",fontSize:13,color:"#53647D"}}>
+        <span><strong style={{color:"#10284A"}}>{trabajados}</strong> ya trabajados</span>
+        <span><strong style={{color:"#F59E0B"}}>{resumen.cotizando}</strong> cotizando</span>
+        <span><strong style={{color:"#16a34a"}}>{resumen.cerrado}</strong> cerrados</span>
+      </div>}
+    </div>
+
+    {vencidos.length>0&&<div style={{background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
+      <div style={{fontSize:13.5,fontWeight:700,color:"#B45309",marginBottom:4}}>
+        Tienes {vencidos.length} {vencidos.length===1?"contacto que te toca":"contactos que te tocan"} hoy
+      </div>
+      <div style={{fontSize:13,color:"#78350F"}}>{vencidos.slice(0,4).map(p=>p.nombre).join(", ")}{vencidos.length>4?` y ${vencidos.length-4} más`:""}</div>
+    </div>}
+
+    <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:16}}>
+      <Boton onClick={()=>{setNuevo({nombre:"",telefono:"",correo:"",origen:""});setImportando(false);}}>+ Agregar contacto</Boton>
+      <Boton onClick={()=>{setImportando(!importando);setNuevo(null);}} color="#53647D">Importar mi lista</Boton>
+    </div>
+
+    {importando&&<ImportarProspectos agenteId={agente.id} onCerrar={()=>setImportando(false)}
+      onImportado={(n)=>{setImportando(false);cargar();}}/>}
+
+    {nuevo&&<div style={{...est.card,marginBottom:16}}>
+      <div style={{fontSize:16,fontWeight:700,color:"#10284A",marginBottom:12}}>Nuevo contacto</div>
+      <Campo label="Nombre"><input style={est.input} name="nombre" autoFocus value={nuevo.nombre}
+        onChange={e=>setNuevo({...nuevo,nombre:e.target.value})}/></Campo>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:10}}>
+        <Campo label="Teléfono"><input style={est.input} name="telefono" value={nuevo.telefono}
+          onChange={e=>setNuevo({...nuevo,telefono:e.target.value})}/></Campo>
+        <Campo label="Correo"><input style={est.input} name="correo" value={nuevo.correo}
+          onChange={e=>setNuevo({...nuevo,correo:e.target.value})}/></Campo>
+      </div>
+      <Campo label="¿De dónde lo conoces?"><input style={est.input} name="origen" placeholder="Primo, vecino, compañero de la prepa..."
+        value={nuevo.origen} onChange={e=>setNuevo({...nuevo,origen:e.target.value})}/></Campo>
+      <div style={{display:"flex",gap:10}}>
+        <Boton onClick={agregar} disabled={!nuevo.nombre.trim()}>Guardar</Boton>
+        <button onClick={()=>setNuevo(null)} style={est.linkBtn}>Cancelar</button>
+      </div>
+    </div>}
+
+    {lista.length>0&&<div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:14}}>
+      {[{k:"todos",label:"Todos",n:lista.length}].concat(ETAPAS.map(e=>({k:e.k,label:e.label,n:lista.filter(p=>p.etapa===e.k).length})))
+        .filter(f=>f.k==="todos"||f.n>0)
+        .map(f=><button key={f.k} onClick={()=>setFiltro(f.k)}
+          style={{border:filtro===f.k?"2px solid #10284A":"1.5px solid #DDE4EE",background:filtro===f.k?"#10284A":"#fff",
+            color:filtro===f.k?"#fff":"#53647D",fontWeight:700,fontSize:12,borderRadius:99,padding:"6px 13px",cursor:"pointer",fontFamily:"inherit"}}>
+          {f.label} ({f.n})
+        </button>)}
+    </div>}
+
+    {error&&<div style={{color:"#dc2626",fontSize:13,marginBottom:12}}>{error}</div>}
+
+    {lista.length===0
+      ?<div style={{...est.card,textAlign:"center",padding:"36px 24px"}}>
+          <div style={{fontSize:16,fontWeight:700,color:"#10284A",marginBottom:8}}>Empieza tu Proyecto {meta}</div>
+          <div style={{fontSize:14,color:"#6B7280",lineHeight:1.65,maxWidth:420,margin:"0 auto"}}>
+            Anota a todos los que conoces — familia, amigos, excompañeros de escuela y de trabajo, vecinos.
+            Todavía no pienses en quién te compraría: eso se descubre llamando.
+          </div>
+        </div>
+      :<div style={{...est.card,padding:0,overflow:"hidden"}}>
+          {visibles.map(p=>{
+            const ei=etapaInfo(p.etapa);
+            const vencido=p.proximo_seguimiento&&p.proximo_seguimiento<=hoyISO()&&p.etapa!=="cerrado"&&p.etapa!=="descartado";
+            return <div key={p.id} onClick={()=>setActivo(p)} style={est.fila}>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:14.5,fontWeight:600,color:"#10284A",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+                <div style={{fontSize:12.5,color:"#8FA0B4",marginTop:2}}>
+                  {p.telefono||p.origen||"Sin teléfono"}
+                  {p.proximo_seguimiento&&<span style={{color:vencido?"#dc2626":"#8FA0B4",fontWeight:vencido?700:400}}>
+                    {" · "}{vencido?"Te toca hoy":"Marcar el "+fecha(p.proximo_seguimiento)}
+                  </span>}
+                </div>
+              </div>
+              <span style={est.badge(ei.color)}>{ei.label}</span>
+            </div>;
+          })}
+        </div>}
+  </div>;
+}
+
 // ============ PANEL / APP ============
 
 function Panel({session,onSalir}){
@@ -2738,6 +3096,7 @@ function Panel({session,onSalir}){
 
     {!clienteActivo&&<div style={{display:"flex",gap:16,marginBottom:24,borderBottom:"1px solid #DDE4EE",flexWrap:"wrap"}}>
       <button onClick={()=>setVista("clientes")} style={tabStyle(vista==="clientes")}>Mis clientes</button>
+      <button onClick={()=>setVista("proyecto")} style={tabStyle(vista==="proyecto")}>Proyecto {agente.meta_proyecto||100}</button>
       <button onClick={()=>setVista("solicitudes")} style={tabStyle(vista==="solicitudes")}>Solicitudes{pendientes>0?` (${pendientes})`:""}</button>
       <button onClick={()=>setVista("avisos")} style={tabStyle(vista==="avisos")}>Avisos</button>
       <button onClick={()=>setVista("tarjeta")} style={tabStyle(vista==="tarjeta")}>Mi tarjeta</button>
@@ -2751,6 +3110,9 @@ function Panel({session,onSalir}){
       ?<ClienteDetalle cliente={clienteActivo} agenteId={agente.id}
           onVolver={()=>setClienteActivo(null)}
           onClienteCambiado={(actualizado)=>setClienteActivo(actualizado)}/>
+      :vista==="proyecto"
+        ?<ProyectoCien agente={agente} onAgenteCambiado={actualizarAgente}
+            onAbrirCliente={(c)=>{setClienteActivo(c);setVista("clientes");}}/>
       :vista==="solicitudes"
         ?<SolicitudesInbox onAbrirCliente={(c)=>{setClienteActivo(c);setVista("clientes");}}/>
         :vista==="avisos"
