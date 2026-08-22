@@ -1,0 +1,25 @@
+-- Upco InsurGest — Sesión 74: quitar la alerta CRITICAL del Security Advisor sobre
+-- la vista public.indicadores_ultimos
+-- Pegar completo en Supabase > SQL Editor > New query > Run
+--
+-- Qué detectó el advisor: una vista de Postgres se evalúa por defecto con los permisos de
+-- SU DUEÑO (aquí `postgres`), no con los de quien la consulta. Eso significa que la vista
+-- pasa por encima del RLS de la tabla que hay debajo — de ahí la severidad CRITICAL.
+--
+-- Riesgo real en este caso: ninguno. `indicadores_financieros` guarda USD FIX, UDIS y TIIE28
+-- publicados por Banco de México — información pública a propósito — y su política de RLS es
+-- literalmente `using (true)` ("cualquiera puede leer los indicadores", Sesión 46). O sea que
+-- la vista no filtra nada que el RLS de la tabla fuera a impedir: el resultado es idéntico
+-- con o sin el bypass. No hubo exposición de datos de ningún agente ni cliente.
+--
+-- Aun así conviene cerrarlo, por dos razones: deja de haber una alerta CRITICAL tapando
+-- hallazgos futuros de verdad, y sobre todo evita una trampa a futuro — si algún día se
+-- endurece el RLS de `indicadores_financieros`, hoy la vista seguiría sirviendo los datos por
+-- encima de esa restricción sin que nadie se diera cuenta. Con security_invoker la vista
+-- respeta lo que aplique en ese momento.
+--
+-- Solo se toca esta vista. `duenos_clientes` y `vista_posicion_red` no están expuestas a
+-- anon/authenticated y además viven dentro de funciones SECURITY DEFINER del motor de
+-- comisiones — no se tocan sin una prueba dedicada.
+
+alter view public.indicadores_ultimos set (security_invoker = true);
