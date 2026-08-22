@@ -2287,19 +2287,40 @@ function ServicioUpco(){
 
 // ============ SUSCRIPCIÓN ============
 
+// El ahorro se muestra explícito porque es la diferencia real contra pagar 12 meses sueltos:
+// 299x12 = 3,588 contra 2,990 anual, y 249x12 = 2,988 contra 2,490. Sin letra chica.
 const PLANES_AGENTE=[
   {periodo:"mensual",label:"Mensual",monto:"$299 MXN/mes"},
   {periodo:"trimestral",label:"Trimestral",monto:"$865 MXN cada 3 meses"},
   {periodo:"semestral",label:"Semestral",monto:"$1,670 MXN cada 6 meses"},
-  {periodo:"anual",label:"Anual",monto:"$2,990 MXN/año"}
+  {periodo:"anual",label:"Anual",monto:"$2,990 MXN/año",ahorro:"Ahorras $598",destacado:true}
 ];
 
 const PLANES_AGENTE_AFILIADO=[
   {periodo:"mensual",label:"Mensual",monto:"$249 MXN/mes"},
   {periodo:"trimestral",label:"Trimestral",monto:"$720 MXN cada 3 meses"},
   {periodo:"semestral",label:"Semestral",monto:"$1,390 MXN cada 6 meses"},
-  {periodo:"anual",label:"Anual",monto:"$2,490 MXN/año"}
+  {periodo:"anual",label:"Anual",monto:"$2,490 MXN/año",ahorro:"Ahorras $498",destacado:true}
 ];
+
+// Una sola pieza para las tres rejillas de planes (tarifa normal, tarifa de red y tarifa de
+// Agente Libre), en vez de repetir el markup tres veces como estaba.
+function TarjetasPlan({planes,tipo,cargando,onElegir,color}){
+  return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
+    {planes.map(p=><div key={p.periodo} style={{...est.card,position:"relative",
+      border:p.destacado?"2px solid #F59E0B":est.card.border,
+      background:p.destacado?"linear-gradient(180deg,#FFFBEB,#fff 60%)":"#fff"}}>
+      {p.destacado&&<div style={{position:"absolute",top:-9,left:14,background:"#F59E0B",color:"#fff",
+        fontSize:10,fontWeight:800,letterSpacing:".05em",borderRadius:99,padding:"3px 9px"}}>EL QUE MÁS CONVIENE</div>}
+      <div style={{fontSize:11,fontWeight:700,color:"#8FA0B4",marginBottom:4}}>{p.label.toUpperCase()}</div>
+      <div style={{fontSize:14,fontWeight:700,color:"#10284A",marginBottom:p.ahorro?2:12}}>{p.monto}</div>
+      {p.ahorro&&<div style={{fontSize:12,fontWeight:700,color:"#B45309",marginBottom:10}}>{p.ahorro}</div>}
+      <Boton onClick={()=>onElegir(p.periodo,tipo)} disabled={cargando!==null} color={p.destacado?"#F59E0B":color}>
+        {cargando===p.periodo?"Redirigiendo...":"Elegir"}
+      </Boton>
+    </div>)}
+  </div>;
+}
 
 const descargarCSV=(nombreArchivo,filas)=>{
   if(!filas||filas.length===0)return;
@@ -2373,7 +2394,7 @@ function ExportarYEliminarCuenta({cuenta,onAgenteCambiado,onSalir}){
 
   return <div style={{...est.card,marginTop:20}}>
     <div style={{fontSize:14,fontWeight:700,marginBottom:6,color:"#10284A"}}>Exportar y cancelar mi cuenta</div>
-    <div style={{fontSize:13,color:"#6B7280",marginBottom:14,lineHeight:1.55}}>Puedes descargar toda tu información —clientes, pólizas, vehículos, siniestros y solicitudes— cuando quieras. Una vez exportada, puedes eliminar tu cuenta de forma permanente.</div>
+    <div style={{fontSize:13,color:"#6B7280",marginBottom:14,lineHeight:1.55}}>Puedes descargar toda tu información —clientes, pólizas, vehículos, siniestros, solicitudes y tu lista del Proyecto 100— cuando quieras. Una vez exportada, puedes eliminar tu cuenta de forma permanente.</div>
     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
       <Boton color="#53647D" onClick={exportar} disabled={exportando}>{exportando?"Exportando...":"Exportar toda mi información"}</Boton>
       <Boton color="#dc2626" onClick={()=>setModalAbierto(true)} disabled={!cuenta.datos_exportados_en}>Eliminar mi cuenta</Boton>
@@ -2385,7 +2406,7 @@ function ExportarYEliminarCuenta({cuenta,onAgenteCambiado,onSalir}){
     {modalAbierto&&<div className="modal-overlay" style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(8,20,38,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{position:"relative",background:"#fff",borderRadius:20,maxWidth:420,width:"100%",padding:"32px 28px",boxShadow:"0 30px 70px rgba(8,20,38,.35)"}}>
         <div style={{fontSize:18,fontWeight:700,color:"#dc2626",marginBottom:8}}>Eliminar mi cuenta</div>
-        <div style={{fontSize:13.5,color:"#374151",marginBottom:16,lineHeight:1.55}}>Esto borra tu cuenta y todos tus clientes, pólizas, vehículos, siniestros y solicitudes de forma <strong>permanente e irreversible</strong>. Escribe <strong>ELIMINAR</strong> para confirmar.</div>
+        <div style={{fontSize:13.5,color:"#374151",marginBottom:16,lineHeight:1.55}}>Esto borra tu cuenta y todos tus clientes, pólizas, vehículos, siniestros, solicitudes y tu lista del Proyecto 100 de forma <strong>permanente e irreversible</strong>. Escribe <strong>ELIMINAR</strong> para confirmar.</div>
         <input value={textoConfirma} onChange={e=>setTextoConfirma(e.target.value)} placeholder="ELIMINAR" style={est.input}/>
         <div style={{display:"flex",gap:10,marginTop:6}}>
           <Boton color="#6B7280" onClick={()=>{setModalAbierto(false);setTextoConfirma("");}}>Cancelar</Boton>
@@ -2446,6 +2467,16 @@ function PantallaSuscripcion({cuenta,bloqueado,estadoRed,onAgenteCambiado,onSali
   const diasPrueba=finPrueba?Math.ceil((finPrueba-ahora)/86400000):null;
   const diasExtendido=accesoExtendido?Math.ceil((accesoExtendido-ahora)/86400000):null;
 
+  // Si trae lista del Proyecto 100 es un agente que va arrancando: se le muestra su propio
+  // avance y el precio junto a los otros costos de montar su negocio. No es un argumento de
+  // venta inventado — la cédula y el seguro de RC los acaba de pagar de verdad.
+  const[prospectos,setProspectos]=useState(null);
+  useEffect(()=>{
+    if(suscripcionActiva){setProspectos(0);return;}
+    sb.from("prospectos_agente").select("id",{count:"exact",head:true}).eq("agente_id",cuenta.id)
+      .then(({count})=>setProspectos(count||0));
+  },[cuenta.id,suscripcionActiva]);
+
   const contenido=<div style={{width:"100%",maxWidth:520}}>
     {bloqueado&&<div style={{textAlign:"center",marginBottom:20}}>
       <div style={{fontSize:18,fontWeight:800,color:"#10284A",marginBottom:8}}>Tu prueba gratuita terminó</div>
@@ -2458,6 +2489,17 @@ function PantallaSuscripcion({cuenta,bloqueado,estadoRed,onAgenteCambiado,onSali
       {!suscripcionActiva&&!(diasExtendido>0)&&diasPrueba!=null&&<div style={{fontSize:13,color:diasPrueba<=5?"#F59E0B":"#8FA0B4"}}>Prueba gratuita — quedan {Math.max(diasPrueba,0)} días</div>}
     </div>}
 
+    {!suscripcionActiva&&!accesoGratisPorRed&&prospectos>0&&<div style={{background:"#F4F6FA",border:"1px solid #DDE4EE",borderRadius:12,padding:"16px 18px",marginBottom:16}}>
+      <div style={{fontSize:14,fontWeight:700,color:"#10284A",marginBottom:6}}>
+        Llevas {prospectos} {prospectos===1?"contacto":"contactos"} en tu Proyecto 100
+      </div>
+      <div style={{fontSize:13,color:"#374151",lineHeight:1.65}}>
+        Ahí está tu trabajo de estas semanas, y no se va a ningún lado. Montar tu negocio como agente cuesta:
+        la cédula, tu seguro de responsabilidad civil y tus herramientas de trabajo. De esas tres, esta es la
+        más barata — y si eliges el plan anual, la resuelves de una vez y no vuelves a pensar en ella en todo el año.
+      </div>
+    </div>}
+
     {accesoGratisPorRed&&<div style={{...est.card,background:"#f0fdf4",border:"1px solid #86efac"}}>
       <div style={{fontSize:14,fontWeight:700,color:"#16a34a",marginBottom:6}}>✅ Tu acceso está cubierto</div>
       <div style={{fontSize:13,color:"#374151"}}>Eres parte de la red de <strong>{estadoRed.promotoria_nombre||"tu promotoría"}</strong> — no tienes que pagar nada por separado mientras ella tenga su suscripción vigente.</div>
@@ -2466,34 +2508,17 @@ function PantallaSuscripcion({cuenta,bloqueado,estadoRed,onAgenteCambiado,onSali
     {enRedSinGratis&&<div style={{marginBottom:14}}>
       <div style={{fontSize:14,fontWeight:700,color:"#B45309",marginBottom:6}}>Tarifa de red — $249/mes</div>
       <div style={{fontSize:13,color:"#374151",marginBottom:12}}>Eres parte de la red de <strong>{estadoRed.promotoria_nombre||"tu promotoría"}</strong>, pero ya se ocuparon los primeros 5 lugares incluidos. Te toca la tarifa de agente afiliado: $249/mes en vez de $299.</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
-        {PLANES_AGENTE_AFILIADO.map(p=><div key={p.periodo} style={est.card}>
-          <div style={{fontSize:11,fontWeight:700,color:"#8FA0B4",marginBottom:4}}>{p.label.toUpperCase()}</div>
-          <div style={{fontSize:14,fontWeight:700,color:"#10284A",marginBottom:12}}>{p.monto}</div>
-          <Boton onClick={()=>suscribirse(p.periodo,"agente_afiliado")} disabled={cargando!==null} color="#F59E0B">{cargando===p.periodo?"Redirigiendo...":"Elegir"}</Boton>
-        </div>)}
-      </div>
+      <TarjetasPlan planes={PLANES_AGENTE_AFILIADO} tipo="agente_afiliado" cargando={cargando} onElegir={suscribirse} color="#F59E0B"/>
     </div>}
 
     {porAgenteLibre&&<div style={{marginBottom:14}}>
       <div style={{fontSize:14,fontWeight:700,color:"#B45309",marginBottom:6}}>Tarifa preferente — $249/mes</div>
       <div style={{fontSize:13,color:"#374151",marginBottom:12}}>Te registraste con un código de invitación, así que te toca la tarifa preferente: <strong>$249/mes en vez de $299</strong>.</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
-        {PLANES_AGENTE_AFILIADO.map(p=><div key={p.periodo} style={est.card}>
-          <div style={{fontSize:11,fontWeight:700,color:"#8FA0B4",marginBottom:4}}>{p.label.toUpperCase()}</div>
-          <div style={{fontSize:14,fontWeight:700,color:"#10284A",marginBottom:12}}>{p.monto}</div>
-          <Boton onClick={()=>suscribirse(p.periodo,"agente_afiliado")} disabled={cargando!==null} color="#F59E0B">{cargando===p.periodo?"Redirigiendo...":"Elegir"}</Boton>
-        </div>)}
-      </div>
+      <TarjetasPlan planes={PLANES_AGENTE_AFILIADO} tipo="agente_afiliado" cargando={cargando} onElegir={suscribirse} color="#F59E0B"/>
     </div>}
 
-    {!suscripcionActiva&&!accesoGratisPorRed&&!enRedSinGratis&&!porAgenteLibre&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
-      {PLANES_AGENTE.map(p=><div key={p.periodo} style={est.card}>
-        <div style={{fontSize:11,fontWeight:700,color:"#8FA0B4",marginBottom:4}}>{p.label.toUpperCase()}</div>
-        <div style={{fontSize:14,fontWeight:700,color:"#10284A",marginBottom:12}}>{p.monto}</div>
-        <Boton onClick={()=>suscribirse(p.periodo)} disabled={cargando!==null}>{cargando===p.periodo?"Redirigiendo...":"Elegir"}</Boton>
-      </div>)}
-    </div>}
+    {!suscripcionActiva&&!accesoGratisPorRed&&!enRedSinGratis&&!porAgenteLibre&&
+      <TarjetasPlan planes={PLANES_AGENTE} tipo="agente" cargando={cargando} onElegir={suscribirse} color="#10284A"/>}
 
     {suscripcionActiva&&<div style={est.card}>
       <div style={{fontSize:13,color:"#374151",marginBottom:12}}>Desde Stripe puedes cambiar tu tarjeta, descargar tus facturas o cancelar tu suscripción.</div>
