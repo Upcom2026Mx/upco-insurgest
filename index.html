@@ -182,6 +182,30 @@
   @media(max-width:640px){.fb-inner{height:240px}.fb-cap{left:20px;right:20px;max-width:none;font-size:15.5px}}
   .ejenum{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:linear-gradient(160deg,#FBBF24,#F59E0B);color:#10284A;font-weight:800;font-size:15px;margin-bottom:10px;box-shadow:0 4px 10px rgba(245,158,11,.3)}
   .ejes{max-width:1040px;margin:0 auto;padding:36px 20px 8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+
+  /* "¿Esto es un CRM?" es la pregunta que llega sola. Contestarla de frente ahorra la
+     comparación equivocada contra HubSpot o Zoho, que es una pelea que no queremos. */
+  .quees{max-width:1040px;margin:0 auto;padding:52px 20px 12px}
+  .quees h2{font-size:clamp(23px,3.4vw,32px);line-height:1.15;letter-spacing:-.02em;margin:0 0 14px;color:var(--navy-900);text-wrap:balance}
+  .quees h2 b{color:#B45309;font-weight:inherit}
+  .quees>p{font-size:16px;line-height:1.7;color:#4A5A70;margin:0;max-width:62ch}
+  .quees>p+p{margin-top:12px}
+  .quees-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;margin-top:26px}
+  .quees-col{border-radius:18px;padding:24px 24px 20px}
+  .quees-col h3{font-size:13px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;margin:0 0 14px}
+  .quees-col ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:11px}
+  .quees-col li{font-size:14.5px;line-height:1.55;padding-left:22px;position:relative}
+  .quees-col li::before{position:absolute;left:0;top:0;font-weight:800}
+  .quees-otro{background:#F4F6FA;border:1px solid #DDE4EE}
+  .quees-otro h3{color:#8FA0B4}
+  .quees-otro li{color:#5B6B82}
+  .quees-otro li::before{content:"—";color:#B6C2D2}
+  .quees-tuyo{background:linear-gradient(160deg,var(--navy-800),var(--navy-950));box-shadow:0 16px 40px rgba(16,40,74,.2)}
+  .quees-tuyo h3{color:#FBBF24}
+  .quees-tuyo li{color:#E7EDF6}
+  .quees-tuyo li::before{content:"✓";color:#FBBF24}
+  .quees-nota{margin-top:22px;font-size:14.5px;line-height:1.7;color:#4A5A70;background:#FFFBEB;border:1px solid #FDE68A;border-radius:14px;padding:16px 20px}
+  @media(max-width:600px){.quees{padding:38px 20px 8px}}
   .eje{position:relative;overflow:hidden;isolation:isolate;display:block;background:linear-gradient(160deg,#173863,#0a1c35);border-radius:16px;padding:24px;box-shadow:0 6px 20px rgba(16,40,74,.16);transition:transform .25s ease,box-shadow .25s ease}
   .eje::before{content:"";position:absolute;right:-28px;bottom:-30px;width:150px;height:180px;z-index:0;pointer-events:none;opacity:.10;background-repeat:no-repeat;background-size:contain;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 240'%3E%3Cpath d='M100,8 L184,42 V112 C184,176 140,220 100,232 C60,220 16,176 16,112 V42 Z' fill='none' stroke='%23EAF0F5' stroke-width='6'/%3E%3Cpath d='M74,116 L92,134 L128,90' fill='none' stroke='%23EAF0F5' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
   .eje:hover{transform:translateY(-5px);box-shadow:0 16px 36px rgba(16,40,74,.3)}
@@ -375,6 +399,39 @@
     <p>Tu tarjeta digital capta prospectos por ti y te los manda directo a tu bandeja, mientras sigues atendiendo a quien ya confía en ti.</p>
     <span class="eje-mas">Ver cómo ↓</span>
   </a>
+</div>
+
+<div class="quees reveal">
+  <h2>Esto no es un CRM. Es <b>tu gestor de pólizas</b>.</h2>
+  <p>Un CRM está hecho para perseguir una venta: embudos, etapas y reportes de conversión. Pero tu trabajo no termina cuando el cliente firma — ahí empieza. La póliza que hay que renovar en once meses, el siniestro que hay que acompañar, el endoso que te pidieron por WhatsApp un domingo.</p>
+  <p>Eso que administras tú tiene su propio nombre en el mundo del seguro: un <b>sistema de gestión de agencia</b>. Es una categoría distinta, con otro trabajo que hacer. Y es la que InsurGest hace.</p>
+
+  <div class="quees-cols">
+    <div class="quees-col quees-otro">
+      <h3>Un CRM genérico</h3>
+      <ul>
+        <li>Etapas de embudo y tableros de conversión</li>
+        <li>Contactos sueltos, sin nada colgando de ellos</li>
+        <li>Tú capturas y actualizas absolutamente todo</li>
+        <li>Sirve igual para vender software, casas o seguros</li>
+        <li>Te avisa de tus tareas</li>
+      </ul>
+    </div>
+    <div class="quees-col quees-tuyo">
+      <h3>Tu gestor de pólizas</h3>
+      <ul>
+        <li>Vigencias y renovaciones que se calculan solas</li>
+        <li>Cada cliente con sus pólizas, sus autos y sus siniestros</li>
+        <li>Tu cliente actualiza lo suyo desde su propio portal</li>
+        <li>Sabe qué es una prima, un ramo, un endoso y una cédula</li>
+        <li>Te avisa a ti — y a tu cliente — antes de que algo venza</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="quees-nota">
+    Dicho eso, sí tomamos prestada del otro mundo la única pieza que de verdad hacía falta: el <b>Proyecto 100</b>, para el agente que va empezando y todavía no tiene pólizas que administrar, sino una lista de conocidos a quienes llamar.
+  </div>
 </div>
 
 <div class="orbit-seccion reveal">

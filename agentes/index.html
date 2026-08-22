@@ -40,6 +40,10 @@
   .hero-eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#B9C8DE;margin:0 0 22px}
   .hero h1{font-weight:300;font-size:clamp(30px,4.6vw,50px);line-height:1.06;letter-spacing:-.02em;margin:0 0 20px;color:#fff;max-width:15ch;text-wrap:balance}
   .hero p{font-size:15.5px;color:#C7D3E3;line-height:1.6;margin:0 0 28px;max-width:44ch}
+  /* Aclarar la categoría desde el hero: "¿es un CRM?" es la primera pregunta que llega, y
+     contestarla aquí evita que el prospecto nos compare contra herramientas genéricas. */
+  .hero p.hero-aclara{font-size:14px;color:#B9C8DE;max-width:52ch;border-left:2px solid rgba(245,158,11,.55);padding-left:14px}
+  .hero p.hero-aclara b{color:#FBBF24;font-weight:700}
   .cta-row{display:flex;flex-wrap:wrap;gap:12px}
   .boton{display:inline-block;background:#fff;color:#0a1c35;border-radius:99px;padding:15px 28px;font-size:14.5px;font-weight:800;transition:transform .18s ease,background .18s ease}
   .boton:hover{transform:translateY(-2px);background:#FBBF24}
@@ -50,7 +54,9 @@
   .boton-sec{display:inline-flex;align-items:center;background:transparent;border:none;appearance:none;-webkit-appearance:none;font-family:inherit;cursor:pointer;color:#fff;font-size:14.5px;font-weight:700;padding:15px 4px;border-bottom:1.5px solid rgba(255,255,255,.35);border-radius:0;transition:border-color .18s ease;forced-color-adjust:none}
   .boton-sec:hover{border-color:#fff}
   @media(prefers-reduced-motion:reduce){.boton,.boton-sec{transition:none}.boton:hover{transform:none}}
-  @media(max-width:600px){.hero{padding:56px 24px;text-align:center}.hero p{margin-left:auto;margin-right:auto}.cta-row{justify-content:center}}
+  @media(max-width:600px){.hero{padding:56px 24px;text-align:center}.hero p{margin-left:auto;margin-right:auto}.cta-row{justify-content:center}
+    /* Centrado, el filete lateral queda descolgado del texto: se cambia por uno superior. */
+    .hero p.hero-aclara{border-left:none;padding-left:0;padding-top:16px;border-top:2px solid rgba(245,158,11,.55)}}
 
   .grupo{max-width:1040px;margin:0 auto;padding:40px 20px 0}
   .grupo-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
@@ -110,6 +116,7 @@
     <div class="hero-eyebrow">Para agentes de seguros independientes</div>
     <h1>Todo lo que Upco InsurGest hace por ti, en una sola hoja</h1>
     <p>Una herramienta, tres trabajos: organizar tu cartera, hacer que tus clientes se queden, y conseguir prospectos nuevos sin gastar en publicidad. Esto es todo lo que incluye tu cuenta.</p>
+    <p class="hero-aclara"><b>No es un CRM.</b> Un CRM sirve para perseguir una venta; tu trabajo empieza cuando el cliente ya firmó. Esto es un <b>gestor de pólizas</b> — un sistema de gestión de agencia, la categoría que de verdad corresponde a tu oficio: sabe qué es una prima, un ramo, un endoso y una vigencia.</p>
     <div class="cta-row">
       <a class="boton" href="../app/?registro=1">Crear mi cuenta gratis</a>
       <a class="boton-sec" href="../precios/">Ver precios →</a>
