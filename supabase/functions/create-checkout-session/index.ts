@@ -70,6 +70,21 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Cuenta no encontrada" }), { status: 404, headers: json });
     }
 
+    // El "tipo" lo elige el navegador, así que la tarifa de $249 tiene que validarse aquí:
+    // sin esto, cualquiera que supiera invocar la función pedía "agente_afiliado" y pagaba
+    // $249 en vez de $299. La regla vive en SQL (agente_puede_tarifa_afiliado) para que el
+    // checkout y el panel decidan con el mismo criterio.
+    if (tipo === "agente_afiliado") {
+      const { data: permitido, error: permisoError } = await supabase
+        .rpc("agente_puede_tarifa_afiliado", { p_agente_id: userId });
+      if (permisoError) {
+        return new Response(JSON.stringify({ error: permisoError.message }), { status: 500, headers: json });
+      }
+      if (permitido !== true) {
+        return new Response(JSON.stringify({ error: "Esa tarifa no aplica a tu cuenta." }), { status: 403, headers: json });
+      }
+    }
+
     const { data: precio } = await supabase
       .from("stripe_precios")
       .select("price_id")
